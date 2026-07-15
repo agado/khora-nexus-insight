@@ -1,0 +1,24 @@
+# Entornos virtuales (¡Crucial! Contienen miles de archivos de librerías)
+.venv/
+venv/
+env/
+ENV/
+
+# Caché de Python (Archivos compilados .pyc que la IA no necesita leer)
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Docker y Base de datos local (Evita que lea datos binarios o volúmenes)
+.docker/
+data/
+*.db
+*.sqlite3
+
+# Control de versiones y logs
+.git/
+.gitignore
+*.log

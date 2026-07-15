@@ -1,0 +1,12 @@
+# ==============================================================================
+# NEXUS INSIGHT - PRE-COMMIT HOOKS
+# ==============================================================================
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.0  # Versión estable de Ruff en 2026
+    hooks:
+      # Hook 1: Ejecuta el linter y auto-corrige lo que pueda
+      - id: ruff
+        args: [ --fix ]
+      # Hook 2: Aplica el formateador de código
+      - id: ruff-format

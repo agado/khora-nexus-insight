@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  fastapi_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus_backend
+    restart: always
+    ports:
+      - "${PROD_API_PORT:-8000}:8000"
+    environment:
+      - ENV=production
+      - JWT_SECRET=${PROD_JWT_SECRET}
+      - JWT_ALGORITHM=${PROD_JWT_ALGORITHM:-HS256}
+      - DATABASE_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@db_service:5432/${PROD_DB_NAME}
+      - MODEL_HOST=http://ollama_service:11434
+      - MODEL_NAME=${PROD_MODEL_NAME}
+    depends_on:
+      db_service:
+        condition: service_healthy
+    networks:
+      - nexus-network
+
+  db_service:
+    image: postgres:16-alpine
+    container_name: nexus_postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=${PROD_DB_USER}
+      - POSTGRES_PASSWORD=${PROD_DB_PASSWORD}
+      - POSTGRES_DB=${PROD_DB_NAME}
+    # 🔒 SSDLC: Sin mapeo de puertos hacia el exterior. Aislado en la red interna.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nexus-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PROD_DB_USER} -d ${PROD_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ollama_service:
+    image: ollama/ollama:latest
+    container_name: nexus_ollama
+    restart: always
+    # 🔒 SSDLC: Sin mapeo de puertos hacia el exterior. Aislado en la red interna.
+    volumes:
+      - ollama_storage:/root/.ollama
+    networks:
+      - nexus-network
+
+networks:
+  nexus-network:
+    name: nexus-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: nexus_postgres_data_prod
+  ollama_storage:
+    name: nexus_ollama_storage_prod

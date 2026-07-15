@@ -1,0 +1,38 @@
+# Ignorar entornos virtuales y dependencias locales
+.venv/
+env/
+venv/
+ENV/
+
+# Ignorar secretos y configuraciones locales
+.env
+*.env
+*.pem
+*.key
+*.cert
+
+# Ignorar archivos de Git y editores
+.git/
+.gitignore
+.github/
+.vscode/
+.idea/
+.DS_Store
+
+# Ignorar cachés y reportes de tests
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# Ignorar documentación no requerida en ejecución
+README.md
+SPEC.md
+checkmate.md
+agents.md

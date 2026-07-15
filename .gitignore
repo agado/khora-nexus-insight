@@ -1,0 +1,49 @@
+# Environment & Secrets (¡CRÍTICO PARA ZERO-TRUST!)
+.env
+.env.local
+*.env
+*.pem
+*.key
+*.cert
+
+# Python & Dependency Managers
+.venv/
+env/
+venv/
+ENV/
+requirements.txt.log
+poetry.lock
+pip-wheel-metadata/
+
+# Python Bytecode & Cache
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Coverage & Reports (Testing)
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+nosetests.xml
+
+# Database local (Docker persistence)
+pgdata/
+postgres_data/
+
+# Logs
+logs/
+*.log
+
+# Editor & System Files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

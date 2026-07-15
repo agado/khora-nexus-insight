@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  fastapi_app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus_backend_dev
+    ports:
+      - "${API_PORT:-8000}:8000"
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - ENV=${ENV:-development}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db_service:5432/${DB_NAME}
+      - MODEL_HOST=${MODEL_HOST}
+      - MODEL_NAME=${MODEL_NAME:-qwen2.5-coder:1.5b}
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      db_service:
+        condition: service_healthy
+    networks:
+      - nexus-network
+
+  db_service:
+    image: postgres:16-alpine
+    container_name: nexus_postgres_dev
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      - nexus_db_dev_data:/var/lib/postgresql/data
+    networks:
+      - nexus-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  ollama_service:
+    image: ollama/ollama:latest
+    container_name: nexus_ollama_dev
+    ports:
+      - "127.0.0.1:${MODEL_PORT:-11434}:11434"
+    volumes:
+      - nexus_ollama_dev_data:/root/.ollama
+    networks:
+      - nexus-network
+
+networks:
+  nexus-network:
+    name: nexus-network
+    driver: bridge
+
+volumes:
+  nexus_db_dev_data:
+  nexus_ollama_dev_data:

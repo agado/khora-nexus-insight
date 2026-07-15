@@ -1,0 +1,38 @@
+# ==============================================================================
+# NEXUS INSIGHT - CONFIGURACIÓN DE CALIDAD DE CÓDIGO (RUFF)
+# ==============================================================================
+
+# Target para Python 3.13 (aprovecha las últimas optimizaciones sintácticas)
+target-version = "py313"
+line-length = 100
+
+[lint]
+# Reglas activas para el MVP
+select = [
+    "E",     # pycodestyle (Errores de estilo)
+    "W",     # pycodestyle (Advertencias de estilo)
+    "F",     # Pyflakes (Errores lógicos y de variables no usadas)
+    "I",     # isort (Orden automático de imports)
+    "B",     # flake8-bugbear (Buenas prácticas y bugs comunes)
+    "UP",    # pyupgrade (Sintaxis moderna de Python)
+    "N",     # pep8-naming (Convenciones de nombres PEP8)
+    "ASYNC", # flake8-async (Previene bloqueos en código asíncrono)
+]
+
+# Reglas ignoradas para evitar alertas molestas en FastAPI y SQLAlchemy
+ignore = [
+    "B008",  # Permite usar FastAPI Depends() dentro de los argumentos de funciones
+    "N805",  # Permite el primer argumento de validadores de Pydantic sin ser 'self'
+]
+
+[lint.isort]
+# Ordena los imports agrupando primero los del sistema, luego dependencias y al final tu código
+combine-as-imports = true
+known-first-party = ["src"]
+
+[format]
+# Configuración del formateador automático (estilo limpio similar a Black)
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

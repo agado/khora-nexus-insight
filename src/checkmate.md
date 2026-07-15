@@ -1,0 +1,117 @@
+# checkmate.md — Invariantes de Seguridad y Validación Zero-Trust
+
+## 1. Propósito del documento
+`Checkmate` define las reglas de seguridad, validación y comportamiento de cumplimiento obligatorio en Nexus Insight. Su objetivo es garantizar:
+* Soberanía de datos y aislamiento hermético de servicios.
+* Integridad documental mediante firmas criptográficas.
+* Auditoría forense inmutable.
+* Cumplimiento estricto del paradigma Zero-Trust.
+
+Este documento complementa a `SPEC.md` y sirve como guía de control supremo para desarrolladores y agentes de IA.
+
+---
+
+## 2. Invariantes de Seguridad (Obligatorias - MVP 1.0)
+
+### 2.1 Contenedores sin Privilegios (No-Root)
+* **Regla:** Ningún servicio (`fastapi_app`, `db_service`, `ollama_service`) puede ejecutarse como usuario `root`.
+* **Implementación:** Declarar explícitamente usuarios no privilegiados (`USER`) en los `Dockerfile` y en la configuración de Docker Compose.
+
+### 2.2 Validación Criptográfica SHA-256 Previa
+* **Regla:** Todo archivo recibido debe calcular su hash SHA-256 en memoria antes de cualquier tipo de persistencia.
+* **Implementación:** Si el hash no se puede computar, la ingesta se rechaza de inmediato. No se almacena el documento físico.
+
+### 2.3 Auditoría Inmutable (Append-Only)
+* **Regla:** La tabla `AuditLog` solo permite la sentencia `INSERT`.
+* **Implementación:** Configurar triggers físicos en PostgreSQL que bloqueen y lancen una excepción ante cualquier sentencia `UPDATE` o `DELETE`. Se auditan de forma obligatoria inicios de sesión, ingestas, consultas RAG y errores del sistema.
+
+### 2.4 Aislamiento del Motor de IA (Ollama)
+* **Regla:** El contenedor de IA opera aislado en la red interna `nexus-network` sin exponer puertos en producción.
+* **Implementación:** Solo el backend FastAPI tiene permitido comunicarse con Ollama. La IA no tiene acceso a la base de datos ni a rutas físicas del sistema de archivos.
+
+### 2.5 Aislamiento de la Base de Datos
+* **Regla:** PostgreSQL es accesible únicamente por el backend FastAPI dentro de `nexus-network`.
+* **Implementación:** Sin puertos expuestos al host exterior en producción. Los volúmenes persistentes deben estar protegidos.
+
+### 2.6 Prohibición de Secrets en Código (Hardcoding)
+* **Regla:** Prohibido escribir tokens, contraseñas o firmas JWT en texto plano en el repositorio.
+* **Implementación:** Uso estricto de variables de entorno inyectadas desde `.env`. El archivo `.env.example` solo contendrá valores ficticios y de plantilla.
+
+### 2.7 Control de Acceso Basado en Roles (RBAC)
+* **Regla:** Todos los endpoints sensibles (excepto login y health check) requieren validación JWT y rol verificado.
+* **Implementación:** * `admin`: Acceso completo (Ingesta, AuditLog, consultas RAG).
+  * `staff`: Acceso restringido exclusivamente a consultas RAG y lectura limitada.
+
+### 2.8 Red Interna Zero-Trust
+* **Regla:** Comunicación exclusiva entre contenedores mediante la red virtual de Docker `nexus-network`.
+* **Implementación:** Ningún contenedor puede comunicarse de forma directa con el exterior o con otros servicios fuera de la red declarada.
+
+### 2.9 Filosofía de Fallo Seguro (Fail-Closed)
+* **Regla:** Ante cualquier caída o excepción no controlada en el subsistema de auditoría (`AuditLog`), el flujo operativo del backend debe interrumpirse inmediatamente.
+* **Implementación:** Si un registro de auditoría síncrono falla al guardarse en PostgreSQL ➔ la transacción principal (ej. login o ingesta) se aborta con un rollback y se deniega el acceso al usuario.
+
+### 2.10 Sanitización de Memoria Transitoria
+* **Regla:** El contenido de los documentos procesados en memoria RAM no debe persistir en el ciclo de vida del backend más allá de lo estrictamente necesario para el parsing.
+* **Implementación:** Forzar la liberación o sobreescritura de buffers en memoria una vez que el texto ha sido extraído y enviado al flujo de inferencia.
+
+---
+
+## 3. Validaciones Automáticas (Checklist de Control)
+
+El sistema (y los agentes de IA) deben verificar automáticamente los siguientes puntos antes de dar una tarea por completada:
+
+### 3.1 Infraestructura y Contenedores
+* [ ] Todos los `Dockerfile` declaran un usuario no root.
+* [ ] El archivo `docker-compose.prod.yml` no expone puertos de PostgreSQL (5432) ni de Ollama (11434).
+* [ ] Los volúmenes locales de persistencia están declarados correctamente.
+
+### 3.2 Lógica de Seguridad y Base de Datos
+* [ ] La subida de documentos calcula el SHA-256 en memoria y verifica duplicados.
+* [ ] El trigger anti-modificación/borrado de `AuditLog` está activo en la base de datos.
+* [ ] El archivo `.env.example` no contiene credenciales reales ni claves secretas de producción.
+
+### 3.3 Comportamiento del Backend
+* [ ] Todos los endpoints implementan inyección de dependencias para validación de JWT y roles.
+* [ ] Las respuestas de inferencia RAG generan de forma síncrona un registro en `AuditLog`.
+* [ ] Los logs del sistema se emiten de forma estructurada en formato JSON en consola.
+
+---
+
+## 4. Casos Límite y Manejo de Errores
+
+| Evento o Condición Anómala | Acción del Backend | Código de Estado HTTP | Registro en Auditoría |
+| :--- | :--- | :--- | :--- |
+| Archivo corrupto o ilegible | Abortar procesamiento | `400 Bad Request` | No registra |
+| Hash SHA-256 ya existente | Rechazar duplicado | `400 Bad Request` | Registra intento |
+| Token JWT ausente o expirado | Bloquear petición | `401 Unauthorized` | Registra fallo |
+| Usuario `staff` intenta subir documento | Bloquear acceso | `403 Forbidden` | Registra violación |
+| Identificador de documento inexistente | Retornar vacío | `404 Not Found` | No registra |
+| Fallo al escribir en `AuditLog` | Abortar transacción principal (Rollback) | `500 Internal Error` | Registro en consola JSON (Contingencia) |
+| Caída de base de datos o de Ollama | Activar logs de contingencia | `500 Internal Error` | Registra en consola |
+
+---
+
+## 5. Matriz de Trazabilidad Obligatoria
+Cada invariante de seguridad declarada en la sección 2 debe estar respaldada de forma obligatoria por:
+1. **Un Test:** Prueba unitaria o de integración en Pytest que intente violar deliberadamente la regla (ej: inyectar un payload sin JWT y validar el rechazo).
+2. **Un Endpoint:** Vinculación directa con los contratos definidos en `SPEC.md`.
+3. **Un Log:** Registro inmutable del evento correspondiente dentro del `AuditLog`.
+
+---
+
+## 6. Roadmap de Seguridad e Interfaces (Futuro / Post-MVP)
+
+Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP deben dejar preparado el terreno para:
+* **CLI Interactivo (Nexus CLI):** Mantener la lógica de consultas RAG desacoplada de FastAPI en `src/core/` para que la futura interfaz de terminal (`Typer`/`Rich`) consuma las funciones sin duplicar código.
+* **Validación Automática de Prompts:** Capas de filtrado de entrada para prevenir inyecciones indirectas en prompts antes de enviarlos a Ollama.
+* **Hardening de Persistencia Volátil (RAM):** Migración de los directorios de procesamiento temporal y cachés de contexto de Ollama hacia volúmenes en memoria RAM virtualizada (`tmpfs`), garantizando que la pérdida de corriente elimine cualquier dato residual.
+* **Rotación Criptográfica:** Modularidad en el servicio de tokens para cambiar de algoritmos de firma de manera ágil.
+* **Observabilidad Avanzada (OpenTelemetry):** Inclusión de un identificador de petición (`request_id`) en los logs del MVP para facilitar la futura transición a trazabilidad distribuida y sistemas SIEM.
+* **Alta Disponibilidad (HA):** Diseño del backend sin estado (*stateless*) para permitir balanceo de carga en futuras fases corporativas.
+
+---
+
+## 7. Estado del Documento
+* **Versión:** MVP 1.0  
+* **Última actualización:** 14 de Julio de 2026  
+* **Responsable:** Arquitectura de Seguridad Nexus Insight
