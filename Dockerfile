@@ -1,7 +1,7 @@
 # ==============================================================================
 # ETAPA 1: Compilación de dependencias (Builder)
 # ==============================================================================
-FROM python:3.13.2-slim-bookworm AS builder
+FROM python:3.12.9-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 # ==============================================================================
 # ETAPA 2: Entorno de ejecución ultra-seguro (Runner)
 # ==============================================================================
-FROM python:3.13.2-slim-bookworm AS runner
+FROM python:3.12.9-slim-bookworm AS runner
 
 WORKDIR /app
 

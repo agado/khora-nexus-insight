@@ -35,11 +35,17 @@ nosetests.xml
 pgdata/
 postgres_data/
 
+# AI local storage - Dockerdata
+nexus_db_dev_data/
+nexus_ollama_dev_data/
+ollama_storage/
+
 # Logs
 logs/
 *.log
 
 # Editor & System Files
+.opencode
 .vscode/*
 !.vscode/extensions.json
 .idea/
