@@ -45,11 +45,27 @@ services:
     image: ollama/ollama:latest
     container_name: nexus_ollama_dev
     ports:
-      - "127.0.0.1:${MODEL_PORT:-11434}:11434"
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
     volumes:
       - nexus_ollama_dev_data:/root/.ollama
     networks:
       - nexus-network
+    # Pasamos la variable del modelo al contenedor
+    environment:
+      - MODEL_NAME=${MODEL_NAME:-qwen2.5-coder:1.5b}
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: 
+      - |
+        ollama serve &
+        sleep 5
+        # Comprobamos si el modelo ya existe localmente en el volumen
+        if ollama list | grep -q "$$MODEL_NAME"; then
+          echo "✅ El modelo $$MODEL_NAME ya está descargado y listo."
+        else
+          echo "📥 Descargando el modelo $$MODEL_NAME de forma automática..."
+          ollama pull $$MODEL_NAME
+        fi
+        wait
 
 networks:
   nexus-network:
