@@ -3,7 +3,7 @@
 ## 1. Propósito del documento
 Este documento define el contrato técnico y arquitectónico del backend de **Nexus Insight**. Describe de forma vinculante los endpoints, modelos de datos, reglas de negocio, flujos internos y restricciones de seguridad que rigen el sistema. 
 
-Es la referencia principal para el desarrollo, la suite de pruebas y las auditorías del tribunal, garantizando que el software cumpla estrictamente con los paradigmas de **Specification-Driven Development (SDD)**, **Test-Driven Development (TDD)** y **Secure Software Development Life Cycle (SSDLC)**.
+Es la referencia principal para el desarrollo, la suite de pruebas y las auditorías del tribunal, garantizando que el software cumpla estrictamente con los paradigmas de **Specification-Driven Development (SDD)**, **Test-Driven Development (TDD)** y **Secure Software Development Life Cycle (SSDLC)**. Cada decisión técnica aquí recogida se alinea con los pilares de diseño del proyecto (Arquitectura Limpia, Seguridad en Profundidad, Privacidad por Diseño, Portabilidad, Costo Cero y Observabilidad), detallados en el `README.md`.
 
 ---
 
@@ -47,6 +47,7 @@ User {
     username: str                   // Identificador único de inicio de sesión
     hashed_password: str            // Hash criptográfico generado con Argon2id
     role: Literal["admin", "staff"] // Rol asignado para el control RBAC
+    department_id: int              // Clave foránea -> Department.id
     created_at: datetime            // Timestamp con zona horaria UTC
 }
 ```
@@ -56,6 +57,8 @@ Document {
     id: int                         // Clave primaria autoincremental
     filename: str                   // Nombre original del archivo procesado
     sha256: str                     // Firma criptográfica única del contenido
+    content_text: str               // Texto extraído para búsqueda
+    department_id: int              // Clave foránea -> Department.id (hereda del uploader)
     uploaded_by: int                // Clave foránea -> User.id
     created_at: datetime            // Timestamp de ingesta en formato UTC
 }```
@@ -217,6 +220,19 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 
 ---
 
+## 11. Decisiones Técnicas Vinculantes
+
+| Decisión | Alternativa descartada | Motivo |
+|---|---|---|
+| **Upload por API** (Multipart) | Hot Folders (carpetas vigiladas) | Testeable con TestClient. El department_id se hereda del JWT, no se configura manualmente. |
+| **Búsqueda textual con `ILIKE`** | ChromaDB / vectores | Suficiente para MVP. Sin contenedor extra ni embeddings. |
+| **Departamento vía JWT** | El usuario elige departamento al subir | Zero-trust: el token es la fuente de verdad del rol y departamento. |
+| **Prompt con delimitadores XML** | Guardrails anti-inyección completos | Capa OWASP ligera sin sobrecarga. Guardrails completos → post-MVP. |
+| **Fail-Closed por transacciones atómicas** | Lógica manual de rollback | SQLAlchemy `commit()` maneja el rollback automáticamente si AuditLog falla. |
+| **`nexus.py`** | Makefile | Portable Windows/Linux/Mac sin dependencias externas. |
+
+---
+
 ## 10. Roadmap Técnico del SPEC (Fases Futuras y Usabilidad)
 
 ### 10.1 Interfaz de Usuario de Alta Accesibilidad (Post-MVP)
@@ -226,8 +242,41 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
   * Menús interactivos en la terminal para seleccionar los documentos a incluir en el contexto.
 * **Separación de Capas:** El backend mantendrá sus controladores desacoplados, garantizando que la CLI consuma los mismos servicios internos de la aplicación que la API, sin comprometer el diseño de monolito modular.
 
-### 10.2 Hardening y Escalabilidad Corporativa
-* Implementación de un sistema automatizado para la rotación de claves criptográficas y firmado de tokens.
-* Incorporación de métricas avanzadas de rendimiento RAG (latencias de recuperación frente a tiempos de inferencia).
-* Escalabilidad horizontal del motor de inferencia con soporte adaptativo para entornos híbridos CPU/GPU.
-* Integración de la auditoría inmutable con sistemas SIEM corporativos mediante logs distribuidos con OpenTelemetry.
+### 10.2 Seguridad Avanzada
+* Guardrails anti-prompt-injection con sanitización profunda de entradas.
+* Rotación automática de claves JWT y certificados.
+* Autenticación multifactor (TOTP) para administradores.
+* Rate limiting por usuario y rol.
+
+### 10.3 IA y Motor de Búsqueda
+* ChromaDB para búsqueda semántica vectorial (embeddings).
+* Soporte multi-modelo: selección configurable entre qwen, llama, mistral.
+* OCR para documentos escaneados (Tesseract).
+* Filtro de destinatario contextual: adaptación automática del tono según el rol del lector.
+
+### 10.4 Infraestructura y Despliegue
+* CI/CD con GitHub Actions (tests + lint + cobertura automáticos en cada push y PR).
+* Escalado horizontal con balanceo de carga (múltiples instancias de la API).
+* Despliegue cloud optimizado (AWS ECS / GCP Cloud Run / Azure ACA) con un solo comando.
+* Soporte para entornos híbridos CPU/GPU en inferencia.
+
+### 10.5 Observabilidad Corporativa
+* OpenTelemetry para trazabilidad distribuida entre servicios.
+* Dashboard de métricas en tiempo real (latencia, volumen de consultas, tasa de error).
+* Alertas automáticas ante anomalías (subida de latencia, picos de error, caída de Ollama).
+* Integración con SIEM corporativos mediante exportación estructurada de logs.
+
+### 10.6 Experiencia de Usuario y Operaciones
+* Nexus CLI completo con Typer + Rich (menús interactivos, barras de progreso, paneles de colores).
+* Hot Folders: arrastrar y soltar documentos en carpetas vigiladas.
+* Panel web de administración (React/Vue) para gestión visual.
+* Procesamiento por lotes (batch upload de múltiples documentos).
+* Políticas de retención de datos con limpieza automática programada.
+* Notificaciones webhook al completar ingestiones o consultas.
+* Exportación/importación de documentos y configuraciones del sistema.
+
+### 10.7 Cumplimiento y Auditoría
+* Reportes automáticos de auditoría (GDPR, SOC2, ISO 27001).
+* Dashboards de compliance con visualización de accesos y roles.
+* Firmado electrónico de documentos.
+* Versionado de documentos con historial de cambios.

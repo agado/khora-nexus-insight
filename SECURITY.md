@@ -56,28 +56,44 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 
 ---
 
-## 3. Validaciones Automáticas (Checklist de Control)
+## 3. Observabilidad (Logs Estructurados)
+
+Toda petición al backend genera un log JSON en stdout con el siguiente formato:
+
+```json
+{"time": "2026-07-16T20:00:00", "level": "INFO", "message": "Login successful", "user": "tfm_admin", "ip": "172.17.0.1"}
+```
+
+* **Campos obligatorios:** `time`, `level`, `message`.
+* **Campos contextuales:** `user`, `ip`, `action`, `latency_ms`, `status_code`.
+* **Niveles:** `INFO` (éxito), `WARNING` (intento fallido), `ERROR` (excepción).
+* **Destino:** stdout del contenedor (`docker compose logs -f fastapi_app`).
+* **No se almacenan** prompts de usuario ni contenido de documentos en los logs.
+
+---
+
+## 4. Validaciones Automáticas (Checklist de Control)
 
 El sistema (y los agentes de IA) deben verificar automáticamente los siguientes puntos antes de dar una tarea por completada:
 
-### 3.1 Infraestructura y Contenedores
+### 4.1 Infraestructura y Contenedores
 * [ ] Todos los `Dockerfile` declaran un usuario no root.
 * [ ] El archivo `docker-compose.prod.yml` no expone puertos de PostgreSQL (5432) ni de Ollama (11434).
 * [ ] Los volúmenes locales de persistencia están declarados correctamente.
 
-### 3.2 Lógica de Seguridad y Base de Datos
+### 4.2 Lógica de Seguridad y Base de Datos
 * [ ] La subida de documentos calcula el SHA-256 en memoria y verifica duplicados.
 * [ ] El trigger anti-modificación/borrado de `AuditLog` está activo en la base de datos.
 * [ ] El archivo `.env.example` no contiene credenciales reales ni claves secretas de producción.
 
-### 3.3 Comportamiento del Backend
+### 4.3 Comportamiento del Backend
 * [ ] Todos los endpoints implementan inyección de dependencias para validación de JWT y roles.
 * [ ] Las respuestas de inferencia RAG generan de forma síncrona un registro en `AuditLog`.
 * [ ] Los logs del sistema se emiten de forma estructurada en formato JSON en consola.
 
 ---
 
-## 4. Casos Límite y Manejo de Errores
+## 5. Casos Límite y Manejo de Errores
 
 | Evento o Condición Anómala | Acción del Backend | Código de Estado HTTP | Registro en Auditoría |
 | :--- | :--- | :--- | :--- |
@@ -91,7 +107,7 @@ El sistema (y los agentes de IA) deben verificar automáticamente los siguientes
 
 ---
 
-## 5. Matriz de Trazabilidad Obligatoria
+## 6. Matriz de Trazabilidad Obligatoria
 Cada invariante de seguridad declarada en la sección 2 debe estar respaldada de forma obligatoria por:
 1. **Un Test:** Prueba unitaria o de integración en Pytest que intente violar deliberadamente la regla (ej: inyectar un payload sin JWT y validar el rechazo).
 2. **Un Endpoint:** Vinculación directa con los contratos definidos en `SPEC.md`.
@@ -99,7 +115,7 @@ Cada invariante de seguridad declarada en la sección 2 debe estar respaldada de
 
 ---
 
-## 6. Roadmap de Seguridad e Interfaces (Futuro / Post-MVP)
+## 7. Roadmap de Seguridad e Interfaces (Futuro / Post-MVP)
 
 Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP deben dejar preparado el terreno para:
 * **CLI Interactivo (Nexus CLI):** Mantener la lógica de consultas RAG desacoplada de FastAPI en `src/core/` para que la futura interfaz de terminal (`Typer`/`Rich`) consuma las funciones sin duplicar código.
@@ -111,7 +127,7 @@ Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP de
 
 ---
 
-## 7. Estado del Documento
+## 8. Estado del Documento
 * **Versión:** MVP 1.0  
 * **Última actualización:** 14 de Julio de 2026  
 * **Responsable:** Arquitectura de Seguridad Nexus Insight

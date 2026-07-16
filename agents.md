@@ -47,16 +47,15 @@ You must strictly enforce the following design constraints. Do not over-engineer
 ### 1. Zero-Trust Modular Monolith & Clean Architecture Structure
 The application code lives inside `src/`. Business domains must be completely decoupled.
 * `src/core/`: Infrastructure setups (`config.py`, `database.py`).
-* `src/core/storage/`: Implements Dependency Inversion. 
-    * `interface.py`: Defines the abstract contract for file management.
-    * `local_storage.py`: Handles current MVP execution (Hot Folders: `/storage/dev`, `/storage/marketing`, `/storage/pm`). Validates file integrity using SHA-256 hashes before AI ingestion.
+* `src/core/storage/`: Implements Dependency Inversion (file I/O). Specified in `SPEC.md`.
 * `src/core/auth/`: Contains `security.py` (password hashing/JWT) and `rbac.py` (Lightweight Role-Based Access Control logic via FastAPI HTTP Headers `X-User-Role` for the MVP phase).
 * `src/api/v1/`: Handles routing, payloads validation via Pydantic v2, and endpoints mapping (`auth.py`, `query.py`).
 
 ### 2. Environment & Dependency Hygiene
 * **Explicit Imports:** Never use wildcard imports (`from module import *`).
 * **Explicit Package Safety:** When introducing or changing any Python third-party dependency, you **MUST append a reminder at the end of your response text instructing the user to run:** `pip freeze | grep -i <paquete> >> requirements.txt`. If environment mismatches occur, remind the user to clear pip cache or refresh the virtual environment (`python -m venv venv`).
-* **Git Control:** After completing a milestone and verifying all tests pass, remind the user of the atomic Git commands needed (`git add`, `git commit -m "feat/..."`) to maintain an academic commit history.
+* **Git Control:** Each milestone follows: `git checkout -b feat/hX-nombre` → TDD (RED→GREEN→REFACTOR) → commits atómicos con [conventional commits](https://www.conventionalcommits.org/) → PR a `main` → `git tag -a hX -m "Hito X: descripción"`.
+* **Pre-commit/Pre-push:** Ejecutar `pre-commit install` (lint + format) y `pre-commit install --hook-type pre-push` (tests) tras clonar el repo.
 * **Single-Command Deployment:** Docker setups must allow the professor to completely launch the API, database, and background processes using exclusively: `docker compose up --build`.
 
 ---
@@ -88,6 +87,7 @@ Every technical implementation must lay the groundwork to perfectly populate the
 1.  **Plan Mode First:** Always present a brief 3-line architectural plan before writing code blocks.
 2.  **Verify & Review:** Verify that every file contains `__init__.py` if it acts as a Python module package.
 3.  **Command Reminders:** Output package and version freeze commands whenever changes occur.
+4.  **Second Vigilance (AI + Human):** This workflow applies equally to human developers and AI agents. Every change acts as a second pair of eyes, ensuring quality, SDD, TDD, and SSDLC compliance at all times.
 
 ---
 

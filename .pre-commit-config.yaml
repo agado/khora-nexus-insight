@@ -10,3 +10,12 @@ repos:
         args: [ --fix ]
       # Hook 2: Aplica el formateador de código
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: pytest -v
+        language: system
+        pass_filenames: false
+        stages: [push]

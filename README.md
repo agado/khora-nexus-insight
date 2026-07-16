@@ -69,8 +69,8 @@ Facilidad de uso: Plataforma accesible para equipos multidisciplinares.
 * Base de datos: PostgreSQL 15 + SQLAlchemy 2.0 (async con asyncpg).
 * IA Local: Ollama ejecutando el modelo qwen2.5:1.5b en contenedor aislado.
 * Infraestructura: Docker + Docker Compose.
-* Automatización: Makefile (MVP).
-* Calidad de código: Ruff + pre‑commit.
+* Automatización: `nexus.py` (MVP).
+* Calidad de código: Ruff + pre‑commit + pre‑push (tests).
 * Pruebas: Pytest + pytest-asyncio con mocking.
 
 ## c. Información sobre su instalación y ejecución
@@ -211,122 +211,61 @@ Este modelo arquitectónico soluciona de raíz los riesgos de filtración de dat
 
 
 
-## g. Estado actual y RoadMap (Desarrollo Guiado por TDD)
+## g. Roadmap de Desarrollo (TDD)
 
-Fase,Entregable,Funcionalidad Clave,Testeable (Definition of Done)
-Fase 1,Scaffolding,"Estructura, orquestación Docker y FastAPI base",GET /health responde HTTP 200
-Fase 2,Capa de Datos,PostgreSQL + Modelos SQLAlchemy asíncronos,Conexión DB y creación de tablas automática
-Fase 3,Seguridad,Auth (JWT/RBAC) + Validación Pydantic estricta,Tests de Login OK + Bloqueo de rutas protegidas
-Fase 4,Motor de IA,Integración con servicio Ollama (vía API),Respuesta del flujo RAG (mockeada en tests)
-Fase 5,Integridad,Sistema de auditoría y almacenamiento local blindado,Registros verificables en tabla AuditLog
+| Hito | Objetivo | Criterio de Aceptación (DoD) |
+|---|---|---|
+| **H1** ✅ | Scaffolding: Docker, FastAPI, health endpoints | `GET /api/v1/health` responde 200. 13 tests. |
+| **H2** | `nexus.py`, base de datos, migraciones Alembic, modelos (`+department_id`), seed, test integración DB, `pytest-cov` | `nexus dev` funciona. Tablas creadas. Seed poblado. |
+| **H3** | Autenticación JWT + Argon2id + middleware RBAC | Login OK → 200. Sin token → 401. Prohibición por rol → 403. |
+| **H4** | Ingesta documental por API: SHA-256, extracción texto (pypdf), búsqueda textual, asignación departamento vía JWT | Upload → 201. Duplicado → 400. Solo admin. |
+| **H5** | Motor RAG: consulta con filtro RBAC, contexto a Ollama, delimitadores XML anti-inyección | Marketing solo ve su depto. Mock IA → 200. |
+| **H6** | Auditoría inmutable (trigger PostgreSQL), trazabilidad completa, documentación final, cobertura > 70% | `DELETE` en audit_logs → excepción. Docs sincronizados. |
 
-### Mapa MVP (implementado)
+### Post-MVP (Futuro)
 
-* Arquitectura monolito modular.
-* Contenedor aislado para IA.
-* PostgreSQL + SQLAlchemy async.
-* RBAC + JWT + Argon2id.
-* Auditoría append‑only.
-* Ingesta con SHA‑256.
-* Pruebas con Pytest.
-* Ruff + pre‑commit.
-* Docker Compose.
-* Makefile básico (dev/down).
-* Documentación Swagger.
-
-### Roadmap futuro (no implementado aún)
-
-* Rotación de claves criptográficas.
-* Métricas avanzadas de rendimiento RAG.
-* Modelos IA escalables por CPU/GPU.
-* Sharding de documentos y colas de procesamiento.
-* Integración con SIEM corporativos.
-* Hardening avanzado de contenedores.
-* Observabilidad con OpenTelemetry.
-* Makefile ampliado (deploy, coverage, linting avanzado).
-* Modo HA en producción.
-
-
-## Metodología TDD
-
-A partir de la estructura, aplicamos TDD en toda la lógica de negocio:
-
-1. RED:    Escribir test PRIMERO → ejecutar → DEBE FALLAR
-2. GREEN:  Implementar código MÍNIMO para pasar el test
-3. REFACTOR: Mejorar el código manteniendo tests verdes
-
-## Mejora Pareto para Observabilidad y Testing
-
-Para maximizar el impacto con el menor esfuerzo en esta fase MVP, se recomienda priorizar:
-
-Automatización de tests críticos: Garantizar que los endpoints y funcionalidades clave (como /health, autenticación y flujo RAG) tengan tests automatizados robustos y confiables.
-
-Monitoreo básico de logs estructurados: Asegurar que los logs JSON generados incluyan trazas de errores, tiempos de respuesta y eventos clave para facilitar la detección rápida de fallos.
-
-Integración continua con validación automática: Configurar pipelines que ejecuten tests, linting y type checking en cada commit para evitar regresiones tempranas.
-
-Feedback rápido: Mantener tiempos cortos de ejecución de tests para que el equipo reciba retroalimentación inmediata y pueda corregir rápido.
-
-Documentación clara y accesible: Mantener actualizadas las secciones de testing y observabilidad para que cualquier miembro del equipo pueda entender y contribuir fácilmente.
-
-Estas acciones representan un enfoque Pareto que asegura calidad y visibilidad sin sobrecargar recursos en esta etapa inicial.
-
-## Estrategia de Desarrollo Incremental Recomendada
-
-Para asegurar un desarrollo seguro, trazable y de alta calidad, se recomienda seguir esta estrategia incremental:
-
-Avanzar por casos pequeños y funcionales, comenzando por un endpoint básico como /health.
-
-Validar y probar cada funcionalidad incremental antes de continuar con la siguiente.
-
-Realizar un commit en Git solo cuando la funcionalidad mínima implementada pase todos los tests automatizados asociados y esté lista para integrarse.
-
-Mantener una disciplina estricta de versionado en Git: commits frecuentes, descriptivos y que representen cambios funcionales estables.
-
-Esta práctica debe ser seguida tanto por desarrolladores humanos como por agentes de IA que contribuyan al código, actuando como una segunda vigilancia para asegurar calidad y alineación con buenas prácticas de SDD, TDD y SSDLC.
-
-Esta estrategia fomenta un desarrollo controlado, con alta calidad y alineado con los principios de Spec Driven Development y Test Driven Development.
+| Dimensión | Mejora prevista |
+|---|---|
+| **Seguridad** | Guardrails anti-prompt-injection completos. Rotación automática de claves JWT. Autenticación multifactor (TOTP). Rate limiting por usuario. |
+| **IA y Búsqueda** | ChromaDB para búsqueda semántica vectorial. Multi-modelo (selección configurable entre qwen, llama, mistral). OCR para documentos escaneados. |
+| **Infraestructura** | CI/CD con GitHub Actions (tests + lint + cobertura automáticos). Escalado horizontal con balanceo de carga. Despliegue en cloud (AWS/GCP/Azure) con un solo comando. |
+| **Observabilidad** | OpenTelemetry para trazabilidad distribuida. Dashboard de métricas en tiempo real (latencia, consultas, errores). Alertas automáticas. |
+| **UX** | Nexus CLI completo con Typer + Rich (menús interactivos, barras de progreso, colores). Hot Folders para arrastrar y soltar documentos. Panel web de administración (React/Vue). |
+| **Operaciones** | Políticas de retención de datos (limpieza automática). Exportación/importación de documentos y configuraciones. Notificaciones webhook al completar procesos. |
+| **Ingesta** | Procesamiento por lotes (batch upload). Versionado de documentos. Soporte multi-idioma en extracción de texto. |
+| **Cumplimiento** | Reportes automáticos de auditoría (GDPR, SOC2). Dashboards de compliance. Firma electrónica de documentos. |
 
 ---
 
-## Métricas Objetivo
+## h. Pilares de Diseño y Garantía de Calidad
 
-Al finalizar las fases tendrás:
+| Pilar | Aplicación en el Proyecto |
+|---|---|
+| **Arquitectura Limpia** | Clean Architecture con separación nítida controller/servicio/infraestructura. Dependency Injection mediante FastAPI `Depends`. Monolito modular desacoplado. |
+| **Seguridad en Profundidad** | JWT + Argon2id para autenticación. RBAC por departamento con validación en cada operación. Zero-Trust network (PostgreSQL y Ollama sin puertos expuestos al host). SHA-256 en memoria. AuditLog inmutable con trigger `REJECT`. Fail-closed ante cualquier error de validación. |
+| **Privacidad por Diseño** | Inferencia 100% local con Ollama: los datos nunca abandonan la infraestructura del cliente. Aislamiento departamental: cada rol solo accede a los documentos de su departamento. Sin telemetría externa ni dependencia de APIs cloud. |
+| **Calidad y Testing** | TDD estricto (RED → GREEN → REFACTOR) en cada hito. Tests unitarios + HTTP + integración. Cobertura mínima > 70%. Ruff (lint + format) en pre-commit. |
+| **Portabilidad y Despliegue** | Docker Compose single-command (`docker compose up --build`). Entorno productivo replicable con `docker compose -f docker-compose.prod.yml`. Portable a cualquier proveedor cloud (AWS ECS, GCP Cloud Run, Azure ACA) sin cambios arquitectónicos. |
+| **Costo Cero en Inferencia** | Sin costes por token, llamadas API ni suscripciones cloud. El modelo Qwen2.5 se ejecuta íntegramente en hardware local. Ideal para startups, entornos regulados y presupuestos ajustados. |
+| **Observabilidad** | Logging JSON estructurado en stdout para cada request (autorizado y denegado). Preparado para OpenTelemetry (trazabilidad distribuida). Dashboard de métricas planificado en Post-MVP. |
+| **Mantenibilidad** | Conventional commits en cada entrega. Pre-commit hooks (lint + tests). Type hints estrictos en toda la base de código. Imports explícitos (sin wildcards). Documentación viva sincronizada (README + SPEC + SECURITY). |
 
-- ~100 tests unitarios/integración
-- ~7 tests E2E
-- 80%+ cobertura de código
-- 0 errores de lint
 
 ---
 
-## Prácticas aplicadas
+## Metodología TDD (RED → GREEN → REFACTOR)
 
-- TDD (Test-Driven Development)
-- Testing (Unit, Integration, E2E)
-- Clean Code (Refactoring, code smells)
-- Design Patterns (Strategy Pattern)
-- Security (Password validation)
-- Accessibility (WCAG AA)
-- UX ( clean minimal interface,)
-- Observability (logs,)
-- Quality Gates ( hooks)
+1. **RED:** Escribir test primero → ejecutar → debe fallar
+2. **GREEN:** Implementar código mínimo para pasar el test
+3. **REFACTOR:** Mejorar el código manteniendo tests verdes
+
 ---
-
 ## Checklist Final
 
-Antes de considerar el proyecto completo, verifica:
-
-✅ make dev         → App funciona en desarrollo
-✅ make lint        → 0 errores
-✅ make typecheck   → 0 errores
-✅ make test:run    → Todos los tests pasan
-✅ make test:e2e    → E2E tests pasan
-✅ make build       → Build exitoso
-✅ make preview     → App funciona en producción
-
-✅ Pre-commit hook  → Bloquea commits con errores
-✅ Pre-push hook    → Bloquea push si tests fallan
-
-✅ Accesibilidad    → Score 90+ en Lighthouse
-✅ Coverage         → 80%+ en todas las métricas
+```bash
+nexus dev       # levantar entorno
+nexus test      # ejecutar tests (pytest -v)
+nexus cov       # reporte de cobertura
+pre-commit install                    # hooks pre-commit (lint + format)
+pre-commit install --hook-type pre-push  # hook pre-push (tests)
+```
