@@ -112,27 +112,28 @@ nexus-insight/
 ├── .env.example
 ├── .gitignore
 ├── .pre-commit-config.yaml
+├── pytest.ini
 ├── requirements.txt
 ├── agents.md
 ├── ruff.toml
+├── SECURITY.md                     ← invariantes de seguridad
 ├── SPEC.md
-└── src/
-    ├── main.py
-    ├── checkmate.md
+├── src/
+│   ├── main.py                      ← entry point
+│   ├── api/
+│   │   └── v1/                      ← endpoints (controllers)
+│   ├── core/
+│   │   ├── config.py                ← settings
+│   │   ├── database.py              ← DB engine
+│   │   ├── auth/                    ← JWT, RBAC
+│   │   ├── services/                ← use cases (business logic)
+│   │   └── storage/                 ← file I/O
+└── tests/                           ← refleja src/
+    ├── conftest.py
     ├── api/
     │   └── v1/
-    │       ├── auth.py
-    │       └── documents.py
-    ├── core/
-    │   ├── config.py
-    │   ├── database.py
-    │   ├── auth/
-    │   │   ├── rbac.py
-    │   │   └── security.py
-    │   └── storage/
-    └── tests/
-        ├── conftest.py
-        └── test_auth.py
+    └── core/
+        └── services/
 
 
 ## e. Funcionalidades principales

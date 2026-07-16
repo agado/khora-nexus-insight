@@ -2,7 +2,7 @@
 # NEXUS INSIGHT - CONFIGURACIÓN DE CALIDAD DE CÓDIGO (RUFF)
 # ==============================================================================
 
-# Target para Python 3.13 (aprovecha las últimas optimizaciones sintácticas)
+# Target para Python 3.12.9 (aprovecha las últimas optimizaciones sintácticas)
 target-version = "py313"
 line-length = 100
 

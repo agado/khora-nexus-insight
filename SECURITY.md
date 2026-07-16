@@ -1,4 +1,4 @@
-# checkmate.md — Invariantes de Seguridad y Validación Zero-Trust
+# SECURITY.md — Invariantes de Seguridad y Validación Zero-Trust
 
 ## 1. Propósito del documento
 `Checkmate` define las reglas de seguridad, validación y comportamiento de cumplimiento obligatorio en Nexus Insight. Su objetivo es garantizar:

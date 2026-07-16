@@ -68,7 +68,7 @@ restart: ## Reinicia el entorno de desarrollo
 # Backend
 # ------------------------------------------------------------------------------
 test: ## Ejecuta la suite de pruebas (Pytest) dentro del contenedor
-	$(DC_DEV) exec fastapi_app pytest -v -s src/tests/
+	$(DC_DEV) exec fastapi_app pytest -v -s tests/
 
 lint: ## Ejecuta el linter Ruff para comprobar la calidad del código
 	$(DC_DEV) exec fastapi_app ruff check src/

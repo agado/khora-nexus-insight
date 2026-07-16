@@ -181,7 +181,7 @@ AuditLog {
 
 ### 7.1 Filosofía de Construcción Funcional (MVP)
 Para mitigar la complejidad y asegurar la estabilidad de la arquitectura, el proyecto se ejecuta bajo una metodología incremental estricta. Cada iteración aborda una funcionalidad mínima y testeable:
-* **Hito Inicial:** Despliegue de un endpoint de control (`GET /health`) para validar que FastAPI, la inyección de dependencias y el contenedor base responden correctamente (HTTP 200).
+* **Hito Inicial:** Despliegue de un endpoint de control (`GET /api/v1/health`) para validar que FastAPI, la inyección de dependencias y el contenedor base responden correctamente (HTTP 200).
 * **Flujo de Consolidación:** No se avanza hacia una nueva fase del roadmap hasta que el desarrollo actual tenga cobertura de pruebas unitarias/integración en estado "Verde" y cumpla la definición de listo (*Definition of Done*).
 
 ### 7.2 Disciplina de Versionado en Git

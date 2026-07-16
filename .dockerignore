@@ -34,5 +34,5 @@ htmlcov/
 # Ignorar documentación no requerida en ejecución
 README.md
 SPEC.md
-checkmate.md
+SECURITY.md
 agents.md
