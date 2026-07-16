@@ -88,6 +88,7 @@ Every technical implementation must lay the groundwork to perfectly populate the
 2.  **Verify & Review:** Verify that every file contains `__init__.py` if it acts as a Python module package.
 3.  **Command Reminders:** Output package and version freeze commands whenever changes occur.
 4.  **Second Vigilance (AI + Human):** This workflow applies equally to human developers and AI agents. Every change acts as a second pair of eyes, ensuring quality, SDD, TDD, and SSDLC compliance at all times.
+5.  **Living Documentation (DoD):** No hito se cierra sin revisar y sincronizar los tres documentos vivos (`README.md`, `SPEC.md`, `SECURITY.md`). La documentación desactualizada se considera deuda técnica al mismo nivel que el código sin testar.
 
 ---
 

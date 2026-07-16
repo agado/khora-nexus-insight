@@ -10,9 +10,7 @@ def test_health_ollama_healthy(client):
 
 
 def test_health_ollama_unhealthy(client):
-    with patch(
-        "httpx.AsyncClient.get", side_effect=ConnectionError("Ollama down")
-    ):
+    with patch("httpx.AsyncClient.get", side_effect=ConnectionError("Ollama down")):
         response = client.get("/api/v1/health/ollama")
         assert response.status_code == 200
         assert response.json()["status"] == "unhealthy"

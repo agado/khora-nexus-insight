@@ -73,30 +73,56 @@ Facilidad de uso: Plataforma accesible para equipos multidisciplinares.
 * Calidad de código: Ruff + pre‑commit + pre‑push (tests).
 * Pruebas: Pytest + pytest-asyncio con mocking.
 
-## c. Información sobre su instalación y ejecución
+## c. Instalación y ejecución
+
+Guía completa para poner el proyecto en funcionamiento desde un equipo con las herramientas base instaladas.
+
+### Prerrequisitos
+
+- Python 3.13+
+- Docker + Docker Compose
+- Git
+
+### Pasos
 
 0. Clonar el repositorio
-``` bash
+```bash
 git clone https://github.com/tu-org/nexus-insight.git
 cd nexus-insight
 ```
-1. Preparar entorno
-``` bash
+
+1. Configurar variables de entorno
+```bash
 cp .env.example .env
 ```
-2. Desplegar infraestructura (vía Makefile)
-``` bash
-make dev
+
+2. Preparar el entorno Python local (necesario para herramientas de desarrollo: hooks, lint, tests)
+```bash
+python -m venv .venv
+# Windows
+.venv\Scripts\Activate.ps1
+# Linux / macOS
+# source .venv/bin/activate
+pip install -r requirements.txt
 ```
-3. Apagar infraestructura
-``` bash
-make down
+
+3. Instalar hooks de git (se ejecutan automáticamente al commitear y al hacer push)
+```bash
+pre-commit install
+pre-commit install --hook-type pre-push
 ```
-4. Inicializar el modelo de IA (solo primera vez)
-``` bash
+
+4. Desplegar la infraestructura (API, base de datos, motor de IA)
+```bash
+docker compose up --build
+```
+
+5. Inicializar el modelo de IA (solo la primera vez)
+```bash
 docker compose exec ollama_service ollama run qwen2.5:1.5b
 ```
-5. Acceso a la API
+
+6. Acceder a la documentación interactiva de la API
 
 http://localhost:8000/docs
 
