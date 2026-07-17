@@ -34,6 +34,15 @@ async def test_check_ollama_unhealthy():
         assert result["status"] == "unhealthy"
 
 
+@pytest.mark.asyncio
+async def test_check_ollama_http_unhealthy():
+    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value.status_code = 404
+        result = await check_ollama("http://ollama:11434")
+        assert result["status"] == "unhealthy"
+        assert "HTTP 404" in result["detail"]
+
+
 def test_aggregate_both_healthy():
     result = aggregate({"status": "healthy"}, {"status": "healthy"})
     assert result["status"] == "healthy"

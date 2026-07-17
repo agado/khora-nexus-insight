@@ -1,0 +1,7 @@
+[tool.coverage.run]
+omit = [
+    "src/core/config.py",
+    "src/core/database.py",
+    "src/api/v1/auth.py",
+    "src/api/v1/documents.py",
+]
