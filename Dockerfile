@@ -7,7 +7,8 @@ WORKDIR /app
 
 # Evita que Python escriba archivos .pyc y fuerza el vaciado de buffers de logs
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PATH="/root/.local/bin:$PATH"
 
 # Instalar dependencias del sistema necesarias para compilar librerías de Python
 RUN apt-get update && apt-get install -y --no-install-recommends \
