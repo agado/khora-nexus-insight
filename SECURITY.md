@@ -32,10 +32,15 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 ### 2.5 Aislamiento de la Base de Datos
 * **Regla:** PostgreSQL es accesible únicamente por el backend FastAPI dentro de `nexus-network`.
 * **Implementación:** Sin puertos expuestos al host exterior en producción. Los volúmenes persistentes deben estar protegidos.
+* **SQL Injection:** Toda query se ejecuta mediante SQLAlchemy 2.0 con bind parameters. Queda prohibida la concatenación de strings de entrada de usuario en sentencias SQL.
+* **Rollback automático:** El `get_session()` de `database.py` envuelve cada transacción en try/except → `session.rollback()` ante cualquier excepción, garantizando que no queden transacciones huérfanas.
+* **Aislamiento dev/prod:** Los volúmenes de datos son independientes (`nexus_db_dev_data` vs `nexus_postgres_data_prod`). Nunca se mezclan datos de desarrollo con producción.
 
 ### 2.6 Prohibición de Secrets en Código (Hardcoding)
 * **Regla:** Prohibido escribir tokens, contraseñas o firmas JWT en texto plano en el repositorio.
-* **Implementación:** Uso estricto de variables de entorno inyectadas desde `.env`. El archivo `.env.example` solo contendrá valores ficticios y de plantilla.
+* **Implementación dev:** Variables de entorno inyectadas desde `.env` no versionado. `.env.example` contiene solo valores ficticios.
+* **Implementación prod (OWASP):** Docker Secrets monta `admin_password.txt` como archivo en `/run/secrets/admin_password` dentro del contenedor. No visible en `docker inspect`, logs, ni `ps aux`. El seed lo lee mediante `ADMIN_PASSWORD_FILE`.
+* **Hashing:** Contraseñas hasheadas con `argon2-cffi` (Argon2id). Sin almacenamiento en texto plano.
 
 ### 2.7 Control de Acceso Basado en Roles (RBAC)
 * **Regla:** Todos los endpoints sensibles (excepto login y health check) requieren validación JWT y rol verificado.
@@ -129,5 +134,5 @@ Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP de
 
 ## 8. Estado del Documento
 * **Versión:** MVP 1.0  
-* **Última actualización:** 14 de Julio de 2026  
+* **Última actualización:** 17 de Julio de 2026  
 * **Responsable:** Arquitectura de Seguridad Nexus Insight

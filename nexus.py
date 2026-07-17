@@ -38,7 +38,10 @@ def _build_parser() -> argparse.ArgumentParser:
     sub.add_parser("prod", help="Inicia el entorno de produccion")
     sub.add_parser("test", help="Ejecuta los tests (pytest -v)")
     sub.add_parser("cov", help="Ejecuta tests con cobertura")
-    sub.add_parser("seed", help="Puebla la base de datos con datos iniciales")
+    seed_parser = sub.add_parser("seed", help="Puebla la base de datos con datos iniciales")
+    seed_parser.add_argument(
+        "--reset", action="store_true", help="Elimina los datos existentes antes de insertar"
+    )
     sub.add_parser("migrate", help="Ejecuta migraciones de base de datos")
     return parser
 
@@ -150,9 +153,12 @@ def run_cov() -> None:
     subprocess.run(["pytest", "--cov=src", "--cov-report=term-missing"])
 
 
-def run_seed() -> None:
+def run_seed(reset: bool = False) -> None:
     print("Poblando base de datos con datos iniciales...")
-    subprocess.run([sys.executable, "-m", "src.core.seed"])
+    cmd = [sys.executable, "-m", "src.core.seed"]
+    if reset:
+        cmd.append("--reset")
+    subprocess.run(cmd)
 
 
 def run_migrate() -> None:
@@ -181,7 +187,7 @@ def main(argv: list[str] | None = None) -> None:
     elif args.command == "cov":
         run_cov()
     elif args.command == "seed":
-        run_seed()
+        run_seed(reset=getattr(args, "reset", False))
     elif args.command == "migrate":
         run_migrate()
 

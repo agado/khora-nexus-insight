@@ -1,3 +1,7 @@
+secrets:
+  admin_password:
+    file: ./secrets/admin_password.txt
+
 services:
   fastapi_app:
     build:
@@ -14,9 +18,13 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@db_service:5432/${PROD_DB_NAME}
       - MODEL_HOST=http://ollama_service:11434
       - MODEL_NAME=${PROD_MODEL_NAME}
+      - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
+    secrets:
+      - admin_password
     depends_on:
       db_service:
         condition: service_healthy
+    command: ["sh", "-c", "alembic upgrade head && python -m src.core.seed && uvicorn src.main:app --host 0.0.0.0 --port 8000"]
     networks:
       - nexus-network
 

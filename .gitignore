@@ -5,6 +5,7 @@
 *.pem
 *.key
 *.cert
+secrets/admin_password.txt
 
 # Python & Dependency Managers
 .venv/

@@ -67,7 +67,7 @@ Facilidad de uso: Plataforma accesible para equipos multidisciplinares.
 * Backend: FastAPI (ASGI) sobre Python 3.13.
 * Validación: Pydantic v2 (tipado estricto).
 * Base de datos: PostgreSQL 15 + SQLAlchemy 2.0 (async con asyncpg).
-* IA Local: Ollama ejecutando el modelo qwen2.5:1.5b en contenedor aislado.
+* IA Local: Ollama ejecutando el modelo qwen2.5-coder:1.5b en contenedor aislado.
 * Infraestructura: Docker + Docker Compose.
 * Automatización: `nexus.py` (MVP).
 * Calidad de código: Ruff + pre‑commit + pre‑push (tests).
@@ -119,7 +119,7 @@ docker compose up --build
 
 5. Inicializar el modelo de IA (solo la primera vez)
 ```bash
-docker compose exec ollama_service ollama run qwen2.5:1.5b
+docker compose exec ollama_service ollama run qwen2.5-coder:1.5b
 ```
 
 6. Acceder a la documentación interactiva de la API
@@ -170,7 +170,7 @@ nexus-insight/
 
 * Auditoría inmutable (Zero‑Trust):Tabla append‑only con triggers que bloquean UPDATE/DELETE.
 
-* RBAC:Roles administrados por entorno (tfm_admin, tfm_staff).
+* RBAC: Roles predefinidos (admin, staff). Control por departamento vía JWT (próximo hito).
 
 * Observabilidad nativa:Logs JSON estructurados sin latencia de red.
 
@@ -212,7 +212,7 @@ flowchart TB
 Este modelo arquitectónico soluciona de raíz los riesgos de filtración de datos y ataques perimetrales mediante tres principios de diseño:
 
 * **Soberanía de Datos Absoluta (Inferencia 100% Local):**
-    * **Consumo sin fugas:** A diferencia de las APIs comerciales (OpenAI, Anthropic), el procesamiento del modelo `qwen2.5:1.5b` ocurre de forma confinada dentro del contenedor local de **Ollama** (`ollama/ollama:latest`).
+    * **Consumo sin fugas:** A diferencia de las APIs comerciales (OpenAI, Anthropic), el procesamiento del modelo `qwen2.5-coder:1.5b` ocurre de forma confinada dentro del contenedor local de **Ollama** (`ollama/ollama:latest`).
     * **Sin telemetría externa:** Ni los datos del usuario, ni los fragmentos de los documentos inyectados en el contexto, ni los prompts de consulta viajan por internet ni son compartidos para entrenar modelos externos.
 * **Aislamiento de Red Zero-Trust (Cortafuegos Perimetral):**
     * **Invisibilidad de servicios:** PostgreSQL (puerto `5432`) y Ollama (puerto `11434`) operan en la red virtual privada `nexus-network` **sin mapear o exponer puertos hacia el host exterior**. Son invisibles ante escaneos de puertos en la máquina física.
@@ -225,13 +225,25 @@ Este modelo arquitectónico soluciona de raíz los riesgos de filtración de dat
 
 * Credenciales de desarrollo incluidas en .env.example:
 
- * Administrador:
- Usuario: tfm_admin
+ * Superadministrador:
+ Usuario: admin (rol admin, departamento IT)
  Contraseña: admin123
 
- * Staff:
- Usuario: tfm_staff
+ * Personal IT:
+ Usuario: staff_it (rol staff, departamento IT)
  Contraseña: staff123
+
+ * Personal RRHH:
+ Usuario: staff_hr (rol staff, departamento RRHH)
+ Contraseña: staff123
+
+ * Personal PM:
+ Usuario: staff_pm (rol staff, departamento PM)
+ Contraseña: staff123
+
+ * CEO (acceso cross‑department):
+ Usuario: ceo (rol admin, departamento IT, is_cross_department=true)
+ Contraseña: ceo123
 
 (Nunca usar estas credenciales en producción.)
 

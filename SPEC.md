@@ -40,6 +40,14 @@ Para mitigar vectores de ataque y garantizar el aislamiento perimetral, el backe
 
 ## 4. Modelos de Datos (Esquemas de Persistencia)
 
+### 4.0 Entidad: Department
+```typescript
+Department {
+    id: int                         // Clave primaria autoincremental
+    name: str                       // Nombre único del departamento (IT, RRHH, PM)
+}
+```
+
 ### 4.1 Entidad: User
 ```typescript
 User {
@@ -48,6 +56,7 @@ User {
     hashed_password: str            // Hash criptográfico generado con Argon2id
     role: Literal["admin", "staff"] // Rol asignado para el control RBAC
     department_id: int              // Clave foránea -> Department.id
+    is_cross_department: bool       // True si puede acceder a documentos de todos los departamentos
     created_at: datetime            // Timestamp con zona horaria UTC
 }
 ```
@@ -230,6 +239,12 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 | **Prompt con delimitadores XML** | Guardrails anti-inyección completos | Capa OWASP ligera sin sobrecarga. Guardrails completos → post-MVP. |
 | **Fail-Closed por transacciones atómicas** | Lógica manual de rollback | SQLAlchemy `commit()` maneja el rollback automáticamente si AuditLog falla. |
 | **`nexus.py`** | Makefile | Portable Windows/Linux/Mac sin dependencias externas. |
+| **Rollback automático en transacciones DB** | Lógica manual de rollback | `database.py` envuelve cada sesión en try/except → rollback + raise. |
+| **Seed idempotente (upsert por username)** | Insert directo cada vez | Evita duplicados al re-ejecutar `nexus.py seed`. `--reset` para truncar y recrear. |
+| **SQLAlchemy parametrizado** | Concatenación de strings SQL | Las queries siempre usan bind parameters. Sin riesgo de SQL injection. |
+| **`argon2-cffi` directo** | `passlib[argon2]` | Librería mantenida activamente. Sin deprecation warnings. Contrato de API idéntico. |
+| **Docker Secrets para admin password** | Variable de entorno directa | OWASP: la password se monta como archivo en `/run/secrets/`, no visible en `docker inspect` ni logs. |
+| **Auto‑bootstrap en prod** | Seed manual post‑deploy | `docker-compose.prod.yml` ejecuta `alembic upgrade head && python -m src.core.seed` al arrancar. Un solo comando. |
 
 ---
 
@@ -280,3 +295,110 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 * Dashboards de compliance con visualización de accesos y roles.
 * Firmado electrónico de documentos.
 * Versionado de documentos con historial de cambios.
+
+---
+
+## Apéndice A: Comandos de inspección
+
+### Entorno de desarrollo
+
+#### Base de Datos (PostgreSQL)
+```bash
+# Ver tablas creadas
+docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db -c "\dt"
+
+# Ver estructura de una tabla
+docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db -c "\d user"
+
+# Ver datos de seed
+docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db \
+  -c 'SELECT id, username, role, is_cross_department FROM "user" ORDER BY id;'
+
+docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db \
+  -c "SELECT id, name FROM department ORDER BY id;"
+
+# Conteo rápido
+docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db -c "SELECT count(*) FROM \"user\";"
+```
+
+#### Backend (FastAPI)
+```bash
+# Health check
+curl http://localhost:8000/api/v1/health
+
+# Logs en tiempo real
+docker logs nexus_backend_dev -f
+```
+
+#### Ollama
+```bash
+# Logs en tiempo real
+docker logs nexus_ollama_dev -f
+
+# Verificar que el modelo está descargado
+docker exec -i nexus_ollama_dev ollama list
+```
+
+---
+
+### Entorno de producción
+
+#### Base de Datos (PostgreSQL)
+```bash
+# Ver tablas creadas
+docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db -c "\dt"
+
+# Ver estructura de una tabla
+docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db -c "\d user"
+
+# Ver datos de seed
+docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db \
+  -c 'SELECT id, username, role, is_cross_department FROM "user" ORDER BY id;'
+
+docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db \
+  -c "SELECT id, name FROM department ORDER BY id;"
+
+# Conteo rápido
+docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db \
+  -c "SELECT count(*) FROM \"user\";"
+```
+
+#### Backend (FastAPI)
+```bash
+# Health check
+curl http://localhost:8000/api/v1/health
+
+# Logs en tiempo real
+docker logs nexus_backend -f
+```
+
+#### Ollama
+```bash
+# Logs en tiempo real
+docker logs nexus_ollama -f
+
+# Verificar que el modelo está descargado
+docker exec -i nexus_ollama ollama list
+```
+
+---
+
+### Persistencia de datos
+```bash
+# Los datos persisten entre reinicios normales:
+nexus.py prod         # primer arranque → migration + seed (crea admin)
+<pausa>
+nexus.py down         # detiene contenedores → conserva volúmenes
+nexus.py prod         # segundo arranque → seed idempotente (no duplica admin)
+# Los datos están intactos: departments, users, documents, audit_logs
+```
+
+### Factory reset (volver a estado de fábrica)
+```bash
+# Opción A (segura): solo borra datos de seed, mantiene estructura
+docker exec -i nexus_backend python -m src.core.seed --reset
+
+# Opción B (destructiva): borra TODOS los datos y volúmenes
+docker compose -f docker-compose.prod.yml down -v
+nexus.py prod   # fresh start: migration + seed admin desde cero
+```
