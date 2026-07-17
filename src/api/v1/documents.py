@@ -1,0 +1,124 @@
+import logging
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.auth.rbac import get_current_user, require_min_level
+from src.core.database import get_session
+from src.core.services.document_service import (
+    DuplicateDocumentError,
+    get_document_by_id,
+    get_documents_by_departments,
+    upload_document,
+)
+
+logger = logging.getLogger("nexus")
+
+router = APIRouter(prefix="/api/v1/documents")
+
+MAX_FILE_SIZE = 10 * 1024 * 1024
+
+
+class DocumentResponse(BaseModel):
+    id: int
+    filename: str
+    sha256: str
+    department_id: int
+    uploaded_by: int
+    created_at: str
+
+
+class DocumentListResponse(BaseModel):
+    documents: list[DocumentResponse]
+    total: int
+
+
+def _to_doc_response(doc) -> DocumentResponse:
+    return DocumentResponse(
+        id=doc.id,
+        filename=doc.filename,
+        sha256=doc.sha256,
+        department_id=doc.department_id,
+        uploaded_by=doc.uploaded_by,
+        created_at=doc.created_at.isoformat(),
+    )
+
+
+@router.post("/upload", status_code=status.HTTP_201_CREATED)
+async def upload(
+    file: UploadFile = File(...),
+    department_id: int | None = Form(None),
+    _user: dict = Depends(require_min_level(1)),
+    db: AsyncSession = Depends(get_session),
+):
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
+
+    if not content.startswith(b"%PDF"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Only PDF files are allowed.",
+        )
+
+    target_department = department_id or _user.get("department_id")
+    accessible = _user.get("accessible_departments", [])
+    if target_department not in accessible:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have access to this department",
+        )
+
+    try:
+        doc = await upload_document(
+            db=db,
+            filename=file.filename or "unnamed.pdf",
+            content=content,
+            department_id=target_department,
+            user_id=_user["user_id"],
+        )
+    except DuplicateDocumentError:
+        raise HTTPException(
+            status_code=409,
+            detail="A document with the same content already exists",
+        ) from None
+
+    logger.info(
+        "Document uploaded: id=%d filename=%s dept=%d user=%d",
+        doc.id,
+        doc.filename,
+        doc.department_id,
+        doc.uploaded_by,
+    )
+    return _to_doc_response(doc)
+
+
+@router.get("/{document_id}")
+async def get_document(
+    document_id: int,
+    _user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_session),
+):
+    accessible = _user.get("accessible_departments", [])
+    doc = await get_document_by_id(db, document_id, accessible)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return _to_doc_response(doc)
+
+
+@router.get("")
+async def list_documents(
+    skip: int = 0,
+    limit: int = 50,
+    _user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_session),
+):
+    accessible = _user.get("accessible_departments", [])
+    if not accessible:
+        return DocumentListResponse(documents=[], total=0)
+    docs = await get_documents_by_departments(db, accessible, skip=skip, limit=limit)
+    return DocumentListResponse(
+        documents=[_to_doc_response(d) for d in docs],
+        total=len(docs),
+    )

@@ -1,7 +1,8 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_session
 from src.core.services.auth_service import authenticate_user
@@ -16,9 +17,8 @@ class LoginRequest(BaseModel):
 
 
 @router.post("/login")
-async def login(request: LoginRequest):
-    async with get_session() as db:
-        token = await authenticate_user(db, request.username, request.password)
+async def login(request: LoginRequest, db: AsyncSession = Depends(get_session)):
+    token = await authenticate_user(db, request.username, request.password)
     if not token:
         logger.warning("Login failed: %s", request.username)
         raise HTTPException(status_code=401, detail="Invalid credentials")
