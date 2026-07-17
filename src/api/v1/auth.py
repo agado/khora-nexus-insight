@@ -1,0 +1,26 @@
+import logging
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from src.core.database import get_session
+from src.core.services.auth_service import authenticate_user
+
+logger = logging.getLogger("nexus")
+router = APIRouter(prefix="/api/v1/auth")
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+@router.post("/login")
+async def login(request: LoginRequest):
+    async with get_session() as db:
+        token = await authenticate_user(db, request.username, request.password)
+    if not token:
+        logger.warning("Login failed: %s", request.username)
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    logger.info("Login successful: %s", request.username)
+    return {"access_token": token, "token_type": "bearer"}

@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.core.auth.security import hash_password
+from src.core.config import settings
 from src.core.models import Base, Department, User
 
 SEED_DEPARTMENTS = [
@@ -16,7 +17,7 @@ SEED_DEPARTMENTS = [
 
 SEED_USERS = [
     {
-        "username": "admin",
+        "username": settings.admin_username,
         "password": "admin123",
         "role": "admin",
         "department_name": "IT",
@@ -101,6 +102,8 @@ def _upsert_user(session: Session, user_data: dict) -> None:
 
 
 def seed_database(session: Session, reset: bool = False) -> None:
+    if not settings.admin_username:
+        raise RuntimeError("ADMIN_USERNAME no puede estar vacío")
     if reset:
         Base.metadata.drop_all(bind=session.get_bind())
         Base.metadata.create_all(bind=session.get_bind())
@@ -118,7 +121,7 @@ def seed_database(session: Session, reset: bool = False) -> None:
         _upsert_user(
             session,
             {
-                "username": "admin",
+                "username": settings.admin_username,
                 "password": admin_pw,
                 "role": "admin",
                 "department_name": "IT",

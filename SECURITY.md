@@ -41,21 +41,30 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 * **Implementación dev:** Variables de entorno inyectadas desde `.env` no versionado. `.env.example` contiene solo valores ficticios.
 * **Implementación prod (OWASP):** Docker Secrets monta `admin_password.txt` como archivo en `/run/secrets/admin_password` dentro del contenedor. No visible en `docker inspect`, logs, ni `ps aux`. El seed lo lee mediante `ADMIN_PASSWORD_FILE`.
 * **Hashing:** Contraseñas hasheadas con `argon2-cffi` (Argon2id). Sin almacenamiento en texto plano.
+* **Admin username:** Configurable vía variable de entorno `ADMIN_USERNAME` (dev default: `"admin"`). No hardcodeado en el código de seed. Validación: si está vacío, el seed se aborta con error.
 
 ### 2.7 Control de Acceso Basado en Roles (RBAC)
 * **Regla:** Todos los endpoints sensibles (excepto login y health check) requieren validación JWT y rol verificado.
 * **Implementación:** * `admin`: Acceso completo (Ingesta, AuditLog, consultas RAG).
   * `staff`: Acceso restringido exclusivamente a consultas RAG y lectura limitada.
+* **Dependencias FastAPI:** `get_current_user` extrae el token del header `Authorization: Bearer` vía `HTTPBearer`, lo verifica con `verify_token()`, y retorna los claims. `require_role(role)` es una factory que retorna un dependency checker; se usa como `Depends(require_role("admin"))`. Si el rol no coincide → `403 Forbidden`.
 
-### 2.8 Red Interna Zero-Trust
+### 2.8 JWT (JSON Web Token)
+* **Algoritmo:** HS256 (HMAC-SHA256) con `algorithms=["HS256"]` explícito en `jwt.decode()` para prevenir el ataque de confusión de algoritmos (CVE-2015-9235).
+* **Claims estándar:** `iat` (emisión), `nbf` (no válido antes de), `exp` (expiración — por defecto 30 minutos, configurable vía `JWT_EXPIRATION_MINUTES`).
+* **Claims personalizados:** `sub` (username), `role`, `department_id`, `is_cross_department`. El token es la fuente de verdad zero-trust para el control de acceso departamental.
+* **Secreto:** Inyectado desde variable de entorno `JWT_SECRET` (dev: `.env`, prod: `PROD_JWT_SECRET`). Nunca hardcodeado.
+* **Anti-enumeration:** El servicio de autenticación (`authenticate_user`) devuelve el mismo resultado (`None`) tanto para usuario inexistente como para contraseña incorrecta, impidiendo la enumeración de usuarios por respuesta diferenciada.
+
+### 2.9 Red Interna Zero-Trust
 * **Regla:** Comunicación exclusiva entre contenedores mediante la red virtual de Docker `nexus-network`.
 * **Implementación:** Ningún contenedor puede comunicarse de forma directa con el exterior o con otros servicios fuera de la red declarada.
 
-### 2.9 Filosofía de Fallo Seguro (Fail-Closed)
+### 2.10 Filosofía de Fallo Seguro (Fail-Closed)
 * **Regla:** Ante cualquier caída o excepción no controlada en el subsistema de auditoría (`AuditLog`), el flujo operativo del backend debe interrumpirse inmediatamente.
 * **Implementación:** Si un registro de auditoría síncrono falla al guardarse en PostgreSQL ➔ la transacción principal (ej. login o ingesta) se aborta con un rollback y se deniega el acceso al usuario.
 
-### 2.10 Sanitización de Memoria Transitoria
+### 2.11 Sanitización de Memoria Transitoria
 * **Regla:** El contenido de los documentos procesados en memoria RAM no debe persistir en el ciclo de vida del backend más allá de lo estrictamente necesario para el parsing.
 * **Implementación:** Forzar la liberación o sobreescritura de buffers en memoria una vez que el texto ha sido extraído y enviado al flujo de inferencia.
 
@@ -72,6 +81,7 @@ Toda petición al backend genera un log JSON en stdout con el siguiente formato:
 * **Campos obligatorios:** `time`, `level`, `message`.
 * **Campos contextuales:** `user`, `ip`, `action`, `latency_ms`, `status_code`.
 * **Niveles:** `INFO` (éxito), `WARNING` (intento fallido), `ERROR` (excepción).
+* **Eventos de autenticación:** Se registran tanto intentos exitosos (`INFO`) como fallidos (`WARNING`) de login. El mensaje nunca incluye la contraseña ni el token JWT.
 * **Destino:** stdout del contenedor (`docker compose logs -f fastapi_app`).
 * **No se almacenan** prompts de usuario ni contenido de documentos en los logs.
 
@@ -105,6 +115,7 @@ El sistema (y los agentes de IA) deben verificar automáticamente los siguientes
 | Archivo corrupto o ilegible | Abortar procesamiento | `400 Bad Request` | No registra |
 | Hash SHA-256 ya existente | Rechazar duplicado | `400 Bad Request` | Registra intento |
 | Token JWT ausente o expirado | Bloquear petición | `401 Unauthorized` | Registra fallo |
+| Credenciales inválidas (login) | Rechazar autenticación | `401 Unauthorized` | JSON log (AuditLog en H6) |
 | Usuario `staff` intenta subir documento | Bloquear acceso | `403 Forbidden` | Registra violación |
 | Identificador de documento inexistente | Retornar vacío | `404 Not Found` | No registra |
 | Fallo al escribir en `AuditLog` | Abortar transacción principal (Rollback) | `500 Internal Error` | Registro en consola JSON (Contingencia) |
@@ -136,3 +147,6 @@ Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP de
 * **Versión:** MVP 1.0  
 * **Última actualización:** 17 de Julio de 2026  
 * **Responsable:** Arquitectura de Seguridad Nexus Insight
+
+---
+**All Rights Reserved.** Copyright © 2026 Khora Nexus Insight. Este documento es parte de un TFM y no puede ser reproducido sin autorización.

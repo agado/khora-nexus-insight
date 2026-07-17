@@ -26,7 +26,8 @@ Para mitigar vectores de ataque y garantizar el aislamiento perimetral, el backe
 ### 3.2 Capa Core (Núcleo)
 * **Configuración:** Gestión centralizada y tipada de variables de entorno mediante `Pydantic Settings`.
 * **Persistencia:** Conexión y *pooling* asíncrono a PostgreSQL utilizando `SQLAlchemy 2.0` y el driver `asyncpg`.
-* **Seguridad:** Proveedor de identidad local encargado del firmado/verificación de tokens JWT y del hasheo de alta seguridad con **Argon2id**.
+* **Seguridad:** Proveedor de identidad local con firmado/verificación de tokens JWT (`src/core/auth/jwt.py` → HS256) y hasheo Argon2id (`src/core/auth/security.py`).
+* **Servicios:** Lógica de autenticación desacoplada en `src/core/services/auth_service.py` (Clean Architecture: endpoint → servicio → infraestructura).
 
 ### 3.3 Motor de IA Local (Ollama)
 * Inferencia local dedicada utilizando el modelo **`qwen2.5:1.5b`**.
@@ -99,6 +100,25 @@ AuditLog {
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsIn...",
   "token_type": "bearer"
+}```
+* Respuestas de Error:
+
+```JSON
+// 401 Unauthorized — credenciales incorrectas
+{
+  "detail": "Invalid credentials"
+}
+
+// 422 Unprocessable Entity — payload inválido (campos faltantes)
+{
+  "detail": [
+    {
+      "type": "missing",
+      "loc": ["body", "password"],
+      "msg": "Field required",
+      "input": {"username": "admin"}
+    }
+  ]
 }```
 ### 5.2 Módulo de Documentos
 * Ruta: POST /api/v1/documents/upload
@@ -245,6 +265,12 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 | **`argon2-cffi` directo** | `passlib[argon2]` | Librería mantenida activamente. Sin deprecation warnings. Contrato de API idéntico. |
 | **Docker Secrets para admin password** | Variable de entorno directa | OWASP: la password se monta como archivo en `/run/secrets/`, no visible en `docker inspect` ni logs. |
 | **Auto‑bootstrap en prod** | Seed manual post‑deploy | `docker-compose.prod.yml` ejecuta `alembic upgrade head && python -m src.core.seed` al arrancar. Un solo comando. |
+| **`algorithms=["HS256"]` explícito** | Algoritmo implícito u omitido | Previene CVE-2015-9235 (algorithm confusion). Aunque el proyecto es monolito, la defensa en profundidad lo exige. |
+| **Service layer para autenticación** | Lógica de auth inline en endpoint | SRP + testabilidad: `authenticate_user()` se testea sin FastAPI ni HTTP. El endpoint solo maneja HTTP, el servicio maneja el caso de uso. |
+| **RBAC vía `require_role(role)` factory** | Inline `if role != "admin"` en cada endpoint | DRY + OCP: añadir protección a un nuevo endpoint solo cambia el argumento. Sin lógica repetida. |
+| **Mini-test-app para tests RBAC** | Dependency overrides globales en conftest | Aislamiento total: no contamina la app real, cada suite de tests es independiente. |
+| **AuditLog login diferido a H6** | AuditLog inline en login endpoint (H3) | Pareto: JSON logging cubre observabilidad ahora. La integración con AuditLog requiere el trigger inmutable de H6. |
+| **Admin username configurable (env var)** | Hardcoded `"admin"` en seed.py | OWASP A7: el nombre del admin se lee de `ADMIN_USERNAME` env var. Validación de no vacío previa al seed. Misma contraseña fuerte por Docker secrets. |
 
 ---
 

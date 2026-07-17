@@ -226,7 +226,7 @@ Este modelo arquitectónico soluciona de raíz los riesgos de filtración de dat
 * Credenciales de desarrollo incluidas en .env.example:
 
  * Superadministrador:
- Usuario: admin (rol admin, departamento IT)
+ Usuario: admin (configurable vía ADMIN_USERNAME, rol admin, departamento IT)
  Contraseña: admin123
 
  * Personal IT:
@@ -307,3 +307,9 @@ nexus cov       # reporte de cobertura
 pre-commit install                    # hooks pre-commit (lint + format)
 pre-commit install --hook-type pre-push  # hook pre-push (tests)
 ```
+
+---
+## Licencia
+
+**All Rights Reserved.** Copyright © 2026 Khora Nexus Insight.  
+Este proyecto es parte de un Trabajo de Fin de Máster (TFM). No está licenciado para uso público sin autorización expresa. Consulte el archivo [LICENSE](./LICENSE) para más información.
