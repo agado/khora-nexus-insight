@@ -307,3 +307,9 @@ nexus cov       # reporte de cobertura
 pre-commit install                    # hooks pre-commit (lint + format)
 pre-commit install --hook-type pre-push  # hook pre-push (tests)
 ```
+
+---
+## Licencia
+
+**All Rights Reserved.** Copyright © 2026 Khora Nexus Insight.  
+Este proyecto es parte de un Trabajo de Fin de Máster (TFM). No está licenciado para uso público sin autorización expresa. Consulte el archivo [LICENSE](./LICENSE) para más información.

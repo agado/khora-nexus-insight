@@ -26,7 +26,8 @@ Para mitigar vectores de ataque y garantizar el aislamiento perimetral, el backe
 ### 3.2 Capa Core (Núcleo)
 * **Configuración:** Gestión centralizada y tipada de variables de entorno mediante `Pydantic Settings`.
 * **Persistencia:** Conexión y *pooling* asíncrono a PostgreSQL utilizando `SQLAlchemy 2.0` y el driver `asyncpg`.
-* **Seguridad:** Proveedor de identidad local encargado del firmado/verificación de tokens JWT y del hasheo de alta seguridad con **Argon2id**.
+* **Seguridad:** Proveedor de identidad local con firmado/verificación de tokens JWT (`src/core/auth/jwt.py` → HS256) y hasheo Argon2id (`src/core/auth/security.py`).
+* **Servicios:** Lógica de autenticación desacoplada en `src/core/services/auth_service.py` (Clean Architecture: endpoint → servicio → infraestructura).
 
 ### 3.3 Motor de IA Local (Ollama)
 * Inferencia local dedicada utilizando el modelo **`qwen2.5:1.5b`**.
@@ -245,6 +246,8 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 | **`argon2-cffi` directo** | `passlib[argon2]` | Librería mantenida activamente. Sin deprecation warnings. Contrato de API idéntico. |
 | **Docker Secrets para admin password** | Variable de entorno directa | OWASP: la password se monta como archivo en `/run/secrets/`, no visible en `docker inspect` ni logs. |
 | **Auto‑bootstrap en prod** | Seed manual post‑deploy | `docker-compose.prod.yml` ejecuta `alembic upgrade head && python -m src.core.seed` al arrancar. Un solo comando. |
+| **`algorithms=["HS256"]` explícito** | Algoritmo implícito u omitido | Previene CVE-2015-9235 (algorithm confusion). Aunque el proyecto es monolito, la defensa en profundidad lo exige. |
+| **Service layer para autenticación** | Lógica de auth inline en endpoint | SRP + testabilidad: `authenticate_user()` se testea sin FastAPI ni HTTP. El endpoint solo maneja HTTP, el servicio maneja el caso de uso. |
 
 ---
 
