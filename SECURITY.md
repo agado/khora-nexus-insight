@@ -41,11 +41,13 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 * **Implementación dev:** Variables de entorno inyectadas desde `.env` no versionado. `.env.example` contiene solo valores ficticios.
 * **Implementación prod (OWASP):** Docker Secrets monta `admin_password.txt` como archivo en `/run/secrets/admin_password` dentro del contenedor. No visible en `docker inspect`, logs, ni `ps aux`. El seed lo lee mediante `ADMIN_PASSWORD_FILE`.
 * **Hashing:** Contraseñas hasheadas con `argon2-cffi` (Argon2id). Sin almacenamiento en texto plano.
+* **Admin username:** Configurable vía variable de entorno `ADMIN_USERNAME` (dev default: `"admin"`). No hardcodeado en el código de seed. Validación: si está vacío, el seed se aborta con error.
 
 ### 2.7 Control de Acceso Basado en Roles (RBAC)
 * **Regla:** Todos los endpoints sensibles (excepto login y health check) requieren validación JWT y rol verificado.
 * **Implementación:** * `admin`: Acceso completo (Ingesta, AuditLog, consultas RAG).
   * `staff`: Acceso restringido exclusivamente a consultas RAG y lectura limitada.
+* **Dependencias FastAPI:** `get_current_user` extrae el token del header `Authorization: Bearer` vía `HTTPBearer`, lo verifica con `verify_token()`, y retorna los claims. `require_role(role)` es una factory que retorna un dependency checker; se usa como `Depends(require_role("admin"))`. Si el rol no coincide → `403 Forbidden`.
 
 ### 2.8 JWT (JSON Web Token)
 * **Algoritmo:** HS256 (HMAC-SHA256) con `algorithms=["HS256"]` explícito en `jwt.decode()` para prevenir el ataque de confusión de algoritmos (CVE-2015-9235).
@@ -113,6 +115,7 @@ El sistema (y los agentes de IA) deben verificar automáticamente los siguientes
 | Archivo corrupto o ilegible | Abortar procesamiento | `400 Bad Request` | No registra |
 | Hash SHA-256 ya existente | Rechazar duplicado | `400 Bad Request` | Registra intento |
 | Token JWT ausente o expirado | Bloquear petición | `401 Unauthorized` | Registra fallo |
+| Credenciales inválidas (login) | Rechazar autenticación | `401 Unauthorized` | JSON log (AuditLog en H6) |
 | Usuario `staff` intenta subir documento | Bloquear acceso | `403 Forbidden` | Registra violación |
 | Identificador de documento inexistente | Retornar vacío | `404 Not Found` | No registra |
 | Fallo al escribir en `AuditLog` | Abortar transacción principal (Rollback) | `500 Internal Error` | Registro en consola JSON (Contingencia) |

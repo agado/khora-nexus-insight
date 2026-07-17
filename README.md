@@ -226,7 +226,7 @@ Este modelo arquitectónico soluciona de raíz los riesgos de filtración de dat
 * Credenciales de desarrollo incluidas en .env.example:
 
  * Superadministrador:
- Usuario: admin (rol admin, departamento IT)
+ Usuario: admin (configurable vía ADMIN_USERNAME, rol admin, departamento IT)
  Contraseña: admin123
 
  * Personal IT:

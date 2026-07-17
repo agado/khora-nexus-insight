@@ -2,6 +2,7 @@ import logging
 
 from fastapi import FastAPI
 
+from src.api.v1.auth import router as auth_router
 from src.api.v1.health import router as health_router
 
 logging.basicConfig(
@@ -13,6 +14,7 @@ logger = logging.getLogger("nexus")
 
 app = FastAPI(title="Nexus Insight - Infra Check")
 
+app.include_router(auth_router)
 app.include_router(health_router)
 
 

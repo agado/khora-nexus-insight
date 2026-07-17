@@ -101,6 +101,25 @@ AuditLog {
   "access_token": "eyJhbGciOiJIUzI1NiIsIn...",
   "token_type": "bearer"
 }```
+* Respuestas de Error:
+
+```JSON
+// 401 Unauthorized — credenciales incorrectas
+{
+  "detail": "Invalid credentials"
+}
+
+// 422 Unprocessable Entity — payload inválido (campos faltantes)
+{
+  "detail": [
+    {
+      "type": "missing",
+      "loc": ["body", "password"],
+      "msg": "Field required",
+      "input": {"username": "admin"}
+    }
+  ]
+}```
 ### 5.2 Módulo de Documentos
 * Ruta: POST /api/v1/documents/upload
 
@@ -248,6 +267,10 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 | **Auto‑bootstrap en prod** | Seed manual post‑deploy | `docker-compose.prod.yml` ejecuta `alembic upgrade head && python -m src.core.seed` al arrancar. Un solo comando. |
 | **`algorithms=["HS256"]` explícito** | Algoritmo implícito u omitido | Previene CVE-2015-9235 (algorithm confusion). Aunque el proyecto es monolito, la defensa en profundidad lo exige. |
 | **Service layer para autenticación** | Lógica de auth inline en endpoint | SRP + testabilidad: `authenticate_user()` se testea sin FastAPI ni HTTP. El endpoint solo maneja HTTP, el servicio maneja el caso de uso. |
+| **RBAC vía `require_role(role)` factory** | Inline `if role != "admin"` en cada endpoint | DRY + OCP: añadir protección a un nuevo endpoint solo cambia el argumento. Sin lógica repetida. |
+| **Mini-test-app para tests RBAC** | Dependency overrides globales en conftest | Aislamiento total: no contamina la app real, cada suite de tests es independiente. |
+| **AuditLog login diferido a H6** | AuditLog inline en login endpoint (H3) | Pareto: JSON logging cubre observabilidad ahora. La integración con AuditLog requiere el trigger inmutable de H6. |
+| **Admin username configurable (env var)** | Hardcoded `"admin"` en seed.py | OWASP A7: el nombre del admin se lee de `ADMIN_USERNAME` env var. Validación de no vacío previa al seed. Misma contraseña fuerte por Docker secrets. |
 
 ---
 
