@@ -1,11 +1,19 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
 class Base(DeclarativeBase):
     pass
+
+
+user_department = Table(
+    "user_department",
+    Base.metadata,
+    Column("user_id", Integer, ForeignKey("user.id"), primary_key=True),
+    Column("department_id", Integer, ForeignKey("department.id"), primary_key=True),
+)
 
 
 class Department(Base):
@@ -26,12 +34,19 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False, default="staff")
     department_id = Column(Integer, ForeignKey("department.id"), nullable=False)
-    is_cross_department = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
 
-    department = relationship("Department", back_populates="users")
+    department = relationship("Department", back_populates="users", foreign_keys=[department_id])
+    accessible_departments = relationship("Department", secondary=user_department)
     documents = relationship("Document", back_populates="uploader")
     audit_logs = relationship("AuditLog", back_populates="user")
+
+    @property
+    def accessible_department_ids(self) -> list[int]:
+        ids = [d.id for d in self.accessible_departments]
+        if self.department_id not in ids:
+            ids.append(self.department_id)
+        return ids
 
 
 class Document(Base):
