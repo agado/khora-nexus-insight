@@ -153,14 +153,15 @@ async def query_form(
 @router.post("/web/query")
 async def web_query(
     request: Request,
-    query: str = Form(...),
-    document_ids: list[str] = Form(...),
     _user=Depends(require_web_user),
     db: AsyncSession = Depends(get_session),
 ):
     if isinstance(_user, RedirectResponse):
         return _user
-    ids = [int(x) for x in document_ids if x.strip()]
+    form = await request.form()
+    query = form.get("query", "")
+    raw_ids = form.getlist("document_ids")
+    ids = [int(x) for x in raw_ids if x.strip()]
     from src.core.config import settings as app_settings
 
     try:
