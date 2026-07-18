@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import Depends, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBearer
 from jwt import PyJWTError
 
@@ -33,8 +34,12 @@ async def get_current_user(token: str | None = Depends(security)):
         ) from None
 
 
+def _get_token_from_cookie(request: Request) -> str | None:
+    return request.cookies.get("access_token")
+
+
 async def get_current_user_from_cookie(request: Request):
-    token = request.cookies.get("access_token")
+    token = _get_token_from_cookie(request)
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -49,6 +54,17 @@ async def get_current_user_from_cookie(request: Request):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         ) from None
+
+
+async def require_web_user(request: Request):
+    """Web-only dependency: returns RedirectResponse instead of 401."""
+    token = _get_token_from_cookie(request)
+    if not token:
+        return RedirectResponse(url="/login", status_code=302)
+    try:
+        return verify_token(token)
+    except PyJWTError:
+        return RedirectResponse(url="/login", status_code=302)
 
 
 def require_role(required_role: str):

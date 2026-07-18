@@ -2,10 +2,9 @@ import logging
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse
-from jwt import PyJWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.auth.jwt import verify_token
+from src.core.auth.rbac import require_web_user
 from src.core.database import get_session
 from src.core.services.auth_service import authenticate_user
 from src.core.services.document_service import (
@@ -17,16 +16,6 @@ from src.main import templates
 
 logger = logging.getLogger("nexus")
 router = APIRouter()
-
-
-async def require_web_user(request: Request):
-    token = request.cookies.get("access_token")
-    if not token:
-        return RedirectResponse(url="/login", status_code=302)
-    try:
-        return verify_token(token)
-    except PyJWTError:
-        return RedirectResponse(url="/login", status_code=302)
 
 
 @router.get("/login")

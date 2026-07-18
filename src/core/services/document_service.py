@@ -2,6 +2,7 @@ import hashlib
 from io import BytesIO
 
 from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -23,10 +24,10 @@ def _extract_text(content: bytes) -> str | None:
     try:
         reader = PdfReader(BytesIO(content))
         return "\n".join(page.extract_text() or "" for page in reader.pages)
-    except Exception:
+    except PdfReadError:
         try:
             return content.decode("utf-8")
-        except Exception:
+        except (UnicodeDecodeError, UnicodeError):
             return None
 
 
