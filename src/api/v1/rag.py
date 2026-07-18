@@ -1,13 +1,17 @@
 import logging
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.auth.rbac import require_min_level
 from src.core.config import settings as app_settings
 from src.core.database import get_session
-from src.core.services.rag_service import execute_query
+from src.core.services.rag_service import (
+    RagConnectionError,
+    RagQueryError,
+    execute_query,
+)
 
 logger = logging.getLogger("nexus")
 router = APIRouter(prefix="/api/v1/rag")
@@ -29,15 +33,22 @@ async def query(
     _user: dict = Depends(require_min_level(1)),
     db: AsyncSession = Depends(get_session),
 ):
-    settings = app_settings
-    result = await execute_query(
-        db=db,
-        query_text=body.query,
-        document_ids=body.document_ids,
-        user=_user,
-        ollama_host=settings.ollama_host,
-        model_name=settings.model_name,
-    )
+    try:
+        result = await execute_query(
+            db=db,
+            query_text=body.query,
+            document_ids=body.document_ids,
+            user=_user,
+            ollama_host=app_settings.ollama_host,
+            model_name=app_settings.model_name,
+        )
+    except RagConnectionError as exc:
+        logger.warning("RAG connection error: %s", exc)
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except RagQueryError as exc:
+        logger.warning("RAG query error: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
     logger.info(
         "RAG query: user=%s docs=%s",
         _user.get("sub"),

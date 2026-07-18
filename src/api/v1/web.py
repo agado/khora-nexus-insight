@@ -12,7 +12,7 @@ from src.core.services.document_service import (
     get_documents_by_departments,
     upload_document,
 )
-from src.core.services.rag_service import execute_query
+from src.core.services.rag_service import RagConnectionError, RagQueryError, execute_query
 from src.main import templates
 
 logger = logging.getLogger("nexus")
@@ -173,15 +173,12 @@ async def web_query(
             ollama_host=app_settings.ollama_host,
             model_name=app_settings.model_name,
         )
-    except Exception as exc:
-        logger.exception("Error en consulta RAG")
+    except (RagConnectionError, RagQueryError) as exc:
+        logger.warning("RAG web error: %s", exc)
         return templates.TemplateResponse(
             request,
             "_query_result.html",
-            {
-                "answer": f"Error al procesar la consulta: {exc}",
-                "context_used": [],
-            },
+            {"answer": str(exc), "context_used": []},
             status_code=500,
         )
     return templates.TemplateResponse(

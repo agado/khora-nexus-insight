@@ -1,9 +1,10 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
 from src.core.models import Document
-from src.core.services.rag_service import execute_query
+from src.core.services.rag_service import RagConnectionError, RagQueryError, execute_query
 
 
 class TestExecuteQuery:
@@ -104,10 +105,10 @@ class TestExecuteQuery:
         mock_db.execute.return_value = mock_result
 
         with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.post.side_effect = TimeoutError(
-                "ollama timeout"
+            mock_client.return_value.__aenter__.return_value.post.side_effect = (
+                httpx.TimeoutException("ollama timeout")
             )
-            with pytest.raises(TimeoutError):
+            with pytest.raises(RagConnectionError):
                 await execute_query(
                     mock_db,
                     "query",
@@ -179,3 +180,53 @@ class TestExecuteQuery:
         assert log.action == "rag_query"
         assert log.user_id == 1
         assert log.metadata_["query"] == "query"
+
+    @pytest.mark.asyncio
+    async def test_ollama_connect_error_raises_rag_connection_error(self, mock_db, user_admin):
+        docs = [self._make_doc(1, 1, "data")]
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = docs
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+        mock_db.execute.return_value = mock_result
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.post.side_effect = httpx.ConnectError(
+                "connection refused"
+            )
+            with pytest.raises(RagConnectionError):
+                await execute_query(
+                    mock_db,
+                    "query",
+                    [1],
+                    user_admin,
+                    "http://ollama:11434",
+                    "qwen2.5-coder:1.5b",
+                )
+
+    @pytest.mark.asyncio
+    async def test_ollama_http_error_raises_rag_query_error(self, mock_db, user_admin):
+        docs = [self._make_doc(1, 1, "data")]
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = docs
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+        mock_db.execute.return_value = mock_result
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.post.side_effect = (
+                httpx.HTTPStatusError(
+                    "400 error",
+                    request=MagicMock(),
+                    response=MagicMock(status_code=400),
+                )
+            )
+            with pytest.raises(RagQueryError):
+                await execute_query(
+                    mock_db,
+                    "query",
+                    [1],
+                    user_admin,
+                    "http://ollama:11434",
+                    "qwen2.5-coder:1.5b",
+                )

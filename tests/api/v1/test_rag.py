@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from src.core.auth.jwt import create_access_token
 from src.core.database import get_session
+from src.core.services.rag_service import RagConnectionError, RagQueryError
 from src.main import app
 
 
@@ -79,3 +80,25 @@ class TestQuery:
         args = mock_service.call_args[1]
         assert args["query_text"] == "mi pregunta"
         assert args["document_ids"] == [1, 2]
+
+    def test_query_ollama_down_returns_503(self, client):
+        with patch("src.api.v1.rag.execute_query") as mock_service:
+            mock_service.side_effect = RagConnectionError("Ollama no disponible")
+            resp = client.post(
+                "/api/v1/rag/query",
+                json={"query": "test", "document_ids": [1]},
+                headers={"Authorization": f"Bearer {_admin_token()}"},
+            )
+        assert resp.status_code == 503
+        assert "Ollama" in resp.json()["detail"]
+
+    def test_query_ollama_error_returns_502(self, client):
+        with patch("src.api.v1.rag.execute_query") as mock_service:
+            mock_service.side_effect = RagQueryError("Error en la consulta")
+            resp = client.post(
+                "/api/v1/rag/query",
+                json={"query": "test", "document_ids": [1]},
+                headers={"Authorization": f"Bearer {_admin_token()}"},
+            )
+        assert resp.status_code == 502
+        assert "Error" in resp.json()["detail"]

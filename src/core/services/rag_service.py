@@ -5,6 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.models import AuditLog, Document
 
 
+class RagConnectionError(Exception):
+    """Ollama is unreachable, refused connection, or timed out."""
+
+
+class RagQueryError(Exception):
+    """Ollama returned a non-2xx status or an unparseable response."""
+
+
 def _build_prompt(query: str, context_chunks: list[str]) -> str:
     context = "\n---\n".join(context_chunks)
     return (
@@ -39,18 +47,30 @@ async def execute_query(
     context_chunks = [d.content_text for d in docs if d.content_text]
     prompt = _build_prompt(query_text, context_chunks)
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(
-            f"{ollama_host}/api/generate",
-            json={
-                "model": model_name,
-                "prompt": prompt,
-                "stream": False,
-                "options": {"temperature": 0.1},
-            },
-        )
-    resp.raise_for_status()
-    answer = resp.json().get("response", "")
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{ollama_host}/api/generate",
+                json={
+                    "model": model_name,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.1},
+                },
+            )
+        resp.raise_for_status()
+        answer = resp.json().get("response", "")
+    except httpx.ConnectError as exc:
+        raise RagConnectionError(
+            "No se pudo conectar con el motor de IA (Ollama). "
+            "Verifica que el contenedor esté en ejecución."
+        ) from exc
+    except httpx.TimeoutException as exc:
+        raise RagConnectionError("La consulta al motor de IA excedió el tiempo de espera.") from exc
+    except httpx.HTTPStatusError as exc:
+        raise RagQueryError(f"Ollama respondió con error HTTP {exc.response.status_code}.") from exc
+    except (KeyError, ValueError, TypeError) as exc:
+        raise RagQueryError("El motor de IA devolvió una respuesta inesperada.") from exc
 
     log = AuditLog(
         action="rag_query",
