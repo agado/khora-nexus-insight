@@ -173,9 +173,8 @@ async def web_query(
     )
     return templates.TemplateResponse(
         request,
-        "_query_form.html",
+        "_query_result.html",
         {
-            "documents": [],
             "answer": result["answer"],
             "context_used": result["context_used"],
         },

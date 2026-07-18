@@ -10,7 +10,10 @@ def _build_prompt(query: str, context_chunks: list[str]) -> str:
     return (
         f"<contexto>\n{context}\n</contexto>\n"
         f"<pregunta>\n{query}\n</pregunta>\n"
-        "Instrucción: Responde basándote exclusivamente en el contexto anterior."
+        "Instrucción: Responde basándote EXCLUSIVAMENTE en el contexto anterior. "
+        "Si el contexto no contiene información para responder la pregunta, "
+        "di 'No se encontró información relevante en los documentos seleccionados.' "
+        "No inventes ni añadas información externa."
     )
 
 
@@ -39,7 +42,12 @@ async def execute_query(
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(
             f"{ollama_host}/api/generate",
-            json={"model": model_name, "prompt": prompt, "stream": False},
+            json={
+                "model": model_name,
+                "prompt": prompt,
+                "stream": False,
+                "options": {"temperature": 0.1},
+            },
         )
     resp.raise_for_status()
     answer = resp.json().get("response", "")
