@@ -153,11 +153,21 @@ class TestQueryTab:
         with patch(
             "src.api.v1.web.get_documents_by_departments", new_callable=AsyncMock
         ) as mock_list:
-            mock_list.return_value = []
+            mock_list.return_value = [MagicMock(id=1, filename="test.pdf")]
             response = auth_client.get("/web/query")
         assert response.status_code == 200
         assert "Consultar" in response.text
         assert "textarea" in response.text.lower()
+
+    def test_query_form_empty_docs_shows_warning(self, auth_client):
+        with patch(
+            "src.api.v1.web.get_documents_by_departments", new_callable=AsyncMock
+        ) as mock_list:
+            mock_list.return_value = []
+            response = auth_client.get("/web/query")
+        assert response.status_code == 200
+        assert "No hay documentos disponibles" in response.text
+        assert "textarea" not in response.text.lower()
 
     def test_query_submit_returns_answer(self, auth_client):
         with patch("src.api.v1.web.execute_query", new_callable=AsyncMock) as mock_query:
@@ -168,7 +178,7 @@ class TestQueryTab:
             with patch(
                 "src.api.v1.web.get_documents_by_departments", new_callable=AsyncMock
             ) as mock_list:
-                mock_list.return_value = []
+                mock_list.return_value = [MagicMock(id=1, filename="test.pdf")]
                 response = auth_client.post(
                     "/web/query",
                     data={"query": "¿test?", "document_ids": ["1"]},
@@ -181,3 +191,12 @@ class TestQueryTab:
         response = client.get("/web/query", follow_redirects=False)
         assert response.status_code == 302
         assert "/login" in response.headers.get("location", "")
+
+    def test_htmx_unauthorized_returns_hx_redirect(self, client):
+        response = client.get(
+            "/web/query",
+            headers={"HX-Request": "true"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 200
+        assert response.headers.get("HX-Redirect") == "/login"

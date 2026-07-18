@@ -230,3 +230,34 @@ class TestExecuteQuery:
                     "http://ollama:11434",
                     "qwen2.5-coder:1.5b",
                 )
+
+    @pytest.mark.asyncio
+    async def test_empty_context_returns_clean_message_without_calling_ollama(
+        self, mock_db, user_admin
+    ):
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = []
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+        mock_db.execute.return_value = mock_result
+
+        with patch("httpx.AsyncClient") as mock_client:
+            result = await execute_query(
+                mock_db,
+                "mi pregunta",
+                [1],
+                user_admin,
+                "http://ollama:11434",
+                "qwen2.5-coder:1.5b",
+            )
+
+        mock_client.return_value.__aenter__.return_value.post.assert_not_called()
+        assert (
+            result["answer"]
+            == "No se encontró contenido relevante en los documentos seleccionados."
+        )
+        assert result["context_used"] == []
+        assert mock_db.add.called
+        log = mock_db.add.call_args[0][0]
+        expected = "empty context — no documents matched or content was null"
+        assert log.metadata_.get("note") == expected

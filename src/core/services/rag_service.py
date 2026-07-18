@@ -47,6 +47,21 @@ async def execute_query(
     context_chunks = [d.content_text for d in docs if d.content_text]
     prompt = _build_prompt(query_text, context_chunks)
 
+    if not context_chunks:
+        answer = "No se encontró contenido relevante en los documentos seleccionados."
+        log = AuditLog(
+            action="rag_query",
+            user_id=user["user_id"],
+            metadata_={
+                "query": query_text,
+                "document_ids": document_ids,
+                "note": "empty context — no documents matched or content was null",
+            },
+        )
+        db.add(log)
+        await db.flush()
+        return {"answer": answer, "context_used": []}
+
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(

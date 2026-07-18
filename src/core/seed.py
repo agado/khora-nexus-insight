@@ -23,7 +23,7 @@ def _build_seed_users() -> list[dict]:
             "password": "admin123",
             "role": "admin",
             "department_name": "IT",
-            "accessible_department_names": ["IT"],
+            "accessible_department_names": ["IT", "RRHH", "PM"],
         },
         {
             "username": "ceo",

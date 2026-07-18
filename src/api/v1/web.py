@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -59,7 +59,7 @@ async def logout():
 
 @router.get("/dashboard")
 async def dashboard(request: Request, _user=Depends(require_web_user)):
-    if isinstance(_user, RedirectResponse):
+    if isinstance(_user, Response):
         return _user
     return templates.TemplateResponse(
         request,
@@ -70,7 +70,7 @@ async def dashboard(request: Request, _user=Depends(require_web_user)):
 
 @router.get("/web/upload")
 async def upload_form(request: Request, _user=Depends(require_web_user)):
-    if isinstance(_user, RedirectResponse):
+    if isinstance(_user, Response):
         return _user
     return templates.TemplateResponse(request, "_upload_form.html")
 
@@ -82,7 +82,7 @@ async def web_upload(
     _user=Depends(require_web_user),
     db: AsyncSession = Depends(get_session),
 ):
-    if isinstance(_user, RedirectResponse):
+    if isinstance(_user, Response):
         return _user
     content = await file.read()
     target_department = _user.get("department_id")
@@ -122,7 +122,7 @@ async def web_documents(
     _user=Depends(require_web_user),
     db: AsyncSession = Depends(get_session),
 ):
-    if isinstance(_user, RedirectResponse):
+    if isinstance(_user, Response):
         return _user
     accessible = _user.get("accessible_departments", [])
     docs = await get_documents_by_departments(db, accessible)
@@ -139,7 +139,7 @@ async def query_form(
     _user=Depends(require_web_user),
     db: AsyncSession = Depends(get_session),
 ):
-    if isinstance(_user, RedirectResponse):
+    if isinstance(_user, Response):
         return _user
     accessible = _user.get("accessible_departments", [])
     docs = await get_documents_by_departments(db, accessible)
@@ -156,7 +156,7 @@ async def web_query(
     _user=Depends(require_web_user),
     db: AsyncSession = Depends(get_session),
 ):
-    if isinstance(_user, RedirectResponse):
+    if isinstance(_user, Response):
         return _user
     form = await request.form()
     query = form.get("query", "")
