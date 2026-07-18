@@ -27,6 +27,7 @@ class TestUploadDocument:
         mock_result.scalar_one_or_none.return_value = None
         mock_db = AsyncMock()
         mock_db.execute.return_value = mock_result
+        mock_db.add = MagicMock()
         return mock_db
 
     @pytest.mark.asyncio

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<article style="max-width: 400px; margin: 4rem auto;">
+<hgroup>
+    <h1>Nexus Insight</h1>
+    <h2>Iniciar sesión</h2>
+</hgroup>
+<form method="post" action="/login">
+    <label for="username">Usuario
+        <input type="text" id="username" name="username" placeholder="admin" required>
+    </label>
+    <label for="password">Contraseña
+        <input type="password" id="password" name="password" placeholder="Contraseña" required>
+    </label>
+    <button type="submit">Iniciar sesión</button>
+</form>
+    {% if error %}
+    <p style="color: var(--pico-form-element-invalid-border-color);">{{ error }}</p>
+    {% endif %}
+</article>
+{% endblock %}

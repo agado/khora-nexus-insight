@@ -381,9 +381,13 @@ docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db -c "
 # Ver estructura de una tabla
 docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db -c "\d user"
 
-# Ver datos de seed
+# Ver datos de seed (usuarios)
 docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db \
-  -c 'SELECT id, username, role, is_cross_department FROM "user" ORDER BY id;'
+  -c 'SELECT u.id, u.username, u.role, d.name AS primary_dept FROM "user" u JOIN department d ON d.id = u.department_id ORDER BY u.id;'
+
+# Ver accesos M2M
+docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db \
+  -c 'SELECT u.username, d.name AS accessible_dept FROM user_department ud JOIN "user" u ON u.id = ud.user_id JOIN department d ON d.id = ud.department_id ORDER BY u.username;'
 
 docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db \
   -c "SELECT id, name FROM department ORDER BY id;"
@@ -422,9 +426,13 @@ docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db -c "\dt"
 # Ver estructura de una tabla
 docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db -c "\d user"
 
-# Ver datos de seed
+# Ver datos de seed (usuarios)
 docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db \
-  -c 'SELECT id, username, role, is_cross_department FROM "user" ORDER BY id;'
+  -c 'SELECT u.id, u.username, u.role, d.name AS primary_dept FROM "user" u JOIN department d ON d.id = u.department_id ORDER BY u.id;'
+
+# Ver accesos M2M
+docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db \
+  -c 'SELECT u.username, d.name AS accessible_dept FROM user_department ud JOIN "user" u ON u.id = ud.user_id JOIN department d ON d.id = ud.department_id ORDER BY u.username;'
 
 docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db \
   -c "SELECT id, name FROM department ORDER BY id;"

@@ -148,12 +148,25 @@ nexus-insight/
 │   ├── main.py                      ← entry point
 │   ├── api/
 │   │   └── v1/                      ← endpoints (controllers)
+│   │       ├── auth.py              ← login JWT
+│   │       ├── documents.py         ← CRUD documentos
+│   │       ├── health.py            ← health check
+│   │       └── web.py               ← frontend web (Jinja2/htmx)
 │   ├── core/
 │   │   ├── config.py                ← settings
 │   │   ├── database.py              ← DB engine
-│   │   ├── auth/                    ← JWT, RBAC
+│   │   ├── auth/                    ← JWT, RBAC, seguridad
 │   │   ├── services/                ← use cases (business logic)
 │   │   └── storage/                 ← file I/O
+├── templates/                        ← Jinja2 templates
+│   ├── base.html
+│   ├── login.html
+│   ├── dashboard.html
+│   ├── _upload_form.html
+│   └── _document_list.html
+├── static/
+│   └── css/
+│       └── theme.css
 └── tests/                           ← refleja src/
     ├── conftest.py
     ├── api/
@@ -164,15 +177,23 @@ nexus-insight/
 
 ## e. Funcionalidades principales
 
-* Ingesta con validación criptográfica:Cálculo de SHA‑256 en memoria antes de almacenar metadatos.
+* **Interfaz web profesional**: Login, dashboard y gestión de documentos con Jinja2 + htmx + Pico CSS. Redirección inteligente según sesión. Sin dependencias JavaScript de compilación.
 
-* Flujo RAG 100% local:Recuperación contextual por rol + generación en contenedor aislado de Ollama.
+* **Autenticación segura**: Login con cookie httpOnly + SameSite=Lax. Cierre de sesión. Redirección automática a `/login` si no hay sesión válida. Anti-enumeración (mensaje genérico "Credenciales inválidas").
 
-* Auditoría inmutable (Zero‑Trust):Tabla append‑only con triggers que bloquean UPDATE/DELETE.
+* **Control de acceso por roles y departamentos**: Jerarquía de roles (admin=3, lead=2, staff=1). Acceso aislado por departamento vía tabla M2M `user_department`. JWT transporta `user_id`, `role`, `accessible_departments`.
 
-* RBAC: Roles predefinidos (admin, staff). Control por departamento vía JWT (próximo hito).
+* **Ingesta con validación criptográfica**: Cálculo de SHA‑256 en memoria antes de almacenar metadatos. Validación de tipo de archivo por magic bytes (%PDF). Límite de 10 MB.
 
-* Observabilidad nativa:Logs JSON estructurados sin latencia de red.
+* **Extracción de texto**: PyPDF para PDFs, fallback a UTF-8 para texto plano.
+
+* **Protección antiduplicados**: Rechazo automático de documentos con SHA-256 duplicado.
+
+* **Flujo RAG 100% local**: Recuperación contextual por rol + generación en contenedor aislado de Ollama (próximo hito H5).
+
+* **Auditoría inmutable (Zero‑Trust)**: Tabla append‑only con triggers que bloquean UPDATE/DELETE.
+
+* **Observabilidad nativa**: Logs JSON estructurados sin latencia de red.
 
 ### Arquitectura de Red y Soberanía de Datos (Zero-Trust)
 
@@ -223,27 +244,21 @@ Este modelo arquitectónico soluciona de raíz los riesgos de filtración de dat
 
 ## f. Usuario y contraseña de prueba
 
-* Credenciales de desarrollo incluidas en .env.example:
+* Credenciales de desarrollo incluidas en `.env.example`:
 
- * Superadministrador:
- Usuario: admin (configurable vía ADMIN_USERNAME, rol admin, departamento IT)
- Contraseña: admin123
+| Usuario | Rol | Departamento | Acceso a departamentos | Contraseña |
+|---|---|---|---|---|
+| `admin` | admin | IT | IT | `admin123` |
+| `lead_it` | lead | IT | IT | `lead123` |
+| `lead_hr` | lead | RRHH | RRHH | `lead123` |
+| `lead_pm` | lead | PM | PM | `lead123` |
+| `staff_it` | staff | IT | IT | `staff123` |
+| `staff_hr` | staff | RRHH | RRHH | `staff123` |
+| `staff_pm` | staff | PM | PM | `staff123` |
+| `staff_legal` | staff | Legal | Legal | `staff123` |
+| **`ceo`** | **admin** | **IT** | **IT + RRHH + PM + Legal** | `ceo123` |
 
- * Personal IT:
- Usuario: staff_it (rol staff, departamento IT)
- Contraseña: staff123
-
- * Personal RRHH:
- Usuario: staff_hr (rol staff, departamento RRHH)
- Contraseña: staff123
-
- * Personal PM:
- Usuario: staff_pm (rol staff, departamento PM)
- Contraseña: staff123
-
- * CEO (acceso cross‑department):
- Usuario: ceo (rol admin, departamento IT, is_cross_department=true)
- Contraseña: ceo123
+Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 
 (Nunca usar estas credenciales en producción.)
 
@@ -256,7 +271,7 @@ Este modelo arquitectónico soluciona de raíz los riesgos de filtración de dat
 | **H1** ✅ | Scaffolding: Docker, FastAPI, health endpoints | `GET /api/v1/health` responde 200. 13 tests. |
 | **H2** | `nexus.py`, base de datos, migraciones Alembic, modelos (`+department_id`), seed, test integración DB, `pytest-cov` | `nexus dev` funciona. Tablas creadas. Seed poblado. |
 | **H3** | Autenticación JWT + Argon2id + middleware RBAC | Login OK → 200. Sin token → 401. Prohibición por rol → 403. |
-| **H4** | Ingesta documental por API: SHA-256, extracción texto (pypdf), búsqueda textual, asignación departamento vía JWT | Upload → 201. Duplicado → 400. Solo admin. |
+| **H4** | Ingesta documental por API + frontend web: SHA-256, extracción texto (pypdf), búsqueda textual, roles (admin/lead/staff), departamentos M2M, login web, dashboard, upload, lista documentos, logout | Upload → 200/409. 146 tests. Frontend funcional. |
 | **H5** | Motor RAG: consulta con filtro RBAC, contexto a Ollama, delimitadores XML anti-inyección | Marketing solo ve su depto. Mock IA → 200. |
 | **H6** | Auditoría inmutable (trigger PostgreSQL), trazabilidad completa, documentación final, cobertura > 70% | `DELETE` en audit_logs → excepción. Docs sincronizados. |
 

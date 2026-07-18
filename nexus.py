@@ -71,7 +71,10 @@ def preflight_docker() -> None:
             timeout=10,
         )
     except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        print("Docker no está disponible. Asegúrate de que Docker Desktop esté en ejecución.")
+        print(
+            "Docker no está disponible. Asegúrate de que Docker Desktop"
+            " esté en ejecución. (docker desktop start)"
+        )
         sys.exit(1)
 
 

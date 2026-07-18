@@ -1,0 +1,148 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi.testclient import TestClient
+
+from src.core.auth.jwt import create_access_token
+from src.core.database import get_session
+from src.main import app
+
+
+def _cookie_token() -> str:
+    return create_access_token(
+        {
+            "sub": "admin",
+            "role": "admin",
+            "department_id": 1,
+            "accessible_departments": [1, 2, 3],
+            "user_id": 1,
+        }
+    )
+
+
+@pytest.fixture
+def client():
+    app.dependency_overrides[get_session] = lambda: AsyncMock()
+    yield TestClient(app)
+    app.dependency_overrides.pop(get_session, None)
+
+
+@pytest.fixture
+def auth_client(client):
+    token = _cookie_token()
+    client.cookies.set("access_token", token)
+    return client
+
+
+class TestLoginPage:
+    def test_login_page_returns_form(self, client):
+        response = client.get("/login")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+        assert "<form" in response.text.lower()
+
+    def test_login_success_sets_cookie_and_redirects(self, client):
+        with patch("src.api.v1.web.authenticate_user", new_callable=AsyncMock) as mock_auth:
+            mock_auth.return_value = "valid.jwt.token"
+            response = client.post(
+                "/login",
+                data={"username": "admin", "password": "admin123"},
+                follow_redirects=False,
+            )
+        assert response.status_code == 302
+        assert response.headers.get("location") == "/dashboard"
+        assert "access_token" in response.cookies
+
+    def test_login_failure_shows_error(self, client):
+        with patch("src.api.v1.web.authenticate_user", new_callable=AsyncMock) as mock_auth:
+            mock_auth.return_value = None
+            response = client.post(
+                "/login",
+                data={"username": "admin", "password": "wrong"},
+            )
+        assert response.status_code == 200
+        assert "Credenciales inválidas" in response.text
+
+
+class TestDashboard:
+    def test_dashboard_without_cookie_redirects(self, client):
+        response = client.get("/dashboard", follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers.get("location") == "/login"
+
+    def test_dashboard_with_cookie_returns_html(self, auth_client):
+        response = auth_client.get("/dashboard")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+        assert "Nexus Insight" in response.text
+        assert "Subir" in response.text
+        assert "Documentos" in response.text
+
+
+class TestLogout:
+    def test_logout_clears_cookie_and_redirects(self, auth_client):
+        response = auth_client.get("/logout", follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers.get("location") == "/login"
+        assert "access_token" not in response.cookies or response.cookies["access_token"] == ""
+
+    def test_logout_then_dashboard_redirects(self, auth_client):
+        auth_client.get("/logout", follow_redirects=False)
+        auth_client.cookies.clear()
+        response = auth_client.get("/dashboard", follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers.get("location") == "/login"
+
+
+class TestUploadTab:
+    def test_upload_tab_renders_form(self, auth_client):
+        response = auth_client.get("/web/upload")
+        assert response.status_code == 200
+        assert 'type="file"' in response.text
+
+    def test_web_upload_unauthorized(self, client):
+        response = client.post(
+            "/web/upload",
+            files={"file": ("dummy.pdf", b"%PDF-1.4 test", "application/pdf")},
+            follow_redirects=False,
+        )
+        assert response.status_code == 302
+        assert response.headers.get("location") == "/login"
+
+    def test_web_upload_success(self, auth_client):
+        mock_doc = MagicMock()
+        mock_doc.id = 1
+        mock_doc.filename = "test.pdf"
+        mock_doc.sha256 = "abc123"
+        mock_doc.department_id = 1
+        mock_doc.uploaded_by = 1
+        mock_doc.created_at.isoformat.return_value = "2026-01-01T00:00:00"
+
+        with patch("src.api.v1.web.upload_document", new_callable=AsyncMock) as mock_up:
+            mock_up.return_value = mock_doc
+            response = auth_client.post(
+                "/web/upload",
+                files={"file": ("test.pdf", b"%PDF-1.4 test content", "application/pdf")},
+            )
+        assert response.status_code == 200
+        assert "test.pdf" in response.text
+
+
+class TestDocumentListTab:
+    def test_documents_tab_renders(self, auth_client):
+        with patch(
+            "src.api.v1.web.get_documents_by_departments", new_callable=AsyncMock
+        ) as mock_list:
+            mock_list.return_value = []
+            response = auth_client.get("/web/documents")
+        assert response.status_code == 200
+        assert "Documentos" in response.text
+
+    def test_web_documents_list_empty(self, auth_client):
+        with patch(
+            "src.api.v1.web.get_documents_by_departments", new_callable=AsyncMock
+        ) as mock_list:
+            mock_list.return_value = []
+            response = auth_client.get("/web/documents")
+        assert response.status_code == 200
+        assert "No se encontraron documentos" in response.text

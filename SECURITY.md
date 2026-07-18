@@ -152,7 +152,7 @@ Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP de
 
 ## 8. Estado del Documento
 * **Versión:** MVP 1.0  
-* **Última actualización:** 17 de Julio de 2026  
+* **Última actualización:** 18 de Julio de 2026  
 * **Responsable:** Arquitectura de Seguridad Nexus Insight
 
 ---
