@@ -1,0 +1,33 @@
+<form hx-post="/web/query" hx-target="#query-result" hx-swap="innerHTML">
+    <fieldset>
+        <label>
+            Pregunta
+            <textarea name="query" rows="3" required></textarea>
+        </label>
+        <label>
+            Documentos
+            <select name="document_ids" multiple required>
+                {% for doc in documents %}
+                <option value="{{ doc.id }}">{{ doc.filename }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Consultar</button>
+    </fieldset>
+</form>
+<div id="query-result">
+{% if answer %}
+<article>
+    <strong>Respuesta:</strong>
+    <p>{{ answer }}</p>
+    {% if context_used %}
+    <details>
+        <summary>Contexto utilizado ({{ context_used|length }} documentos)</summary>
+        {% for c in context_used %}
+        <blockquote>{{ c[:300] }}</blockquote>
+        {% endfor %}
+    </details>
+    {% endif %}
+</article>
+{% endif %}
+</div>

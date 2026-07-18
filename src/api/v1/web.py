@@ -12,6 +12,7 @@ from src.core.services.document_service import (
     get_documents_by_departments,
     upload_document,
 )
+from src.core.services.rag_service import execute_query
 from src.main import templates
 
 logger = logging.getLogger("nexus")
@@ -129,4 +130,53 @@ async def web_documents(
         request,
         "_document_list.html",
         {"documents": docs},
+    )
+
+
+@router.get("/web/query")
+async def query_form(
+    request: Request,
+    _user=Depends(require_web_user),
+    db: AsyncSession = Depends(get_session),
+):
+    if isinstance(_user, RedirectResponse):
+        return _user
+    accessible = _user.get("accessible_departments", [])
+    docs = await get_documents_by_departments(db, accessible)
+    return templates.TemplateResponse(
+        request,
+        "_query_form.html",
+        {"documents": docs},
+    )
+
+
+@router.post("/web/query")
+async def web_query(
+    request: Request,
+    query: str = Form(...),
+    document_ids: str = Form(...),
+    _user=Depends(require_web_user),
+    db: AsyncSession = Depends(get_session),
+):
+    if isinstance(_user, RedirectResponse):
+        return _user
+    ids = [int(x.strip()) for x in document_ids.split(",") if x.strip()]
+    from src.core.config import settings as app_settings
+
+    result = await execute_query(
+        db=db,
+        query_text=query,
+        document_ids=ids,
+        user=_user,
+        ollama_host=app_settings.ollama_host,
+        model_name=app_settings.model_name,
+    )
+    return templates.TemplateResponse(
+        request,
+        "_query_form.html",
+        {
+            "documents": [],
+            "answer": result["answer"],
+            "context_used": result["context_used"],
+        },
     )
