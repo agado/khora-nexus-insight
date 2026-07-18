@@ -9,7 +9,7 @@ from src.core.auth.security import verify_password
 from src.core.models import Base, Department, User
 from src.core.seed import (
     SEED_DEPARTMENTS,
-    SEED_USERS,
+    _build_seed_users,
     _is_production,
     _resolve_admin_password,
     seed_database,
@@ -39,14 +39,14 @@ class TestSeedDatabase:
         assert "RRHH" in names
         assert "PM" in names
 
-    def test_seed_creates_users(self, session: Session):
+    def test_seed_creates_eight_users(self, session: Session):
         seed_database(session)
         users = session.execute(select(User)).scalars().all()
-        assert len(users) == len(SEED_USERS)
+        assert len(users) == 8
 
     def test_seed_users_have_valid_passwords(self, session: Session):
         seed_database(session)
-        for user_data in SEED_USERS:
+        for user_data in _build_seed_users():
             user = session.execute(
                 select(User).where(User.username == user_data["username"])
             ).scalar_one_or_none()
@@ -55,27 +55,41 @@ class TestSeedDatabase:
 
     def test_seed_users_belong_to_correct_department(self, session: Session):
         seed_database(session)
-        for user_data in SEED_USERS:
+        for user_data in _build_seed_users():
             user = session.execute(
                 select(User).where(User.username == user_data["username"])
             ).scalar_one_or_none()
             assert user is not None
             assert user.department.name == user_data["department_name"]
 
-    def test_seed_sets_is_cross_department(self, session: Session):
+    def test_seed_lead_has_correct_role(self, session: Session):
+        seed_database(session)
+        for name in ("lead_it", "lead_hr", "lead_pm"):
+            user = session.execute(select(User).where(User.username == name)).scalar_one_or_none()
+            assert user is not None
+            assert user.role == "lead"
+
+    def test_seed_ceo_has_all_departments(self, session: Session):
         seed_database(session)
         ceo = session.execute(select(User).where(User.username == "ceo")).scalar_one_or_none()
         assert ceo is not None
-        assert ceo.is_cross_department is True
-        admin = session.execute(select(User).where(User.username == "admin")).scalar_one_or_none()
-        assert admin is not None
-        assert admin.is_cross_department is False
+        ids = ceo.accessible_department_ids
+        depts = session.execute(select(Department)).scalars().all()
+        assert len(ids) == len(depts)
+
+    def test_seed_staff_has_only_own_department(self, session: Session):
+        seed_database(session)
+        staff_it = session.execute(
+            select(User).where(User.username == "staff_it")
+        ).scalar_one_or_none()
+        assert staff_it is not None
+        assert staff_it.accessible_department_ids == [staff_it.department_id]
 
     def test_seed_is_idempotent(self, session: Session):
         seed_database(session)
         seed_database(session)
         users = session.execute(select(User)).scalars().all()
-        assert len(users) == len(SEED_USERS)
+        assert len(users) == 8
         depts = session.execute(select(Department)).scalars().all()
         assert len(depts) == len(SEED_DEPARTMENTS)
 
@@ -83,7 +97,7 @@ class TestSeedDatabase:
         seed_database(session)
         seed_database(session, reset=True)
         users = session.execute(select(User)).scalars().all()
-        assert len(users) == len(SEED_USERS)
+        assert len(users) == 8
 
 
 class TestSeedProductionMode:

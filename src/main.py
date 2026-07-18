@@ -1,9 +1,13 @@
 import logging
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from jwt import PyJWTError
+from starlette.templating import Jinja2Templates
 
-from src.api.v1.auth import router as auth_router
-from src.api.v1.health import router as health_router
+from src.core.auth.jwt import verify_token
 
 logging.basicConfig(
     level=logging.INFO,
@@ -12,17 +16,31 @@ logging.basicConfig(
 )
 logger = logging.getLogger("nexus")
 
-app = FastAPI(title="Nexus Insight - Infra Check")
+BASE_DIR = Path(__file__).resolve().parent.parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+from src.api.v1.auth import router as auth_router
+from src.api.v1.documents import router as documents_router
+from src.api.v1.health import router as health_router
+from src.api.v1.web import router as web_router
+
+app = FastAPI(title="Nexus Insight")
+
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 app.include_router(auth_router)
+app.include_router(documents_router)
 app.include_router(health_router)
+app.include_router(web_router)
 
 
 @app.get("/")
-def read_root():
-    logger.info("Root endpoint called")
-    return {
-        "status": "online",
-        "message": "¡La infraestructura de Khora Nexus Insight está viva!",
-        "env": __import__("os").getenv("ENV", "development"),
-    }
+async def read_root(request: Request):
+    token = request.cookies.get("access_token")
+    if token:
+        try:
+            verify_token(token)
+            return RedirectResponse(url="/dashboard", status_code=302)
+        except PyJWTError:
+            pass
+    return RedirectResponse(url="/login", status_code=302)

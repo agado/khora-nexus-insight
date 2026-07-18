@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from src.core.auth.security import hash_password
 from src.core.config import settings
-from src.core.models import Base, Department, User
+from src.core.models import Base, Department, User, user_department
 
 SEED_DEPARTMENTS = [
     {"name": "IT"},
@@ -15,43 +15,67 @@ SEED_DEPARTMENTS = [
     {"name": "PM"},
 ]
 
-SEED_USERS = [
-    {
-        "username": settings.admin_username,
-        "password": "admin123",
-        "role": "admin",
-        "department_name": "IT",
-        "is_cross_department": False,
-    },
-    {
-        "username": "staff_it",
-        "password": "staff123",
-        "role": "staff",
-        "department_name": "IT",
-        "is_cross_department": False,
-    },
-    {
-        "username": "staff_hr",
-        "password": "staff123",
-        "role": "staff",
-        "department_name": "RRHH",
-        "is_cross_department": False,
-    },
-    {
-        "username": "staff_pm",
-        "password": "staff123",
-        "role": "staff",
-        "department_name": "PM",
-        "is_cross_department": False,
-    },
-    {
-        "username": "ceo",
-        "password": "ceo123",
-        "role": "admin",
-        "department_name": "IT",
-        "is_cross_department": True,
-    },
-]
+
+def _build_seed_users() -> list[dict]:
+    users = [
+        {
+            "username": settings.admin_username,
+            "password": "admin123",
+            "role": "admin",
+            "department_name": "IT",
+            "accessible_department_names": ["IT"],
+        },
+        {
+            "username": "ceo",
+            "password": "ceo123",
+            "role": "admin",
+            "department_name": "IT",
+            "accessible_department_names": ["IT", "RRHH", "PM"],
+        },
+        {
+            "username": "lead_it",
+            "password": "lead123",
+            "role": "lead",
+            "department_name": "IT",
+            "accessible_department_names": ["IT"],
+        },
+        {
+            "username": "lead_hr",
+            "password": "lead123",
+            "role": "lead",
+            "department_name": "RRHH",
+            "accessible_department_names": ["RRHH"],
+        },
+        {
+            "username": "lead_pm",
+            "password": "lead123",
+            "role": "lead",
+            "department_name": "PM",
+            "accessible_department_names": ["PM"],
+        },
+        {
+            "username": "staff_it",
+            "password": "staff123",
+            "role": "staff",
+            "department_name": "IT",
+            "accessible_department_names": ["IT"],
+        },
+        {
+            "username": "staff_hr",
+            "password": "staff123",
+            "role": "staff",
+            "department_name": "RRHH",
+            "accessible_department_names": ["RRHH"],
+        },
+        {
+            "username": "staff_pm",
+            "password": "staff123",
+            "role": "staff",
+            "department_name": "PM",
+            "accessible_department_names": ["PM"],
+        },
+    ]
+    return users
 
 
 def _get_department_id(session: Session, department_name: str) -> int:
@@ -96,9 +120,15 @@ def _upsert_user(session: Session, user_data: dict) -> None:
         hashed_password=hash_password(user_data["password"]),
         role=user_data["role"],
         department_id=dept_id,
-        is_cross_department=user_data["is_cross_department"],
     )
     session.add(user)
+    session.flush()
+
+    for dept_name in user_data.get("accessible_department_names", [user_data["department_name"]]):
+        access_dept_id = _get_department_id(session, dept_name)
+        session.execute(
+            user_department.insert().values(user_id=user.id, department_id=access_dept_id)
+        )
 
 
 def seed_database(session: Session, reset: bool = False) -> None:
@@ -125,11 +155,11 @@ def seed_database(session: Session, reset: bool = False) -> None:
                 "password": admin_pw,
                 "role": "admin",
                 "department_name": "IT",
-                "is_cross_department": False,
+                "accessible_department_names": ["IT"],
             },
         )
     else:
-        for user_data in SEED_USERS:
+        for user_data in _build_seed_users():
             _upsert_user(session, user_data)
     session.commit()
 

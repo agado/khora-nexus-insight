@@ -220,3 +220,208 @@ class TestMain:
         with patch("nexus.run_migrate") as mock_run:
             nexus.main(["migrate"])
         mock_run.assert_called_once()
+
+    def test_main_upload_invokes_run_upload(self):
+        with patch("nexus.run_upload") as mock_run:
+            nexus.main(["upload", "test.pdf", "--token", "x"])
+        mock_run.assert_called_once_with(filepath="test.pdf", department_id=None, token="x")
+
+    def test_main_document_get_invokes_run_document_get(self):
+        with patch("nexus.run_document_get") as mock_run:
+            nexus.main(["document", "get", "5", "--token", "x"])
+        mock_run.assert_called_once_with(document_id=5, token="x")
+
+    def test_main_document_list_invokes_run_document_list(self):
+        with patch("nexus.run_document_list") as mock_run:
+            nexus.main(["document", "list", "--token", "x"])
+        mock_run.assert_called_once_with(token="x", skip=0, limit=50)
+
+    def test_main_document_list_with_skip_limit(self):
+        with patch("nexus.run_document_list") as mock_run:
+            nexus.main(["document", "list", "--token", "x", "--skip", "5", "--limit", "10"])
+        mock_run.assert_called_once_with(token="x", skip=5, limit=10)
+
+
+class TestCLIParsing:
+    def test_upload_filepath_and_token(self):
+        args = nexus.parse_args(["upload", "doc.pdf", "--token", "abc123"])
+        assert args.command == "upload"
+        assert args.filepath == "doc.pdf"
+        assert args.token == "abc123"
+        assert args.department_id is None
+
+    def test_upload_with_department_id(self):
+        args = nexus.parse_args(["upload", "doc.pdf", "--department-id", "2", "--token", "x"])
+        assert args.department_id == 2
+
+    def test_document_get_parses(self):
+        args = nexus.parse_args(["document", "get", "42", "--token", "xyz"])
+        assert args.command == "document"
+        assert args.document_command == "get"
+        assert args.id == 42
+        assert args.token == "xyz"
+
+    def test_document_list_parses(self):
+        args = nexus.parse_args(["document", "list", "--token", "abc"])
+        assert args.command == "document"
+        assert args.document_command == "list"
+        assert args.token == "abc"
+        assert args.skip == 0
+        assert args.limit == 50
+
+    def test_document_list_with_skip_limit(self):
+        args = nexus.parse_args(
+            ["document", "list", "--token", "x", "--skip", "10", "--limit", "5"]
+        )
+        assert args.skip == 10
+        assert args.limit == 5
+
+    def test_document_no_subcommand_exits_in_main(self):
+        with patch("builtins.print"):
+            with pytest.raises(SystemExit):
+                nexus.main(["document"])
+
+
+class TestRunUpload:
+    def test_file_not_found_exits(self):
+        with pytest.raises(SystemExit):
+            nexus.run_upload(filepath="/nonexistent/file.pdf", department_id=None, token="x")
+
+    def test_api_error_returns_error(self):
+        mock_response = MagicMock()
+        mock_response.ok = False
+        mock_response.status_code = 409
+        mock_response.json.return_value = {"detail": "Documento duplicado"}
+        mock_file = MagicMock()
+        mock_file.__enter__.return_value = MagicMock()
+
+        with patch("nexus.Path.is_file", return_value=True):
+            with patch("nexus.Path.open", return_value=mock_file):
+                with patch("nexus.requests.post", return_value=mock_response):
+                    with pytest.raises(SystemExit) as exc:
+                        nexus.run_upload("test.pdf", department_id=1, token="x")
+        assert exc.value.code == 1
+
+    def test_api_success_prints_document(self):
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.json.return_value = {
+            "id": 1,
+            "filename": "test.pdf",
+            "sha256": "abc123",
+            "department_id": 1,
+            "uploaded_by": 1,
+            "created_at": "2026-07-18T12:00:00+00:00",
+        }
+        mock_file = MagicMock()
+        mock_file.__enter__.return_value = MagicMock()
+
+        with patch("nexus.Path.is_file", return_value=True):
+            with patch("nexus.Path.open", return_value=mock_file):
+                with patch("nexus.requests.post", return_value=mock_response):
+                    with patch("builtins.print") as mock_print:
+                        nexus.run_upload("test.pdf", department_id=1, token="x")
+        mock_print.assert_any_call("Documento subido: id=1 filename=test.pdf")
+
+
+class TestRunDocumentGet:
+    def test_api_error_returns_error(self):
+        mock_response = MagicMock()
+        mock_response.ok = False
+        mock_response.status_code = 404
+        mock_response.json.return_value = {"detail": "Document not found"}
+
+        with patch("nexus.requests.get", return_value=mock_response):
+            with pytest.raises(SystemExit) as exc:
+                nexus.run_document_get(99, token="x")
+        assert exc.value.code == 1
+
+    def test_api_success_prints_document(self):
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.json.return_value = {
+            "id": 5,
+            "filename": "auditoria.pdf",
+            "sha256": "def456",
+            "department_id": 2,
+            "uploaded_by": 3,
+            "created_at": "2026-07-18T12:00:00+00:00",
+        }
+
+        with patch("nexus.requests.get", return_value=mock_response):
+            with patch("builtins.print") as mock_print:
+                nexus.run_document_get(5, token="x")
+        mock_print.assert_any_call("Documento: id=5")
+        mock_print.assert_any_call("  Nombre: auditoria.pdf")
+
+
+class TestRunDocumentList:
+    def test_empty_list_prints_message(self):
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.json.return_value = {"documents": [], "total": 0}
+
+        with patch("nexus.requests.get", return_value=mock_response):
+            with patch("builtins.print") as mock_print:
+                nexus.run_document_list(token="x")
+        mock_print.assert_any_call("No hay documentos disponibles.")
+
+    def test_list_with_documents(self):
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.json.return_value = {
+            "documents": [
+                {
+                    "id": 1,
+                    "filename": "a.pdf",
+                    "department_id": 1,
+                    "created_at": "2026-07-18T12:00:00+00:00",
+                },
+                {
+                    "id": 2,
+                    "filename": "b.pdf",
+                    "department_id": 2,
+                    "created_at": "2026-07-17T10:00:00+00:00",
+                },
+            ],
+            "total": 2,
+        }
+
+        with patch("nexus.requests.get", return_value=mock_response):
+            with patch("builtins.print") as mock_print:
+                nexus.run_document_list(token="x")
+        mock_print.assert_any_call("Documentos (2 en total):")
+        mock_print.assert_any_call("  [1] a.pdf — Depto 1 — 2026-07-18")
+        mock_print.assert_any_call("  [2] b.pdf — Depto 2 — 2026-07-17")
+
+    def test_api_error_returns_error(self):
+        mock_response = MagicMock()
+        mock_response.ok = False
+        mock_response.status_code = 401
+        mock_response.json.return_value = {"detail": "Not authenticated"}
+
+        with patch("nexus.requests.get", return_value=mock_response):
+            with pytest.raises(SystemExit):
+                nexus.run_document_list(token="x")
+
+
+class TestConnectionErrorHandling:
+    def test_upload_connection_error(self):
+        with patch("nexus.Path.is_file", return_value=True):
+            with patch("nexus.Path.open"):
+                with patch("nexus.requests.post", side_effect=nexus.ReqConnectionError("test")):
+                    with pytest.raises(SystemExit) as exc:
+                        nexus.run_upload("test.pdf", department_id=1, token="x")
+        assert exc.value.code == 1
+
+    def test_document_get_connection_error(self):
+        with patch("nexus.requests.get", side_effect=nexus.ReqConnectionError("test")):
+            with pytest.raises(SystemExit) as exc:
+                nexus.run_document_get(1, token="x")
+        assert exc.value.code == 1
+
+    def test_document_list_connection_error(self):
+        with patch("nexus.requests.get", side_effect=nexus.ReqConnectionError("test")):
+            with pytest.raises(SystemExit) as exc:
+                nexus.run_document_list(token="x")
+        assert exc.value.code == 1

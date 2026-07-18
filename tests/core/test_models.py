@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
-from src.core.models import AuditLog, Base, Department, Document, User
+from src.core.models import AuditLog, Base, Department, Document, User, user_department
 
 
 @pytest.fixture
@@ -34,7 +34,6 @@ def user_admin(session: Session, dept_it: Department) -> User:
         hashed_password="hashed_admin",
         role="admin",
         department_id=dept_it.id,
-        is_cross_department=False,
     )
     session.add(user)
     session.commit()
@@ -63,25 +62,12 @@ class TestUser:
             hashed_password="hashed_test",
             role="staff",
             department_id=dept_it.id,
-            is_cross_department=False,
         )
         session.add(user)
         session.commit()
         assert user.id is not None
         assert user.username == "test_user"
         assert user.role == "staff"
-        assert user.is_cross_department is False
-
-    def test_user_is_cross_department_default(self, session: Session, dept_it: Department):
-        user = User(
-            username="cross_user",
-            hashed_password="hashed_cross",
-            role="staff",
-            department_id=dept_it.id,
-        )
-        session.add(user)
-        session.commit()
-        assert user.is_cross_department is False
 
     def test_user_unique_username(self, session: Session, dept_it: Department, user_admin: User):
         user = User(
@@ -100,6 +86,46 @@ class TestUser:
 
     def test_user_created_at_auto(self, user_admin: User):
         assert user_admin.created_at is not None
+
+    def test_user_accessible_departments_m2m(self, session: Session, dept_it: Department):
+        hr = Department(name="RRHH")
+        session.add(hr)
+        session.commit()
+        user = User(
+            username="cross_user",
+            hashed_password="hash",
+            role="staff",
+            department_id=dept_it.id,
+        )
+        session.add(user)
+        session.commit()
+        session.execute(user_department.insert().values(user_id=user.id, department_id=hr.id))
+        session.commit()
+        session.refresh(user)
+        assert len(user.accessible_departments) == 1
+        assert user.accessible_departments[0].name == "RRHH"
+
+    def test_accessible_department_ids_includes_primary(
+        self, session: Session, dept_it: Department
+    ):
+        hr = Department(name="RRHH")
+        session.add(hr)
+        session.commit()
+        user = User(
+            username="multi_user",
+            hashed_password="hash",
+            role="staff",
+            department_id=dept_it.id,
+        )
+        session.add(user)
+        session.commit()
+        session.execute(user_department.insert().values(user_id=user.id, department_id=hr.id))
+        session.commit()
+        session.refresh(user)
+        ids = user.accessible_department_ids
+        assert dept_it.id in ids
+        assert hr.id in ids
+        assert len(ids) == 2
 
 
 class TestDocument:

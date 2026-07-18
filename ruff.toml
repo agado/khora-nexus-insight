@@ -23,6 +23,7 @@ select = [
 ignore = [
     "B008",  # Permite usar FastAPI Depends() dentro de los argumentos de funciones
     "N805",  # Permite el primer argumento de validadores de Pydantic sin ser 'self'
+    "E402",  # Import post-template (src/main.py) circular con web.py
 ]
 
 [lint.isort]

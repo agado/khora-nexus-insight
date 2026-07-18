@@ -10,13 +10,13 @@ from src.core.services.auth_service import authenticate_user
 
 class TestAuthenticateUser:
     @pytest.mark.asyncio
-    async def test_success_returns_token(self):
+    async def test_success_returns_token_with_user_id_and_accessible_departments(self):
         user = User(
+            id=1,
             username="admin",
             hashed_password=hash_password("admin123"),
             role="admin",
             department_id=1,
-            is_cross_department=False,
         )
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = user
@@ -30,7 +30,9 @@ class TestAuthenticateUser:
         assert payload["sub"] == "admin"
         assert payload["role"] == "admin"
         assert payload["department_id"] == 1
-        assert payload["is_cross_department"] is False
+        assert isinstance(payload["accessible_departments"], list)
+        assert 1 in payload["accessible_departments"]
+        assert payload["user_id"] == 1
 
     @pytest.mark.asyncio
     async def test_wrong_password_returns_none(self):
@@ -39,7 +41,6 @@ class TestAuthenticateUser:
             hashed_password=hash_password("admin123"),
             role="admin",
             department_id=1,
-            is_cross_department=False,
         )
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = user

@@ -55,12 +55,20 @@ User {
     id: int                         // Clave primaria autoincremental
     username: str                   // Identificador único de inicio de sesión
     hashed_password: str            // Hash criptográfico generado con Argon2id
-    role: Literal["admin", "staff"] // Rol asignado para el control RBAC
-    department_id: int              // Clave foránea -> Department.id
-    is_cross_department: bool       // True si puede acceder a documentos de todos los departamentos
+    role: Literal["admin", "lead", "staff"] // Rol asignado para el control RBAC
+    department_id: int              // Clave foránea -> Department.id (departamento primario)
     created_at: datetime            // Timestamp con zona horaria UTC
 }
 ```
+
+#### Tabla auxiliar: user_department (M2M)
+```typescript
+user_department {
+    user_id: int         // Clave foránea -> User.id (PK compuesta)
+    department_id: int   // Clave foránea -> Department.id (PK compuesta)
+}
+```
+La relación N:M entre usuarios y departamentos permite que un usuario acceda a documentos de múltiples departamentos. El departamento primario se define en `User.department_id`. Los departamentos adicionales accesibles se almacenan en `user_department`. El JWT incluye la lista completa de IDs accesibles via `accessible_departments`.
 ### 4.2 Entidad: Document
 ```TypeScript
 Document {
@@ -123,43 +131,71 @@ AuditLog {
 ### 5.2 Módulo de Documentos
 * Ruta: POST /api/v1/documents/upload
 
-* Descripción: Ingesta de archivos con validación criptográfica para prevenir colisiones e inyecciones de datos.
+* Descripción: Ingesta de archivos PDF con validación criptográfica SHA-256 para prevenir colisiones e inyecciones de datos. El departamento de destino se hereda del JWT por defecto, o se envía explícitamente via `department_id`.
 
-* Restricción de Acceso: Exclusivo para rol admin.
+* Restricción de Acceso: Usuarios autenticados con role level >= 1 (staff, lead, admin). El departamento destino debe estar en los `accessible_departments` del token JWT (Zero-Trust).
 
-* Cuerpo de la Petición: Multipart/Form-Data (Archivo físico TXT/PDF).
+* Cuerpo de la Petición: Multipart/Form-Data (Archivo físico PDF, campo `file`). Campo opcional `department_id` (int).
 
 * Flujo Interno:
 
+ * Validación de magic bytes (%PDF) y tamaño máximo (10 MB).
+
  * Lectura del flujo de bytes y cómputo del hash SHA-256 en memoria.
 
- * Verificación de duplicados en la base de datos.
+ * Verificación de duplicados por SHA-256 en la base de datos.
 
- * La ingesta documental incluye extracción de texto mediante pypdf para habilitar consultas RAG locales.
+ * Extracción de texto mediante pypdf para habilitar consultas RAG locales.
 
- * Extracción de texto e inserción de metadatos.
-
- * Generación síncrona del registro en AuditLog.
+ * Inserción de metadatos en la tabla Document.
 
  * Respuesta de Éxito (201 Created):
 
 ```JSON
 {
-  "document_id": 1,
-  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  "id": 1,
+  "filename": "auditoria_2026.pdf",
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "department_id": 1,
+  "uploaded_by": 1,
+  "created_at": "2026-07-17T22:11:15.087447+00:00"
 }```
 * Ruta: GET /api/v1/documents/{id}
 
-* Descripción: Recupera los metadatos de control de un documento indexado.
+* Descripción: Recupera los metadatos de control de un documento indexado. El documento solo se devuelve si su `department_id` está en los `accessible_departments` del usuario autenticado.
 
 * Respuesta de Éxito (200 OK):
 
 ```JSON
 {
   "id": 1,
-  "filename": "auditoria_2026.txt",
-  "sha256": "e3b0c44298fc...",
-  "uploaded_by": 1
+  "filename": "auditoria_2026.pdf",
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "department_id": 1,
+  "uploaded_by": 1,
+  "created_at": "2026-07-17T22:11:15.087447+00:00"
+}```
+* Ruta: GET /api/v1/documents
+
+* Descripción: Lista paginada de documentos filtrados por los `accessible_departments` del usuario autenticado.
+
+* Parámetros Query: `skip` (int, default 0), `limit` (int, default 50).
+
+* Respuesta de Éxito (200 OK):
+
+```JSON
+{
+  "documents": [
+    {
+      "id": 1,
+      "filename": "auditoria_2026.pdf",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "department_id": 1,
+      "uploaded_by": 1,
+      "created_at": "2026-07-17T22:11:15.087447+00:00"
+    }
+  ],
+  "total": 1
 }```
 ### 5.3 Módulo RAG (Generación Aumentada por Recuperación)
 * Ruta: POST /api/v1/rag/query
@@ -193,11 +229,58 @@ AuditLog {
   "context_used": ["Fragmento extraído del documento 1...", "Fragmento del documento 2..."]
 } ```
 
+### 5.4 Interfaz CLI (Línea de Comandos)
+
+La CLI de Nexus Insight (`nexus.py`) permite interactuar con la API desde la terminal sin necesidad del frontend web. Todos los comandos requieren un token JWT obtenido del endpoint de login.
+
+* Comando: `nexus.py upload <filepath> --token <JWT> [--department-id <id>]`
+
+* Descripción: Sube un documento PDF a la API. El archivo debe existir en el sistema de archivos local. El token JWT se obtiene de `POST /api/v1/auth/login`.
+
+* Ejemplo:
+```bash
+nexus.py upload auditoria.pdf --department-id 1 --token "eyJ..."
+# → Documento subido: id=3 filename=auditoria.pdf  SHA-256: e3b0c44...
+```
+
+* Comando: `nexus.py document get <id> --token <JWT>`
+
+* Descripción: Recupera los metadatos de un documento por su ID. Muestra nombre, SHA-256, departamento, subido por y fecha de creación.
+
+* Ejemplo:
+```bash
+nexus.py document get 3 --token "eyJ..."
+# → Documento: id=3  Nombre: auditoria.pdf  SHA-256: e3b0c44...
+```
+
+* Comando: `nexus.py document list --token <JWT> [--skip <n>] [--limit <n>]`
+
+* Descripción: Lista paginada de documentos accesibles según el departamento del usuario autenticado.
+
+* Ejemplo:
+```bash
+nexus.py document list --token "eyJ..."
+# → Documentos (3 en total):
+# →   [3] auditoria.pdf — Depto 1 — 2026-07-18
+# →   [2] manual.pdf — Depto 1 — 2026-07-17
+```
+
+* Manejo de errores: Si el servidor no está en ejecución, muestra un mensaje en español y termina con código 1. Errores HTTP (401, 404, 409, etc.) se muestran con el código y detalle devuelto por la API.
+
 ## 6. Reglas de Negocio e Invariantes del Sistema
 
 ### 6.1 Control de Acceso Basado en Roles (RBAC)
-* **`admin`:** Posee privilegios totales sobre el ecosistema. Es el único perfil habilitado para realizar ingesta de nuevos documentos, consultar logs del sistema, alterar configuraciones y ejecutar consultas RAG.
-* **`staff`:** Perfil restringido. Únicamente puede interactuar con el endpoint de consultas `/rag/query` y recuperar metadatos básicos en modo lectura. Tiene vetada la subida de información y la visualización de la auditoría.
+El sistema implementa una jerarquía de niveles de acceso mediante la factory `require_min_level(n)`:
+
+| Rol | Nivel | Acceso |
+|---|---|---|
+| `staff` | 1 | Subida de documentos a su departamento, consultas RAG sobre sus departamentos accesibles |
+| `lead` | 2 | Todo lo de staff, más acceso a endpoints de nivel 2 protegidos |
+| `admin` | 3 | Acceso completo a todo el sistema, incluyendo endpoints de nivel 3 |
+
+La función `require_min_level(n)` retorna un dependency checker de FastAPI. Si el nivel del usuario es menor que `n`, devuelve `403 Forbidden`. La función `require_role(role)` se mantiene para compatibilidad con checks de rol exacto.
+
+* **Departamentos accesibles:** Cada usuario tiene un departamento primario (`department_id`) y puede tener departamentos adicionales via la tabla M2M `user_department`. La lista completa se inyecta en el JWT como `accessible_departments: list[int]`. Todos los endpoints de documentos filtran por esta lista (Zero-Trust).
 
 ### 6.2 Inmutabilidad de la Auditoría (Zero-Trust)
 * Cada llamada a un endpoint sensible o de consumo de IA debe disparar de forma atómica e irreversible una inserción en la tabla `AuditLog`.
@@ -336,9 +419,13 @@ docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db -c "
 # Ver estructura de una tabla
 docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db -c "\d user"
 
-# Ver datos de seed
+# Ver datos de seed (usuarios)
 docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db \
-  -c 'SELECT id, username, role, is_cross_department FROM "user" ORDER BY id;'
+  -c 'SELECT u.id, u.username, u.role, d.name AS primary_dept FROM "user" u JOIN department d ON d.id = u.department_id ORDER BY u.id;'
+
+# Ver accesos M2M
+docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db \
+  -c 'SELECT u.username, d.name AS accessible_dept FROM user_department ud JOIN "user" u ON u.id = ud.user_id JOIN department d ON d.id = ud.department_id ORDER BY u.username;'
 
 docker exec -i nexus_postgres_dev psql -U nexus_db_user -d nexus_insight_db \
   -c "SELECT id, name FROM department ORDER BY id;"
@@ -365,6 +452,26 @@ docker logs nexus_ollama_dev -f
 docker exec -i nexus_ollama_dev ollama list
 ```
 
+#### CLI (Nexus Insight)
+```bash
+# Login y obtención de token JWT
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+
+# Subir documento PDF
+nexus.py upload ruta/documento.pdf --department-id 1 --token "$TOKEN"
+
+# Consultar metadatos de un documento
+nexus.py document get 1 --token "$TOKEN"
+
+# Listar documentos accesibles
+nexus.py document list --token "$TOKEN"
+
+# Listar con paginación
+nexus.py document list --skip 0 --limit 10 --token "$TOKEN"
+```
+
 ---
 
 ### Entorno de producción
@@ -377,9 +484,13 @@ docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db -c "\dt"
 # Ver estructura de una tabla
 docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db -c "\d user"
 
-# Ver datos de seed
+# Ver datos de seed (usuarios)
 docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db \
-  -c 'SELECT id, username, role, is_cross_department FROM "user" ORDER BY id;'
+  -c 'SELECT u.id, u.username, u.role, d.name AS primary_dept FROM "user" u JOIN department d ON d.id = u.department_id ORDER BY u.id;'
+
+# Ver accesos M2M
+docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db \
+  -c 'SELECT u.username, d.name AS accessible_dept FROM user_department ud JOIN "user" u ON u.id = ud.user_id JOIN department d ON d.id = ud.department_id ORDER BY u.username;'
 
 docker exec -i nexus_postgres psql -U nexus_db_user -d nexus_insight_db \
   -c "SELECT id, name FROM department ORDER BY id;"

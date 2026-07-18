@@ -45,14 +45,21 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 
 ### 2.7 Control de Acceso Basado en Roles (RBAC)
 * **Regla:** Todos los endpoints sensibles (excepto login y health check) requieren validación JWT y rol verificado.
-* **Implementación:** * `admin`: Acceso completo (Ingesta, AuditLog, consultas RAG).
-  * `staff`: Acceso restringido exclusivamente a consultas RAG y lectura limitada.
-* **Dependencias FastAPI:** `get_current_user` extrae el token del header `Authorization: Bearer` vía `HTTPBearer`, lo verifica con `verify_token()`, y retorna los claims. `require_role(role)` es una factory que retorna un dependency checker; se usa como `Depends(require_role("admin"))`. Si el rol no coincide → `403 Forbidden`.
+* **Implementación:** Jerarquía de tres niveles via `require_min_level(n)`:
+  * `admin` (nivel 3): Acceso completo (Ingesta, AuditLog, consultas RAG).
+  * `lead` (nivel 2): Acceso a endpoints de nivel 2 y 1.
+  * `staff` (nivel 1): Subida de documentos, consultas RAG, lectura limitada.
+* **Departamentos:** El JWT contiene `accessible_departments: list[int]`. Todos los endpoints de documentos filtran por esta lista (Zero-Trust). El usuario solo accede a documentos cuyo `department_id` esté en su lista.
+* **Dependencias FastAPI:**
+  * `get_current_user` extrae el token del header `Authorization: Bearer` vía `HTTPBearer(auto_error=False)`, lo verifica con `verify_token()`, y retorna los claims.
+  * `get_current_user_from_cookie` extrae el token de la cookie `access_token` para autenticación via frontend (Jinja2/htmx).
+  * `require_min_level(n)` es una factory que compara `ROLE_LEVELS[role] >= n`; si no → `403 Forbidden`.
+  * `require_role(role)` se mantiene para compatibilidad (check exacto).
 
 ### 2.8 JWT (JSON Web Token)
 * **Algoritmo:** HS256 (HMAC-SHA256) con `algorithms=["HS256"]` explícito en `jwt.decode()` para prevenir el ataque de confusión de algoritmos (CVE-2015-9235).
 * **Claims estándar:** `iat` (emisión), `nbf` (no válido antes de), `exp` (expiración — por defecto 30 minutos, configurable vía `JWT_EXPIRATION_MINUTES`).
-* **Claims personalizados:** `sub` (username), `role`, `department_id`, `is_cross_department`. El token es la fuente de verdad zero-trust para el control de acceso departamental.
+* **Claims personalizados:** `sub` (username), `role`, `department_id`, `accessible_departments` (list[int]), `user_id` (int). El token es la fuente de verdad zero-trust para el control de acceso departamental.
 * **Secreto:** Inyectado desde variable de entorno `JWT_SECRET` (dev: `.env`, prod: `PROD_JWT_SECRET`). Nunca hardcodeado.
 * **Anti-enumeration:** El servicio de autenticación (`authenticate_user`) devuelve el mismo resultado (`None`) tanto para usuario inexistente como para contraseña incorrecta, impidiendo la enumeración de usuarios por respuesta diferenciada.
 
@@ -145,7 +152,7 @@ Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP de
 
 ## 8. Estado del Documento
 * **Versión:** MVP 1.0  
-* **Última actualización:** 17 de Julio de 2026  
+* **Última actualización:** 18 de Julio de 2026  
 * **Responsable:** Arquitectura de Seguridad Nexus Insight
 
 ---
