@@ -1,0 +1,25 @@
+<div id="query-form-area">
+    <h3>Consultar Documentos</h3>
+    {% if documents %}
+    <form hx-post="/web/query" hx-target="#query-result" hx-swap="innerHTML">
+        <fieldset>
+            <label>
+                Pregunta
+                <textarea name="query" rows="3" required></textarea>
+            </label>
+            <label>
+                Documentos
+                <select name="document_ids" multiple required>
+                    {% for doc in documents %}
+                    <option value="{{ doc.id }}">{{ doc.filename }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="submit">Consultar</button>
+        </fieldset>
+    </form>
+    <div id="query-result"></div>
+    {% else %}
+    <p>No hay documentos disponibles para tu departamento. Sube documentos primero.</p>
+    {% endif %}
+</div>

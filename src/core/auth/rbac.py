@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBearer
 from jwt import PyJWTError
@@ -15,6 +15,13 @@ ROLE_LEVELS = {
     "lead": 2,
     "staff": 1,
 }
+
+
+def _redirect_to_login(request: Request) -> Response:
+    is_htmx = request.headers.get("HX-Request") == "true"
+    if is_htmx:
+        return Response(status_code=200, headers={"HX-Redirect": "/login"})
+    return RedirectResponse(url="/login", status_code=302)
 
 
 async def get_current_user(token: str | None = Depends(security)):
@@ -57,14 +64,17 @@ async def get_current_user_from_cookie(request: Request):
 
 
 async def require_web_user(request: Request):
-    """Web-only dependency: returns RedirectResponse instead of 401."""
+    """Web-only dependency: returns redirect Response instead of 401.
+
+    For HTMX requests returns HX-Redirect header for full page navigation.
+    """
     token = _get_token_from_cookie(request)
     if not token:
-        return RedirectResponse(url="/login", status_code=302)
+        return _redirect_to_login(request)
     try:
         return verify_token(token)
     except PyJWTError:
-        return RedirectResponse(url="/login", status_code=302)
+        return _redirect_to_login(request)
 
 
 def require_role(required_role: str):

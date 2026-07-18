@@ -1,7 +1,8 @@
 import logging
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile
+from fastapi.responses import HTMLResponse, RedirectResponse
+from jinja2 import Template
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.auth.rbac import require_web_user
@@ -12,7 +13,23 @@ from src.core.services.document_service import (
     get_documents_by_departments,
     upload_document,
 )
+from src.core.services.rag_service import RagConnectionError, RagQueryError, execute_query
 from src.main import templates
+
+_QUERY_RESULT_TPL = Template(
+    "<article>"
+    "<strong>Respuesta:</strong>"
+    "<p>{{ answer }}</p>"
+    "{% if context_used %}"
+    "<details>"
+    "<summary>Contexto utilizado ({{ context_used|length }} documentos)</summary>"
+    "{% for c in context_used %}"
+    "<blockquote>{{ c[:300] }}</blockquote>"
+    "{% endfor %}"
+    "</details>"
+    "{% endif %}"
+    "</article>"
+)
 
 logger = logging.getLogger("nexus")
 router = APIRouter()
@@ -58,7 +75,7 @@ async def logout():
 
 @router.get("/dashboard")
 async def dashboard(request: Request, _user=Depends(require_web_user)):
-    if isinstance(_user, RedirectResponse):
+    if isinstance(_user, Response):
         return _user
     return templates.TemplateResponse(
         request,
@@ -69,7 +86,7 @@ async def dashboard(request: Request, _user=Depends(require_web_user)):
 
 @router.get("/web/upload")
 async def upload_form(request: Request, _user=Depends(require_web_user)):
-    if isinstance(_user, RedirectResponse):
+    if isinstance(_user, Response):
         return _user
     return templates.TemplateResponse(request, "_upload_form.html")
 
@@ -81,7 +98,7 @@ async def web_upload(
     _user=Depends(require_web_user),
     db: AsyncSession = Depends(get_session),
 ):
-    if isinstance(_user, RedirectResponse):
+    if isinstance(_user, Response):
         return _user
     content = await file.read()
     target_department = _user.get("department_id")
@@ -121,7 +138,7 @@ async def web_documents(
     _user=Depends(require_web_user),
     db: AsyncSession = Depends(get_session),
 ):
-    if isinstance(_user, RedirectResponse):
+    if isinstance(_user, Response):
         return _user
     accessible = _user.get("accessible_departments", [])
     docs = await get_documents_by_departments(db, accessible)
@@ -129,4 +146,67 @@ async def web_documents(
         request,
         "_document_list.html",
         {"documents": docs},
+    )
+
+
+@router.get("/web/query")
+async def query_form(
+    request: Request,
+    _user=Depends(require_web_user),
+    db: AsyncSession = Depends(get_session),
+):
+    if isinstance(_user, Response):
+        return _user
+    accessible = _user.get("accessible_departments", [])
+    docs = await get_documents_by_departments(db, accessible)
+    return templates.TemplateResponse(
+        request,
+        "_query_form.html",
+        {"documents": docs},
+    )
+
+
+@router.post("/web/query")
+async def web_query(
+    request: Request,
+    _user=Depends(require_web_user),
+    db: AsyncSession = Depends(get_session),
+):
+    if isinstance(_user, Response):
+        return _user
+    form = await request.form()
+    query = form.get("query", "")
+    raw_ids = form.getlist("document_ids")
+    ids = [int(x) for x in raw_ids if x.strip()]
+    from src.core.config import settings as app_settings
+
+    if len(query) > 2000:
+        return HTMLResponse(
+            _QUERY_RESULT_TPL.render(
+                answer="La consulta excede el máximo de 2000 caracteres.",
+                context_used=[],
+            ),
+            status_code=400,
+        )
+
+    try:
+        result = await execute_query(
+            db=db,
+            query_text=query,
+            document_ids=ids,
+            user=_user,
+            ollama_host=app_settings.ollama_host,
+            model_name=app_settings.model_name,
+        )
+    except (RagConnectionError, RagQueryError) as exc:
+        logger.warning("RAG web error: %s", exc)
+        return HTMLResponse(
+            _QUERY_RESULT_TPL.render(answer=str(exc), context_used=[]),
+            status_code=500,
+        )
+    return HTMLResponse(
+        _QUERY_RESULT_TPL.render(
+            answer=result["answer"],
+            context_used=result["context_used"],
+        ),
     )

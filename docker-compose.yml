@@ -12,7 +12,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
       - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db_service:5432/${DB_NAME}
-      - MODEL_HOST=${MODEL_HOST}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama_service:11434}
       - MODEL_NAME=${MODEL_NAME:-qwen2.5-coder:1.5b}
     volumes:
       - ./src:/app/src
