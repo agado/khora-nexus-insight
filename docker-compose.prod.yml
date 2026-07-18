@@ -16,7 +16,7 @@ services:
       - JWT_SECRET=${PROD_JWT_SECRET}
       - JWT_ALGORITHM=${PROD_JWT_ALGORITHM:-HS256}
       - DATABASE_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@db_service:5432/${PROD_DB_NAME}
-      - MODEL_HOST=http://ollama_service:11434
+      - OLLAMA_HOST=http://ollama_service:11434
       - MODEL_NAME=${PROD_MODEL_NAME}
       - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
     secrets:
