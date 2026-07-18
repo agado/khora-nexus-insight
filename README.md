@@ -268,13 +268,25 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 ## g. Roadmap de Desarrollo (TDD)
 
 | Hito | Objetivo | Criterio de Aceptación (DoD) |
-|---|---|---|
+|---|---|---|---|
 | **H1** ✅ | Scaffolding: Docker, FastAPI, health endpoints | `GET /api/v1/health` responde 200. 13 tests. |
-| **H2** | `nexus.py`, base de datos, migraciones Alembic, modelos (`+department_id`), seed, test integración DB, `pytest-cov` | `nexus dev` funciona. Tablas creadas. Seed poblado. |
-| **H3** | Autenticación JWT + Argon2id + middleware RBAC | Login OK → 200. Sin token → 401. Prohibición por rol → 403. |
+| **H2** ✅ | `nexus.py`, base de datos, migraciones Alembic, modelos (`+department_id`), seed, test integración DB, `pytest-cov` | `nexus dev` funciona. Tablas creadas. Seed poblado. |
+| **H3** ✅ | Autenticación JWT + Argon2id + middleware RBAC | Login OK → 200. Sin token → 401. Prohibición por rol → 403. |
 | **H4** ✅ | Ingesta documental por API + frontend web + CLI: SHA-256, extracción texto (pypdf), búsqueda textual, roles (admin/lead/staff), departamentos M2M, login web, dashboard, upload, lista documentos, logout, CLI upload/get/list | Upload → 200/409. 167 tests. Frontend funcional. CLI funcional. |
 | **H5** ✅ | Motor RAG: consulta con filtro RBAC, contexto a Ollama, delimitadores XML anti-inyección + sanitización OWASP, truncado de contexto a 4K chars, endpoint API + frontend web + CLI | `POST /api/v1/rag/query` → 200. 186 tests. Frontend Consultar funcional. |
-| **H6** | Auditoría inmutable (trigger PostgreSQL), trazabilidad completa, documentación final, cobertura > 70% | `DELETE` en audit_logs → excepción. Docs sincronizados. |
+| **H6** | Auditoría inmutable, trazabilidad, borrado documental seguro, documento público, exportación RAG, cobertura > 70% | Ver detalle abajo ↓ |
+
+### H6 — Sub-hitos
+
+| Código | Objetivo | Criterio de Aceptación |
+|--------|----------|------------------------|
+| **H6.1** | Trigger PostgreSQL inmutable en `audit_log` (`REJECT` en UPDATE/DELETE) | `DELETE FROM audit_log` → excepción. Tests de integración DB. |
+| **H6.2** | AuditLog en login endpoint | Login → fila en audit_logs. |
+| **H6.3** | Borrar documentos (admin/lead) | `DELETE /api/v1/documents/{id}` → 200/404/403. Botón en frontend. Staff no puede subir ni borrar. |
+| **H6.4** | Documento de acceso general (`is_public`) | Columna opcional. Si `is_public=true`, bypass del filtro departamental. |
+| **H6.5** | Exportar respuesta RAG (PDF/txt) | Botón en frontend de Consultar. |
+| **H6.6** | Rate limiting en RAG | Máx N consultas/minuto por usuario. |
+| **H6.7** | Documentación final sincronizada + cobertura > 70% | README, SPEC, SECURITY sincronizados. `pytest --cov > 70%`. |
 
 ### Post-MVP (Futuro)
 
