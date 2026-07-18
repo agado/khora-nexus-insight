@@ -154,23 +154,35 @@ async def query_form(
 async def web_query(
     request: Request,
     query: str = Form(...),
-    document_ids: str = Form(...),
+    document_ids: list[str] = Form(...),
     _user=Depends(require_web_user),
     db: AsyncSession = Depends(get_session),
 ):
     if isinstance(_user, RedirectResponse):
         return _user
-    ids = [int(x.strip()) for x in document_ids.split(",") if x.strip()]
+    ids = [int(x) for x in document_ids if x.strip()]
     from src.core.config import settings as app_settings
 
-    result = await execute_query(
-        db=db,
-        query_text=query,
-        document_ids=ids,
-        user=_user,
-        ollama_host=app_settings.ollama_host,
-        model_name=app_settings.model_name,
-    )
+    try:
+        result = await execute_query(
+            db=db,
+            query_text=query,
+            document_ids=ids,
+            user=_user,
+            ollama_host=app_settings.ollama_host,
+            model_name=app_settings.model_name,
+        )
+    except Exception as exc:
+        logger.exception("Error en consulta RAG")
+        return templates.TemplateResponse(
+            request,
+            "_query_result.html",
+            {
+                "answer": f"Error al procesar la consulta: {exc}",
+                "context_used": [],
+            },
+            status_code=500,
+        )
     return templates.TemplateResponse(
         request,
         "_query_result.html",

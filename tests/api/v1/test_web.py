@@ -171,7 +171,7 @@ class TestQueryTab:
                 mock_list.return_value = []
                 response = auth_client.post(
                     "/web/query",
-                    data={"query": "¿test?", "document_ids": "1"},
+                    data={"query": "¿test?", "document_ids": ["1"]},
                 )
         assert response.status_code == 200
         assert "Respuesta de prueba" in response.text
