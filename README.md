@@ -274,7 +274,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H2** | `nexus.py`, base de datos, migraciones Alembic, modelos (`+department_id`), seed, test integración DB, `pytest-cov` | `nexus dev` funciona. Tablas creadas. Seed poblado. |
 | **H3** | Autenticación JWT + Argon2id + middleware RBAC | Login OK → 200. Sin token → 401. Prohibición por rol → 403. |
 | **H4** ✅ | Ingesta documental por API + frontend web + CLI: SHA-256, extracción texto (pypdf), búsqueda textual, roles (admin/lead/staff), departamentos M2M, login web, dashboard, upload, lista documentos, logout, CLI upload/get/list | Upload → 200/409. 167 tests. Frontend funcional. CLI funcional. |
-| **H5** | Motor RAG: consulta con filtro RBAC, contexto a Ollama, delimitadores XML anti-inyección | Marketing solo ve su depto. Mock IA → 200. |
+| **H5** ✅ | Motor RAG: consulta con filtro RBAC, contexto a Ollama, delimitadores XML anti-inyección, endpoint API + frontend web + CLI | `POST /api/v1/rag/query` → 200. 179 tests. Frontend Consultar funcional. |
 | **H6** | Auditoría inmutable (trigger PostgreSQL), trazabilidad completa, documentación final, cobertura > 70% | `DELETE` en audit_logs → excepción. Docs sincronizados. |
 
 ### Post-MVP (Futuro)
@@ -336,6 +336,12 @@ nexus.py document list --token "$TOKEN"
 start http://localhost:8000        # Windows
 # open http://localhost:8000       # macOS
 # xdg-open http://localhost:8000   # Linux
+
+# 6. Consulta RAG (vía API)
+curl -s -X POST http://localhost:8000/api/v1/rag/query \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"¿Qué documentos hay sobre seguridad?","document_ids":[1,2]}'
 ```
 
 ---
