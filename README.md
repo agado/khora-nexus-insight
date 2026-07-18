@@ -250,15 +250,14 @@ Este modelo arquitectónico soluciona de raíz los riesgos de filtración de dat
 
 | Usuario | Rol | Departamento | Acceso a departamentos | Contraseña |
 |---|---|---|---|---|
-| `admin` | admin | IT | IT | `admin123` |
+| `admin` | admin | IT | IT + RRHH + PM | `admin123` |
 | `lead_it` | lead | IT | IT | `lead123` |
 | `lead_hr` | lead | RRHH | RRHH | `lead123` |
 | `lead_pm` | lead | PM | PM | `lead123` |
 | `staff_it` | staff | IT | IT | `staff123` |
 | `staff_hr` | staff | RRHH | RRHH | `staff123` |
 | `staff_pm` | staff | PM | PM | `staff123` |
-| `staff_legal` | staff | Legal | Legal | `staff123` |
-| **`ceo`** | **admin** | **IT** | **IT + RRHH + PM + Legal** | `ceo123` |
+| **`ceo`** | **admin** | **IT** | **IT + RRHH + PM** | `ceo123` |
 
 Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 
@@ -274,7 +273,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H2** | `nexus.py`, base de datos, migraciones Alembic, modelos (`+department_id`), seed, test integración DB, `pytest-cov` | `nexus dev` funciona. Tablas creadas. Seed poblado. |
 | **H3** | Autenticación JWT + Argon2id + middleware RBAC | Login OK → 200. Sin token → 401. Prohibición por rol → 403. |
 | **H4** ✅ | Ingesta documental por API + frontend web + CLI: SHA-256, extracción texto (pypdf), búsqueda textual, roles (admin/lead/staff), departamentos M2M, login web, dashboard, upload, lista documentos, logout, CLI upload/get/list | Upload → 200/409. 167 tests. Frontend funcional. CLI funcional. |
-| **H5** ✅ | Motor RAG: consulta con filtro RBAC, contexto a Ollama, delimitadores XML anti-inyección, endpoint API + frontend web + CLI | `POST /api/v1/rag/query` → 200. 179 tests. Frontend Consultar funcional. |
+| **H5** ✅ | Motor RAG: consulta con filtro RBAC, contexto a Ollama, delimitadores XML anti-inyección + sanitización OWASP, truncado de contexto a 4K chars, endpoint API + frontend web + CLI | `POST /api/v1/rag/query` → 200. 186 tests. Frontend Consultar funcional. |
 | **H6** | Auditoría inmutable (trigger PostgreSQL), trazabilidad completa, documentación final, cobertura > 70% | `DELETE` en audit_logs → excepción. Docs sincronizados. |
 
 ### Post-MVP (Futuro)

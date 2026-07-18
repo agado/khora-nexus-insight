@@ -339,7 +339,9 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 | **Upload por API** (Multipart) | Hot Folders (carpetas vigiladas) | Testeable con TestClient. El department_id se hereda del JWT, no se configura manualmente. |
 | **Búsqueda textual con `ILIKE`** | ChromaDB / vectores | Suficiente para MVP. Sin contenedor extra ni embeddings. |
 | **Departamento vía JWT** | El usuario elige departamento al subir | Zero-trust: el token es la fuente de verdad del rol y departamento. |
-| **Prompt con delimitadores XML** | Guardrails anti-inyección completos | Capa OWASP ligera sin sobrecarga. Guardrails completos → post-MVP. |
+| **Prompt con delimitadores XML + sanitización `</`** | Guardrails anti-inyección completos | Capa OWASP ligera sin sobrecarga. `_sanitize()` elimina `</` de la query para evitar cierre anticipado de `<contexto>` o `<pregunta>`. |
+| **Truncado de contexto a 4000 chars/doc** | Envío íntegro del documento | Previene DoS por contexto masivo. El modelo no necesita más de 4000 caracteres por documento para tareas RAG. |
+| **Validación de longitud máxima de query (2000 chars)** | Sin límite | Previene abuso del prompt. Rechazo temprano con 400 Bad Request. |
 | **Fail-Closed por transacciones atómicas** | Lógica manual de rollback | SQLAlchemy `commit()` maneja el rollback automáticamente si AuditLog falla. |
 | **`nexus.py`** | Makefile | Portable Windows/Linux/Mac sin dependencias externas. |
 | **Rollback automático en transacciones DB** | Lógica manual de rollback | `database.py` envuelve cada sesión en try/except → rollback + raise. |

@@ -13,6 +13,14 @@ class RagQueryError(Exception):
     """Ollama returned a non-2xx status or an unparseable response."""
 
 
+MAX_CONTEXT_CHARS = 4000
+
+
+def _sanitize(text: str) -> str:
+    """Strip XML closing tags to prevent prompt-injection via context boundary."""
+    return text.replace("</", "")
+
+
 def _build_prompt(query: str, context_chunks: list[str]) -> str:
     context = "\n---\n".join(context_chunks)
     return (
@@ -44,8 +52,9 @@ async def execute_query(
     )
     docs = list(result.scalars().all())
 
-    context_chunks = [d.content_text for d in docs if d.content_text]
-    prompt = _build_prompt(query_text, context_chunks)
+    context_chunks = [d.content_text[:MAX_CONTEXT_CHARS] for d in docs if d.content_text]
+    safe_query = _sanitize(query_text)
+    prompt = _build_prompt(safe_query, context_chunks)
 
     if not context_chunks:
         answer = "No se encontró contenido relevante en los documentos seleccionados."

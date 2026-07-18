@@ -180,6 +180,15 @@ async def web_query(
     ids = [int(x) for x in raw_ids if x.strip()]
     from src.core.config import settings as app_settings
 
+    if len(query) > 2000:
+        return HTMLResponse(
+            _QUERY_RESULT_TPL.render(
+                answer="La consulta excede el máximo de 2000 caracteres.",
+                context_used=[],
+            ),
+            status_code=400,
+        )
+
     try:
         result = await execute_query(
             db=db,
