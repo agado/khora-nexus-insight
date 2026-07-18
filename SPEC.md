@@ -229,6 +229,44 @@ AuditLog {
   "context_used": ["Fragmento extraído del documento 1...", "Fragmento del documento 2..."]
 } ```
 
+### 5.4 Interfaz CLI (Línea de Comandos)
+
+La CLI de Nexus Insight (`nexus.py`) permite interactuar con la API desde la terminal sin necesidad del frontend web. Todos los comandos requieren un token JWT obtenido del endpoint de login.
+
+* Comando: `nexus.py upload <filepath> --token <JWT> [--department-id <id>]`
+
+* Descripción: Sube un documento PDF a la API. El archivo debe existir en el sistema de archivos local. El token JWT se obtiene de `POST /api/v1/auth/login`.
+
+* Ejemplo:
+```bash
+nexus.py upload auditoria.pdf --department-id 1 --token "eyJ..."
+# → Documento subido: id=3 filename=auditoria.pdf  SHA-256: e3b0c44...
+```
+
+* Comando: `nexus.py document get <id> --token <JWT>`
+
+* Descripción: Recupera los metadatos de un documento por su ID. Muestra nombre, SHA-256, departamento, subido por y fecha de creación.
+
+* Ejemplo:
+```bash
+nexus.py document get 3 --token "eyJ..."
+# → Documento: id=3  Nombre: auditoria.pdf  SHA-256: e3b0c44...
+```
+
+* Comando: `nexus.py document list --token <JWT> [--skip <n>] [--limit <n>]`
+
+* Descripción: Lista paginada de documentos accesibles según el departamento del usuario autenticado.
+
+* Ejemplo:
+```bash
+nexus.py document list --token "eyJ..."
+# → Documentos (3 en total):
+# →   [3] auditoria.pdf — Depto 1 — 2026-07-18
+# →   [2] manual.pdf — Depto 1 — 2026-07-17
+```
+
+* Manejo de errores: Si el servidor no está en ejecución, muestra un mensaje en español y termina con código 1. Errores HTTP (401, 404, 409, etc.) se muestran con el código y detalle devuelto por la API.
+
 ## 6. Reglas de Negocio e Invariantes del Sistema
 
 ### 6.1 Control de Acceso Basado en Roles (RBAC)
@@ -412,6 +450,26 @@ docker logs nexus_ollama_dev -f
 
 # Verificar que el modelo está descargado
 docker exec -i nexus_ollama_dev ollama list
+```
+
+#### CLI (Nexus Insight)
+```bash
+# Login y obtención de token JWT
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+
+# Subir documento PDF
+nexus.py upload ruta/documento.pdf --department-id 1 --token "$TOKEN"
+
+# Consultar metadatos de un documento
+nexus.py document get 1 --token "$TOKEN"
+
+# Listar documentos accesibles
+nexus.py document list --token "$TOKEN"
+
+# Listar con paginación
+nexus.py document list --skip 0 --limit 10 --token "$TOKEN"
 ```
 
 ---

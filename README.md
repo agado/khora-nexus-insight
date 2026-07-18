@@ -179,6 +179,8 @@ nexus-insight/
 
 * **Interfaz web profesional**: Login, dashboard y gestión de documentos con Jinja2 + htmx + Pico CSS. Redirección inteligente según sesión. Sin dependencias JavaScript de compilación.
 
+* **CLI de documentos**: Subida (`nexus.py upload`), consulta (`nexus.py document get`) y listado (`nexus.py document list`) desde terminal. Consume la misma API que el frontend.
+
 * **Autenticación segura**: Login con cookie httpOnly + SameSite=Lax. Cierre de sesión. Redirección automática a `/login` si no hay sesión válida. Anti-enumeración (mensaje genérico "Credenciales inválidas").
 
 * **Control de acceso por roles y departamentos**: Jerarquía de roles (admin=3, lead=2, staff=1). Acceso aislado por departamento vía tabla M2M `user_department`. JWT transporta `user_id`, `role`, `accessible_departments`.
@@ -271,7 +273,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H1** ✅ | Scaffolding: Docker, FastAPI, health endpoints | `GET /api/v1/health` responde 200. 13 tests. |
 | **H2** | `nexus.py`, base de datos, migraciones Alembic, modelos (`+department_id`), seed, test integración DB, `pytest-cov` | `nexus dev` funciona. Tablas creadas. Seed poblado. |
 | **H3** | Autenticación JWT + Argon2id + middleware RBAC | Login OK → 200. Sin token → 401. Prohibición por rol → 403. |
-| **H4** | Ingesta documental por API + frontend web: SHA-256, extracción texto (pypdf), búsqueda textual, roles (admin/lead/staff), departamentos M2M, login web, dashboard, upload, lista documentos, logout | Upload → 200/409. 146 tests. Frontend funcional. |
+| **H4** ✅ | Ingesta documental por API + frontend web + CLI: SHA-256, extracción texto (pypdf), búsqueda textual, roles (admin/lead/staff), departamentos M2M, login web, dashboard, upload, lista documentos, logout, CLI upload/get/list | Upload → 200/409. 167 tests. Frontend funcional. CLI funcional. |
 | **H5** | Motor RAG: consulta con filtro RBAC, contexto a Ollama, delimitadores XML anti-inyección | Marketing solo ve su depto. Mock IA → 200. |
 | **H6** | Auditoría inmutable (trigger PostgreSQL), trazabilidad completa, documentación final, cobertura > 70% | `DELETE` en audit_logs → excepción. Docs sincronizados. |
 
@@ -313,6 +315,31 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 3. **REFACTOR:** Mejorar el código manteniendo tests verdes
 
 ---
+## Quick Start (evaluación del TFM)
+
+```bash
+# 1. Iniciar el ecosistema completo
+nexus.py dev
+
+# 2. Obtener token JWT (admin)
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+
+# 3. Subir un documento PDF
+nexus.py upload ruta/a/documento.pdf --department-id 1 --token "$TOKEN"
+
+# 4. Listar documentos
+nexus.py document list --token "$TOKEN"
+
+# 5. Abrir interfaz web
+start http://localhost:8000        # Windows
+# open http://localhost:8000       # macOS
+# xdg-open http://localhost:8000   # Linux
+```
+
+---
+
 ## Checklist Final
 
 ```bash
