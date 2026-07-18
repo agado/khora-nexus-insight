@@ -1,7 +1,8 @@
 import logging
 
 from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
+from jinja2 import Template
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.auth.rbac import require_web_user
@@ -14,6 +15,21 @@ from src.core.services.document_service import (
 )
 from src.core.services.rag_service import RagConnectionError, RagQueryError, execute_query
 from src.main import templates
+
+_QUERY_RESULT_TPL = Template(
+    "<article>"
+    "<strong>Respuesta:</strong>"
+    "<p>{{ answer }}</p>"
+    "{% if context_used %}"
+    "<details>"
+    "<summary>Contexto utilizado ({{ context_used|length }} documentos)</summary>"
+    "{% for c in context_used %}"
+    "<blockquote>{{ c[:300] }}</blockquote>"
+    "{% endfor %}"
+    "</details>"
+    "{% endif %}"
+    "</article>"
+)
 
 logger = logging.getLogger("nexus")
 router = APIRouter()
@@ -175,17 +191,13 @@ async def web_query(
         )
     except (RagConnectionError, RagQueryError) as exc:
         logger.warning("RAG web error: %s", exc)
-        return templates.TemplateResponse(
-            request,
-            "_query_result.html",
-            {"answer": str(exc), "context_used": []},
+        return HTMLResponse(
+            _QUERY_RESULT_TPL.render(answer=str(exc), context_used=[]),
             status_code=500,
         )
-    return templates.TemplateResponse(
-        request,
-        "_query_result.html",
-        {
-            "answer": result["answer"],
-            "context_used": result["context_used"],
-        },
+    return HTMLResponse(
+        _QUERY_RESULT_TPL.render(
+            answer=result["answer"],
+            context_used=result["context_used"],
+        ),
     )
