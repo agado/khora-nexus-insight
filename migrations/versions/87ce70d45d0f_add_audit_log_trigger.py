@@ -28,8 +28,9 @@ END;
 $$ LANGUAGE plpgsql;
 """
 
-CREATE_TRIGGER = """
-DROP TRIGGER IF EXISTS trg_reject_audit_log_modification ON audit_log;
+DROP_TRIGGER_STMT = "DROP TRIGGER IF EXISTS trg_reject_audit_log_modification ON audit_log;"
+
+CREATE_TRIGGER_STMT = """
 CREATE TRIGGER trg_reject_audit_log_modification
     BEFORE UPDATE OR DELETE ON audit_log
     FOR EACH ROW
@@ -48,7 +49,8 @@ def upgrade() -> None:
     if not _is_postgres():
         return
     op.execute(TRIGGER_FUNCTION)
-    op.execute(CREATE_TRIGGER)
+    op.execute(DROP_TRIGGER_STMT)
+    op.execute(CREATE_TRIGGER_STMT)
 
 
 def downgrade() -> None:
