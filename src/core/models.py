@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
@@ -59,6 +59,7 @@ class Document(Base):
     department_id = Column(Integer, ForeignKey("department.id"), nullable=False)
     uploaded_by = Column(Integer, ForeignKey("user.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    is_public = Column(Boolean, default=False, nullable=False)
 
     department = relationship("Department", back_populates="documents")
     uploader = relationship("User", back_populates="documents")

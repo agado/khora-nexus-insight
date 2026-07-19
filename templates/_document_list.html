@@ -8,10 +8,11 @@
                 <th>SHA-256</th>
                 <th>Departamento</th>
                 <th>Subido</th>
+                <th>Público</th>
                 {% if role_level >= 2 %}<th>Acción</th>{% endif %}
             </tr>
         </thead>
-        <tbody>
+        <tbody hx-target="closest tr" hx-swap="outerHTML">
             {% for doc in documents %}
             <tr>
                 <td>{{ doc.id }}</td>
@@ -19,17 +20,30 @@
                 <td><code>{{ doc.sha256[:16] }}...</code></td>
                 <td>{{ doc.department_id }}</td>
                 <td>{{ doc.created_at.strftime('%Y-%m-%d') if doc.created_at else '' }}</td>
+                <td>
+                    {% if doc.is_public %}
+                    <span style="color: var(--pico-form-element-valid-border-color)">Sí</span>
+                    {% else %}
+                    No
+                    {% endif %}
+                    {% if role_level >= 1 %}
+                    <button class="outline contrast" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;"
+                            hx-post="/web/documents/{{ doc.id }}/toggle-public"
+                            hx-target="closest tr" hx-swap="outerHTML">
+                        {% if doc.is_public %}Ocultar{% else %}Publicar{% endif %}
+                    </button>
+                    {% endif %}
+                </td>
                 {% if role_level >= 2 %}
                 <td>
                     <button class="secondary"
                             hx-post="/web/documents/{{ doc.id }}/delete"
-                            hx-target="closest tr"
                             hx-confirm="¿Eliminar {{ doc.filename }}?">🗑</button>
                 </td>
                 {% endif %}
             </tr>
             {% endfor %}
-    </tbody>
+        </tbody>
 </table>
 {% else %}
 <p>No se encontraron documentos.</p>

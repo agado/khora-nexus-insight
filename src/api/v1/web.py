@@ -15,6 +15,7 @@ from src.core.services.document_service import (
     DuplicateDocumentError,
     delete_document,
     get_documents_by_departments,
+    toggle_document_visibility,
     upload_document,
 )
 from src.core.services.rag_service import (
@@ -105,6 +106,7 @@ async def upload_form(request: Request, _user=Depends(require_web_user)):
 async def web_upload(
     request: Request,
     file: UploadFile = File(...),
+    is_public: bool = Form(False),
     _user=Depends(require_web_user),
     db: AsyncSession = Depends(get_session),
 ):
@@ -127,6 +129,7 @@ async def web_upload(
             content=content,
             department_id=target_department,
             user_id=_user["user_id"],
+            is_public=is_public,
         )
     except DuplicateDocumentError:
         return templates.TemplateResponse(
@@ -191,12 +194,33 @@ async def web_delete_document(
     )
     return HTMLResponse(
         status_code=200,
-        content=(
-            '<article><button class="secondary"'
-            ' hx-get="/web/documents"'
-            ' hx-target="#documents-tab">'
-            "Documento eliminado. Volver</button></article>"
-        ),
+        content='<tr><td colspan="7">Documento eliminado</td></tr>',
+    )
+
+
+@router.post("/web/documents/{document_id}/toggle-public")
+async def web_toggle_public(
+    document_id: int,
+    request: Request,
+    _user=Depends(require_web_user),
+    db: AsyncSession = Depends(get_session),
+):
+    if isinstance(_user, Response):
+        return _user
+    accessible = _user.get("accessible_departments", [])
+    doc = await toggle_document_visibility(db, document_id, accessible)
+    if doc is None:
+        return HTMLResponse(status_code=404, content="Not found")
+    await log_action(
+        db,
+        action="toggle_public",
+        user_id=_user["user_id"],
+        metadata={"document_id": document_id, "is_public": doc.is_public},
+    )
+    return templates.TemplateResponse(
+        request,
+        "_document_row.html",
+        {"doc": doc, "role_level": _user.get("role_level", 0)},
     )
 
 
