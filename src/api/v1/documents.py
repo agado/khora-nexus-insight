@@ -9,6 +9,7 @@ from src.core.database import get_session
 from src.core.services.audit_service import log_action
 from src.core.services.document_service import (
     DuplicateDocumentError,
+    delete_document,
     get_document_by_id,
     get_documents_by_departments,
     upload_document,
@@ -129,3 +130,23 @@ async def list_documents(
         documents=[_to_doc_response(d) for d in docs],
         total=len(docs),
     )
+
+
+@router.delete("/{document_id}")
+async def delete_document_endpoint(
+    document_id: int,
+    _user: dict = Depends(require_min_level(2)),
+    db: AsyncSession = Depends(get_session),
+):
+    accessible = _user.get("accessible_departments", [])
+    deleted = await delete_document(db, document_id, accessible)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Document not found")
+    logger.info("Document deleted: id=%d user=%d", document_id, _user["user_id"])
+    await log_action(
+        db,
+        action="delete",
+        user_id=_user["user_id"],
+        metadata={"document_id": document_id},
+    )
+    return {"detail": "Document deleted"}

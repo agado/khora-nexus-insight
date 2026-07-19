@@ -13,6 +13,7 @@ from src.core.services.audit_service import log_action
 from src.core.services.auth_service import authenticate_user
 from src.core.services.document_service import (
     DuplicateDocumentError,
+    delete_document,
     get_documents_by_departments,
     upload_document,
 )
@@ -158,10 +159,44 @@ async def web_documents(
         return _user
     accessible = _user.get("accessible_departments", [])
     docs = await get_documents_by_departments(db, accessible)
+    role_level = _user.get("role_level", 0)
     return templates.TemplateResponse(
         request,
         "_document_list.html",
-        {"documents": docs},
+        {"documents": docs, "role_level": role_level},
+    )
+
+
+@router.post("/web/documents/{document_id}/delete")
+async def web_delete_document(
+    document_id: int,
+    request: Request,
+    _user=Depends(require_web_user),
+    db: AsyncSession = Depends(get_session),
+):
+    if isinstance(_user, Response):
+        return _user
+    role_level = _user.get("role_level", 0)
+    if role_level < 2:
+        return HTMLResponse(status_code=403, content="Forbidden")
+    accessible = _user.get("accessible_departments", [])
+    deleted = await delete_document(db, document_id, accessible)
+    if not deleted:
+        return HTMLResponse(status_code=404, content="Not found")
+    await log_action(
+        db,
+        action="delete",
+        user_id=_user["user_id"],
+        metadata={"document_id": document_id},
+    )
+    return HTMLResponse(
+        status_code=200,
+        content=(
+            '<article><button class="secondary"'
+            ' hx-get="/web/documents"'
+            ' hx-target="#documents-tab">'
+            "Documento eliminado. Volver</button></article>"
+        ),
     )
 
 

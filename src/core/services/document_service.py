@@ -70,6 +70,19 @@ async def get_document_by_id(
     return result.scalar_one_or_none()
 
 
+async def delete_document(
+    db: AsyncSession,
+    document_id: int,
+    department_ids: list[int],
+) -> bool:
+    doc = await get_document_by_id(db, document_id, department_ids)
+    if doc is None:
+        return False
+    await db.delete(doc)
+    await db.flush()
+    return True
+
+
 async def get_documents_by_departments(
     db: AsyncSession,
     department_ids: list[int],
