@@ -23,7 +23,7 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 
 ### 2.3 Auditoría Inmutable (Append-Only)
 * **Regla:** La tabla `AuditLog` solo permite la sentencia `INSERT`.
-* **Implementación:** Configurar triggers físicos en PostgreSQL que bloqueen y lancen una excepción ante cualquier sentencia `UPDATE` o `DELETE`. Se auditan de forma obligatoria inicios de sesión, ingestas, consultas RAG y errores del sistema.
+* **Implementación:** Configurar triggers físicos en PostgreSQL que bloqueen y lancen una excepción ante cualquier sentencia `UPDATE` o `DELETE`. Se auditan de forma obligatoria inicios de sesión, ingestas, consultas RAG, eliminación de documentos y cambios de visibilidad pública.
 
 ### 2.4 Aislamiento del Motor de IA (Ollama)
 * **Regla:** El contenedor de IA opera aislado en la red interna `nexus-network` sin exponer puertos en producción.
@@ -49,7 +49,7 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
   * `admin` (nivel 3): Acceso completo (Ingesta, AuditLog, consultas RAG).
   * `lead` (nivel 2): Acceso a endpoints de nivel 2 y 1.
   * `staff` (nivel 1): Subida de documentos, consultas RAG, lectura limitada.
-* **Departamentos:** El JWT contiene `accessible_departments: list[int]`. Todos los endpoints de documentos filtran por esta lista (Zero-Trust). El usuario solo accede a documentos cuyo `department_id` esté en su lista.
+* **Departamentos:** El JWT contiene `accessible_departments: list[int]`, `role_level: int` y `user_id: int`. Todos los endpoints de documentos filtran por esta lista (Zero-Trust). El usuario solo accede a documentos cuyo `department_id` esté en su lista. La visibilidad pública (`is_public`) permite acceso de lectura a documentos de otros departamentos, pero la acción de toggle requiere acceso directo al departamento del documento.
 * **Dependencias FastAPI:**
   * `get_current_user` extrae el token del header `Authorization: Bearer` vía `HTTPBearer(auto_error=False)`, lo verifica con `verify_token()`, y retorna los claims.
   * `get_current_user_from_cookie` extrae el token de la cookie `access_token` para autenticación via frontend (Jinja2/htmx).
@@ -59,7 +59,7 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 ### 2.8 JWT (JSON Web Token)
 * **Algoritmo:** HS256 (HMAC-SHA256) con `algorithms=["HS256"]` explícito en `jwt.decode()` para prevenir el ataque de confusión de algoritmos (CVE-2015-9235).
 * **Claims estándar:** `iat` (emisión), `nbf` (no válido antes de), `exp` (expiración — por defecto 30 minutos, configurable vía `JWT_EXPIRATION_MINUTES`).
-* **Claims personalizados:** `sub` (username), `role`, `department_id`, `accessible_departments` (list[int]), `user_id` (int). El token es la fuente de verdad zero-trust para el control de acceso departamental.
+* **Claims personalizados:** `sub` (username), `role`, `role_level` (int), `department_id`, `accessible_departments` (list[int]), `user_id` (int). El token es la fuente de verdad zero-trust para el control de acceso departamental.
 * **Secreto:** Inyectado desde variable de entorno `JWT_SECRET` (dev: `.env`, prod: `PROD_JWT_SECRET`). Nunca hardcodeado.
 * **Anti-enumeration:** El servicio de autenticación (`authenticate_user`) devuelve el mismo resultado (`None`) tanto para usuario inexistente como para contraseña incorrecta, impidiendo la enumeración de usuarios por respuesta diferenciada.
 
@@ -120,11 +120,12 @@ El sistema (y los agentes de IA) deben verificar automáticamente los siguientes
 | Evento o Condición Anómala | Acción del Backend | Código de Estado HTTP | Registro en Auditoría |
 | :--- | :--- | :--- | :--- |
 | Archivo corrupto o ilegible | Abortar procesamiento | `400 Bad Request` | No registra |
-| Hash SHA-256 ya existente | Rechazar duplicado | `400 Bad Request` | Registra intento |
+| Hash SHA-256 ya existente | Rechazar duplicado | `409 Conflict` | Registra intento |
 | Token JWT ausente o expirado | Bloquear petición | `401 Unauthorized` | Registra fallo |
 | Credenciales inválidas (login) | Rechazar autenticación | `401 Unauthorized` | JSON log (AuditLog en H6) |
-| Usuario `staff` intenta subir documento | Bloquear acceso | `403 Forbidden` | Registra violación |
+| Usuario `staff` intenta borrar documento | Bloquear acceso | `403 Forbidden` | No registra |
 | Identificador de documento inexistente | Retornar vacío | `404 Not Found` | No registra |
+| Toggle visibilidad documento | Cambiar `is_public` | `200 OK` | AuditLog `toggle_public` |
 | Fallo al escribir en `AuditLog` | Abortar transacción principal (Rollback) | `500 Internal Error` | Registro en consola JSON (Contingencia) |
 | Caída de base de datos o de Ollama | Activar logs de contingencia | `500 Internal Error` | Registra en consola |
 

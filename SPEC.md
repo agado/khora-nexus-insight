@@ -79,6 +79,7 @@ Document {
     department_id: int              // Clave foránea -> Department.id (hereda del uploader)
     uploaded_by: int                // Clave foránea -> User.id
     created_at: datetime            // Timestamp de ingesta en formato UTC
+    is_public: bool                 // Visibilidad interdepartamental (default: false)
 }```
 ### 4.3 Entidad: AuditLog
 ```TypeScript
@@ -177,7 +178,7 @@ AuditLog {
 }```
 * Ruta: GET /api/v1/documents
 
-* Descripción: Lista paginada de documentos filtrados por los `accessible_departments` del usuario autenticado.
+* Descripción: Lista paginada de documentos filtrados por los `accessible_departments` del usuario autenticado. También incluye documentos marcados como `is_public=true` de otros departamentos.
 
 * Parámetros Query: `skip` (int, default 0), `limit` (int, default 50).
 
@@ -192,11 +193,34 @@ AuditLog {
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "department_id": 1,
       "uploaded_by": 1,
-      "created_at": "2026-07-17T22:11:15.087447+00:00"
+      "created_at": "2026-07-17T22:11:15.087447+00:00",
+      "is_public": false
     }
   ],
   "total": 1
 }```
+* Ruta: DELETE /api/v1/documents/{id}
+
+* Descripción: Elimina un documento de la base de datos. Solo accesible para roles con nivel >= 2 (admin, lead). El documento debe pertenecer a un departamento accesible por el usuario.
+
+* Restricción de Acceso: `require_min_level(2)`
+
+* Respuesta de Éxito (200 OK):
+```JSON
+{
+  "detail": "Document deleted"
+}```
+* Respuestas de Error: `403 Forbidden` (nivel insuficiente), `404 Not Found`.
+
+* Ruta: PATCH /api/v1/documents/{id}/toggle-public
+
+* Descripción: Cambia el estado `is_public` de un documento. Cualquier usuario autenticado con acceso al departamento del documento puede usarlo.
+
+* Restricción de Acceso: `require_min_level(1)`
+
+* Respuesta de Éxito (200 OK): Mismo formato que `DocumentResponse` con `is_public` actualizado.
+
+* Respuestas de Error: `404 Not Found`.
 ### 5.3 Módulo RAG (Generación Aumentada por Recuperación)
 * Ruta: POST /api/v1/rag/query
 
@@ -207,8 +231,14 @@ AuditLog {
 ```JSON
 {
   "query": "¿Cuáles son las directrices de seguridad del tercer trimestre?",
-  "document_ids": [1, 2]
+  "document_ids": [1, 2],
+  "audience": "ejecutivo"
 }```
+* Parámetros:
+  - `query` (str, obligatorio): texto de la consulta.
+  - `document_ids` (list[int], obligatorio): IDs de documentos a incluir en el contexto.
+  - `audience` (str, opcional, default `"general"`): perfil de audiencia para adaptar el tono. Valores: `general`, `tecnico`, `ejecutivo`, `stakeholder`.
+
 * Flujo Interno:
 
 * Validación del token JWT e inyección del rol del usuario.

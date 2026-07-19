@@ -191,9 +191,13 @@ nexus-insight/
 
 * **Protección antiduplicados**: Rechazo automático de documentos con SHA-256 duplicado.
 
-* **Flujo RAG 100% local**: Recuperación contextual por rol + generación en contenedor aislado de Ollama (próximo hito H5).
+* **Flujo RAG 100% local**: Recuperación contextual por rol + generación en contenedor aislado de Ollama.
+
+* **Adaptación de tono por audiencia**: El prompt RAG se adapta automáticamente según la audiencia seleccionada (técnico, ejecutivo, stakeholder, general).
 
 * **Auditoría inmutable (Zero‑Trust)**: Tabla append‑only con triggers que bloquean UPDATE/DELETE.
+
+* **Ciclo de vida documental**: Documentos eliminables por admin/lead. Visibilidad pública interdepartamental (`is_public`) toggleable por cualquier usuario con acceso al departamento.
 
 * **Observabilidad nativa**: Logs JSON estructurados sin latencia de red.
 
@@ -274,9 +278,9 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H3** ✅ | Autenticación JWT + Argon2id + middleware RBAC | Login OK → 200. Sin token → 401. Prohibición por rol → 403. |
 | **H4** ✅ | Ingesta documental por API + frontend web + CLI: SHA-256, extracción texto (pypdf), búsqueda textual, roles (admin/lead/staff), departamentos M2M, login web, dashboard, upload, lista documentos, logout, CLI upload/get/list | Upload → 200/409. 167 tests. Frontend funcional. CLI funcional. |
 | **H5** ✅ | Motor RAG: consulta con filtro RBAC, contexto a Ollama, delimitadores XML anti-inyección + sanitización OWASP, truncado de contexto a 4K chars, endpoint API + frontend web + CLI | `POST /api/v1/rag/query` → 200. 186 tests. Frontend Consultar funcional. |
-| **H6** | Auditoría y trazabilidad: Alembic, trigger PostgreSQL inmutable, AuditLog completo, visor Registros | Ver detalle abajo ↓ |
-| **H7** | Ciclo de vida documental: borrar docs, is_public, CRUD usuarios, export .txt, CLI query | Ver detalle abajo ↓ |
-| **H8** | Experiencia corporativa: mejora visual, adaptación de tono por departamento/stakeholder | Ver detalle abajo ↓ |
+| **H6** ✅ | Auditoría y trazabilidad: Alembic, trigger PostgreSQL inmutable, AuditLog completo, visor Registros | Ver detalle abajo ↓ |
+| **H7** ✅ (parcial) | Ciclo de vida documental: borrar docs (H7.1), is_public (H7.2). H7.3 (CRUD) y H7.4 (export) fuera por YAGNI. | Ver detalle abajo ↓ |
+| **H8** ✅ (parcial) | Experiencia corporativa: adaptación de tono por audiencia (H8.2). H8.1 (mejora visual) pendiente. | Ver detalle abajo ↓ |
 
 ### H6 — Auditoría y trazabilidad
 
@@ -285,21 +289,21 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H6.1** | Alembic funcional + migration trigger inmutable en audit_log | `alembic upgrade head` crea tablas + trigger. Rollback funcional. |
 | **H6.2** | AuditLog en login/upload/delete + visor Registros en frontend | Login, subida y borrado → fila en audit_logs. Pestaña Registros muestra tabla paginada. |
 
-### H7 — Ciclo de vida documental
+### H7 — Ciclo de vida documental (parcial)
 
 | Código | Objetivo | Criterio de Aceptación |
 |--------|----------|------------------------|
-| **H7.1** | Borrar documentos (admin/lead) + staff sin subir | `DELETE /api/v1/documents/{id}` → 200/404/403. Botón frontend. |
-| **H7.2** | Documento de acceso general (`is_public`) | Columna. Bypass del filtro departamental en listado + RAG. |
-| **H7.3** | CRUD usuarios (admin) | Alta/baja/modificación de usuarios desde frontend. |
-| **H7.4** | Exportar respuesta .txt + CLI query | Botón en consulta. `nexus.py query` funcional. |
+| **H7.1** ✅ | Borrar documentos (admin/lead) + AuditLog | `DELETE /api/v1/documents/{id}` → 200/404/403. Botón frontend. |
+| **H7.2** ✅ | Documento de acceso general (`is_public`) | Columna. Toggle en listado. Bypass del filtro departamental en listado + RAG. |
+| **H7.3** ❌ | CRUD usuarios (admin) | YAGNI — fuera del alcance MVP. |
+| **H7.4** ❌ | Exportar respuesta .txt + CLI query | YAGNI — fuera del alcance MVP. |
 
-### H8 — Experiencia corporativa
+### H8 — Experiencia corporativa (parcial)
 
 | Código | Objetivo | Criterio de Aceptación |
 |--------|----------|------------------------|
-| **H8.1** | Mejora visual (tema Pico CSS, logo, tipografía) | Aspecto corporativo, coherente con la marca. |
-| **H8.2** | Adaptación de tono por departamento/stakeholder | Selector de audiencia en consulta. El prompt se adapta automáticamente. |
+| **H8.1** 🔜 | Mejora visual (tema Pico CSS, logo, tipografía) | Aspecto corporativo, coherente con la marca. |
+| **H8.2** ✅ | Adaptación de tono por departamento/stakeholder | Selector de audiencia en consulta. El prompt se adapta automáticamente. |
 
 ### Post-MVP (Futuro)
 
