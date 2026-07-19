@@ -42,8 +42,11 @@ class TestLoginPage:
         assert "<form" in response.text.lower()
 
     def test_login_success_sets_cookie_and_redirects(self, client):
-        with patch("src.api.v1.web.authenticate_user", new_callable=AsyncMock) as mock_auth:
-            mock_auth.return_value = "valid.jwt.token"
+        with (
+            patch("src.api.v1.web.authenticate_user", new_callable=AsyncMock) as mock_auth,
+            patch("src.api.v1.web.log_action", new_callable=AsyncMock),
+        ):
+            mock_auth.return_value = {"access_token": "valid.jwt.token", "user_id": 1}
             response = client.post(
                 "/login",
                 data={"username": "admin", "password": "admin123"},
@@ -54,7 +57,10 @@ class TestLoginPage:
         assert "access_token" in response.cookies
 
     def test_login_failure_shows_error(self, client):
-        with patch("src.api.v1.web.authenticate_user", new_callable=AsyncMock) as mock_auth:
+        with (
+            patch("src.api.v1.web.authenticate_user", new_callable=AsyncMock) as mock_auth,
+            patch("src.api.v1.web.log_action", new_callable=AsyncMock),
+        ):
             mock_auth.return_value = None
             response = client.post(
                 "/login",

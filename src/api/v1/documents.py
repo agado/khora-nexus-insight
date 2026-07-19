@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.auth.rbac import get_current_user, require_min_level
 from src.core.database import get_session
+from src.core.services.audit_service import log_action
 from src.core.services.document_service import (
     DuplicateDocumentError,
     get_document_by_id,
@@ -90,6 +91,12 @@ async def upload(
         doc.filename,
         doc.department_id,
         doc.uploaded_by,
+    )
+    await log_action(
+        db,
+        action="upload",
+        user_id=_user["user_id"],
+        metadata={"filename": doc.filename, "sha256": doc.sha256, "document_id": doc.id},
     )
     return _to_doc_response(doc)
 
