@@ -91,7 +91,7 @@ async def dashboard(request: Request, _user=Depends(require_web_user)):
     return templates.TemplateResponse(
         request,
         "dashboard.html",
-        {"username": _user.get("sub", "")},
+        {"session_user": _user},
     )
 
 
@@ -99,7 +99,7 @@ async def dashboard(request: Request, _user=Depends(require_web_user)):
 async def upload_form(request: Request, _user=Depends(require_web_user)):
     if isinstance(_user, Response):
         return _user
-    return templates.TemplateResponse(request, "_upload_form.html")
+    return templates.TemplateResponse(request, "_upload_form.html", {"session_user": _user})
 
 
 @router.post("/web/upload")
@@ -119,7 +119,7 @@ async def web_upload(
         return templates.TemplateResponse(
             request,
             "_upload_form.html",
-            {"error": "Departamento no accesible"},
+            {"session_user": _user, "error": "Departamento no accesible"},
         )
 
     try:
@@ -135,7 +135,7 @@ async def web_upload(
         return templates.TemplateResponse(
             request,
             "_upload_form.html",
-            {"error": "Documento duplicado"},
+            {"session_user": _user, "error": "Documento duplicado"},
         )
 
     await log_action(
@@ -148,7 +148,10 @@ async def web_upload(
     return templates.TemplateResponse(
         request,
         "_upload_form.html",
-        {"success": f"Subido: {doc.filename} (SHA-256: {doc.sha256[:16]}...)"},
+        {
+            "session_user": _user,
+            "success": f"Subido: {doc.filename} (SHA-256: {doc.sha256[:16]}...)",
+        },
     )
 
 
@@ -166,7 +169,7 @@ async def web_documents(
     return templates.TemplateResponse(
         request,
         "_document_list.html",
-        {"documents": docs, "role_level": role_level},
+        {"documents": docs, "role_level": role_level, "session_user": _user},
     )
 
 
@@ -194,7 +197,13 @@ async def web_delete_document(
     )
     return HTMLResponse(
         status_code=200,
-        content='<tr><td colspan="7">Documento eliminado</td></tr>',
+        content=(
+            '<tr><td colspan="7" class="nexus-text-small" style="text-align:center">'
+            "Documento eliminado</td></tr>"
+            '<div id="toast-container" hx-swap-oob="beforeend">'
+            '<div class="nexus-toast nexus-toast-success">Documento eliminado</div>'
+            "</div>"
+        ),
     )
 
 
@@ -220,7 +229,7 @@ async def web_toggle_public(
     return templates.TemplateResponse(
         request,
         "_document_row.html",
-        {"doc": doc, "role_level": _user.get("role_level", 0)},
+        {"doc": doc, "role_level": _user.get("role_level", 0), "session_user": _user},
     )
 
 
@@ -237,7 +246,7 @@ async def query_form(
     return templates.TemplateResponse(
         request,
         "_query_form.html",
-        {"documents": docs},
+        {"documents": docs, "session_user": _user},
     )
 
 
@@ -319,4 +328,8 @@ async def web_logs(
         }
         for row in rows
     ]
-    return templates.TemplateResponse(request, "_logs_table.html", {"logs": logs})
+    return templates.TemplateResponse(
+        request,
+        "_logs_table.html",
+        {"logs": logs, "session_user": _user},
+    )

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +9,27 @@
     <script src="https://unpkg.com/htmx.org@2"></script>
 </head>
 <body>
-    <main class="container">
+    <nav class="nexus-navbar">
+        <div class="nexus-navbar-inner">
+            <a href="/dashboard" class="nexus-brand">
+                <span class="nexus-brand-icon"></span>
+                Nexus Insight
+            </a>
+            <div class="nexus-navbar-right">
+                {% if session_user %}
+                <span class="nexus-text-small">{{ session_user.get('sub', '') }}</span>
+                <span class="badge-role badge-role-{{ session_user.get('role', 'staff') }}">
+                    {{ session_user.get('role', 'staff') }}
+                </span>
+                <a href="/logout" class="nexus-btn nexus-btn-secondary nexus-btn-sm">Salir</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div id="toast-container"></div>
+
+    <main class="nexus-main">
         {% block content %}{% endblock %}
     </main>
 </body>

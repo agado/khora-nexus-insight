@@ -1,19 +1,24 @@
 <div id="upload-form-area">
     <h3>Subir Documento</h3>
     <form hx-encoding="multipart/form-data" hx-post="/web/upload" hx-target="#upload-form-area" hx-swap="innerHTML">
-        <label for="file">Seleccionar archivo PDF
+        <label for="file">Archivo PDF
             <input type="file" id="file" name="file" accept=".pdf,application/pdf" required>
         </label>
-        <label>
+        <label class="nexus-toggle" style="margin-bottom:1rem">
             <input type="checkbox" name="is_public" value="true">
+            <span class="nexus-toggle-track"></span>
             Marcar como público (visible para todos los departamentos)
         </label>
-        <button type="submit">Subir</button>
+        <button type="submit" class="nexus-btn nexus-btn-primary" aria-busy="false">Subir</button>
     </form>
     {% if error %}
-    <p style="color: var(--pico-form-element-invalid-border-color);">{{ error }}</p>
+    <div class="nexus-toast nexus-toast-error" style="margin-top:1rem;animation:none">
+        {{ error }}
+    </div>
     {% endif %}
     {% if success %}
-    <p style="color: var(--pico-form-element-valid-border-color);">{{ success }}</p>
+    <div class="nexus-toast nexus-toast-success" style="margin-top:1rem;animation:none">
+        {{ success }}
+    </div>
     {% endif %}
 </div>

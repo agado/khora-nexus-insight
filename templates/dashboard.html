@@ -1,27 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
-<nav>
-    <ul><li><strong>Nexus Insight</strong></li></ul>
-    <ul>
-        <li>
-            <details class="dropdown">
-                <summary>{{ username }}</summary>
-                <ul>
-                    <li><a href="/logout">Cerrar sesión</a></li>
-                </ul>
-            </details>
-        </li>
-    </ul>
-</nav>
-<hr>
-<div role="tablist" hx-target="#tab-content">
-    <button role="tab" hx-get="/web/upload" hx-trigger="click" class="outline">Subir</button>
-    <button role="tab" hx-get="/web/documents" hx-trigger="click" class="outline">Documentos</button>
-    <button role="tab" hx-get="/web/query" hx-trigger="click" class="outline">Consultar</button>
-    <button role="tab" hx-get="/web/logs" hx-trigger="click" class="outline">Registros</button>
+<div class="nexus-pills" hx-target="#tab-content" hx-trigger="click" hx-swap="innerHTML">
+    <button class="nexus-pill" hx-get="/web/upload">Subir</button>
+    <button class="nexus-pill" hx-get="/web/documents">Documentos</button>
+    <button class="nexus-pill" hx-get="/web/query">Consultar</button>
+    <button class="nexus-pill" hx-get="/web/logs">Registros</button>
 </div>
-<hr>
-<div id="tab-content">
-    <p>Seleccione una pestaña para comenzar.</p>
+
+<div id="tab-content" class="nexus-card">
+    <div class="nexus-empty">
+        <svg class="nexus-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
+        </svg>
+        <p>Seleccione una pestaña para comenzar.</p>
+    </div>
 </div>
 {% endblock %}

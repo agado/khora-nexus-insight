@@ -151,7 +151,7 @@ class TestDocumentListTab:
             mock_list.return_value = []
             response = auth_client.get("/web/documents")
         assert response.status_code == 200
-        assert "No se encontraron documentos" in response.text
+        assert "No hay documentos disponibles" in response.text
 
 
 class TestQueryTab:

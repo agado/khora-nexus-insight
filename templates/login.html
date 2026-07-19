@@ -1,21 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
-<article style="max-width: 400px; margin: 4rem auto;">
-<hgroup>
-    <h1>Nexus Insight</h1>
-    <h2>Iniciar sesión</h2>
-</hgroup>
-<form method="post" action="/login">
-    <label for="username">Usuario
-        <input type="text" id="username" name="username" placeholder="admin" required>
-    </label>
-    <label for="password">Contraseña
-        <input type="password" id="password" name="password" placeholder="Contraseña" required>
-    </label>
-    <button type="submit">Iniciar sesión</button>
-</form>
-    {% if error %}
-    <p style="color: var(--pico-form-element-invalid-border-color);">{{ error }}</p>
-    {% endif %}
-</article>
+<div style="max-width: 400px; margin: 4rem auto;">
+    <div class="nexus-card" style="text-align:center;padding:2rem">
+        <div style="margin-bottom:1.5rem">
+            <span style="display:inline-block;width:48px;height:48px;background:var(--nexus-primary);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)"></span>
+        </div>
+        <h1 style="font-size:1.5rem;font-weight:700;margin:0 0 0.25rem">Nexus Insight</h1>
+        <p class="nexus-text-small" style="margin-bottom:1.5rem">Inicia sesión para continuar</p>
+        <form method="post" action="/login" style="text-align:left">
+            <label for="username">Usuario
+                <input type="text" id="username" name="username" placeholder="admin" required>
+            </label>
+            <label for="password">Contraseña
+                <input type="password" id="password" name="password" placeholder="Contraseña" required>
+            </label>
+            <button type="submit" class="nexus-btn nexus-btn-primary" style="width:100%;justify-content:center">Iniciar sesión</button>
+        </form>
+        {% if error %}
+        <div class="nexus-toast nexus-toast-error" style="margin-top:1rem;animation:none">{{ error }}</div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}
