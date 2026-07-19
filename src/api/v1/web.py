@@ -3,13 +3,10 @@ import logging
 from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from jinja2 import Template
-from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.auth.rbac import require_web_user
 from src.core.database import get_session
-from src.core.models import AuditLog, User
-from src.core.services.audit_service import log_action
 from src.core.services.auth_service import authenticate_user
 from src.core.services.document_service import (
     DuplicateDocumentError,
@@ -50,18 +47,17 @@ async def login_submit(
     password: str = Form(...),
     db: AsyncSession = Depends(get_session),
 ):
-    result = await authenticate_user(db, username, password)
-    if not result:
+    token = await authenticate_user(db, username, password)
+    if not token:
         return templates.TemplateResponse(
             request,
             "login.html",
             {"error": "Credenciales inválidas"},
         )
-    await log_action(db, action="login", user_id=result["user_id"])
     response = RedirectResponse(url="/dashboard", status_code=302)
     response.set_cookie(
         key="access_token",
-        value=result["access_token"],
+        value=token,
         httponly=True,
         samesite="lax",
         max_age=1800,
@@ -128,13 +124,6 @@ async def web_upload(
             "_upload_form.html",
             {"error": "Documento duplicado"},
         )
-
-    await log_action(
-        db,
-        action="upload",
-        user_id=_user["user_id"],
-        metadata={"filename": doc.filename, "sha256": doc.sha256, "document_id": doc.id},
-    )
 
     return templates.TemplateResponse(
         request,
@@ -221,34 +210,3 @@ async def web_query(
             context_used=result["context_used"],
         ),
     )
-
-
-@router.get("/web/logs")
-async def web_logs(
-    request: Request,
-    skip: int = 0,
-    limit: int = 50,
-    _user=Depends(require_web_user),
-    db: AsyncSession = Depends(get_session),
-):
-    if isinstance(_user, Response):
-        return _user
-    stmt = (
-        select(AuditLog, User.username)
-        .join(User, AuditLog.user_id == User.id)
-        .order_by(desc(AuditLog.timestamp))
-        .offset(skip)
-        .limit(limit)
-    )
-    rows = (await db.execute(stmt)).all()
-    logs = [
-        {
-            "id": row.AuditLog.id,
-            "action": row.AuditLog.action,
-            "username": row.username,
-            "timestamp": row.AuditLog.timestamp.isoformat(),
-            "metadata": row.AuditLog.metadata_,
-        }
-        for row in rows
-    ]
-    return templates.TemplateResponse(request, "_logs_table.html", {"logs": logs})

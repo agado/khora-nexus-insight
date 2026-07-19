@@ -7,7 +7,7 @@ from src.core.auth.security import verify_password
 from src.core.models import User
 
 
-async def authenticate_user(db: AsyncSession, username: str, password: str) -> dict | None:
+async def authenticate_user(db: AsyncSession, username: str, password: str) -> str | None:
     result = await db.execute(
         select(User)
         .where(User.username == username)
@@ -16,15 +16,12 @@ async def authenticate_user(db: AsyncSession, username: str, password: str) -> d
     user = result.scalar_one_or_none()
     if not user or not verify_password(password, user.hashed_password):
         return None
-    return {
-        "access_token": create_access_token(
-            {
-                "sub": user.username,
-                "role": user.role,
-                "department_id": user.department_id,
-                "accessible_departments": user.accessible_department_ids,
-                "user_id": user.id,
-            }
-        ),
-        "user_id": user.id,
-    }
+    return create_access_token(
+        {
+            "sub": user.username,
+            "role": user.role,
+            "department_id": user.department_id,
+            "accessible_departments": user.accessible_department_ids,
+            "user_id": user.id,
+        }
+    )
