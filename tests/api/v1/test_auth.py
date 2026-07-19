@@ -10,11 +10,17 @@ from src.core.auth.rbac import get_current_user, require_role
 
 class TestLoginEndpoint:
     def test_login_success(self, client):
-        with patch(
-            "src.api.v1.auth.authenticate_user",
-            new_callable=AsyncMock,
-        ) as mock_auth:
-            mock_auth.return_value = "valid.jwt.token"
+        with (
+            patch(
+                "src.api.v1.auth.authenticate_user",
+                new_callable=AsyncMock,
+            ) as mock_auth,
+            patch(
+                "src.api.v1.auth.log_action",
+                new_callable=AsyncMock,
+            ),
+        ):
+            mock_auth.return_value = {"access_token": "valid.jwt.token", "user_id": 1}
             response = client.post(
                 "/api/v1/auth/login",
                 json={"username": "admin", "password": "admin123"},
@@ -25,10 +31,16 @@ class TestLoginEndpoint:
             assert data["token_type"] == "bearer"
 
     def test_login_invalid_credentials(self, client):
-        with patch(
-            "src.api.v1.auth.authenticate_user",
-            new_callable=AsyncMock,
-        ) as mock_auth:
+        with (
+            patch(
+                "src.api.v1.auth.authenticate_user",
+                new_callable=AsyncMock,
+            ) as mock_auth,
+            patch(
+                "src.api.v1.auth.log_action",
+                new_callable=AsyncMock,
+            ),
+        ):
             mock_auth.return_value = None
             response = client.post(
                 "/api/v1/auth/login",

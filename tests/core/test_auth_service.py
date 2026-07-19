@@ -23,10 +23,11 @@ class TestAuthenticateUser:
         mock_db = AsyncMock()
         mock_db.execute.return_value = mock_result
 
-        token = await authenticate_user(mock_db, "admin", "admin123")
+        result = await authenticate_user(mock_db, "admin", "admin123")
 
-        assert token is not None
-        payload = verify_token(token)
+        assert result is not None
+        assert result["user_id"] == 1
+        payload = verify_token(result["access_token"])
         assert payload["sub"] == "admin"
         assert payload["role"] == "admin"
         assert payload["department_id"] == 1
