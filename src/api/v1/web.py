@@ -13,14 +13,21 @@ from src.core.services.audit_service import log_action
 from src.core.services.auth_service import authenticate_user
 from src.core.services.document_service import (
     DuplicateDocumentError,
+    delete_document,
     get_documents_by_departments,
+    toggle_document_visibility,
     upload_document,
 )
-from src.core.services.rag_service import RagConnectionError, RagQueryError, execute_query
+from src.core.services.rag_service import (
+    RagConnectionError,
+    RagQueryError,
+    execute_query,
+)
 from src.main import templates
 
 _QUERY_RESULT_TPL = Template(
     "<article>"
+    "{% if audience %}<small>Audiencia: <strong>{{ audience }}</strong></small><br>{% endif %}"
     "<strong>Respuesta:</strong>"
     "<p>{{ answer }}</p>"
     "{% if context_used %}"
@@ -99,6 +106,7 @@ async def upload_form(request: Request, _user=Depends(require_web_user)):
 async def web_upload(
     request: Request,
     file: UploadFile = File(...),
+    is_public: bool = Form(False),
     _user=Depends(require_web_user),
     db: AsyncSession = Depends(get_session),
 ):
@@ -121,6 +129,7 @@ async def web_upload(
             content=content,
             department_id=target_department,
             user_id=_user["user_id"],
+            is_public=is_public,
         )
     except DuplicateDocumentError:
         return templates.TemplateResponse(
@@ -153,10 +162,65 @@ async def web_documents(
         return _user
     accessible = _user.get("accessible_departments", [])
     docs = await get_documents_by_departments(db, accessible)
+    role_level = _user.get("role_level", 0)
     return templates.TemplateResponse(
         request,
         "_document_list.html",
-        {"documents": docs},
+        {"documents": docs, "role_level": role_level},
+    )
+
+
+@router.post("/web/documents/{document_id}/delete")
+async def web_delete_document(
+    document_id: int,
+    request: Request,
+    _user=Depends(require_web_user),
+    db: AsyncSession = Depends(get_session),
+):
+    if isinstance(_user, Response):
+        return _user
+    role_level = _user.get("role_level", 0)
+    if role_level < 2:
+        return HTMLResponse(status_code=403, content="Forbidden")
+    accessible = _user.get("accessible_departments", [])
+    deleted = await delete_document(db, document_id, accessible)
+    if not deleted:
+        return HTMLResponse(status_code=404, content="Not found")
+    await log_action(
+        db,
+        action="delete",
+        user_id=_user["user_id"],
+        metadata={"document_id": document_id},
+    )
+    return HTMLResponse(
+        status_code=200,
+        content='<tr><td colspan="7">Documento eliminado</td></tr>',
+    )
+
+
+@router.post("/web/documents/{document_id}/toggle-public")
+async def web_toggle_public(
+    document_id: int,
+    request: Request,
+    _user=Depends(require_web_user),
+    db: AsyncSession = Depends(get_session),
+):
+    if isinstance(_user, Response):
+        return _user
+    accessible = _user.get("accessible_departments", [])
+    doc = await toggle_document_visibility(db, document_id, accessible)
+    if doc is None:
+        return HTMLResponse(status_code=404, content="Not found")
+    await log_action(
+        db,
+        action="toggle_public",
+        user_id=_user["user_id"],
+        metadata={"document_id": document_id, "is_public": doc.is_public},
+    )
+    return templates.TemplateResponse(
+        request,
+        "_document_row.html",
+        {"doc": doc, "role_level": _user.get("role_level", 0)},
     )
 
 
@@ -189,6 +253,7 @@ async def web_query(
     query = form.get("query", "")
     raw_ids = form.getlist("document_ids")
     ids = [int(x) for x in raw_ids if x.strip()]
+    audience = form.get("audience", "general")
     from src.core.config import settings as app_settings
 
     if len(query) > 2000:
@@ -196,6 +261,7 @@ async def web_query(
             _QUERY_RESULT_TPL.render(
                 answer="La consulta excede el máximo de 2000 caracteres.",
                 context_used=[],
+                audience=None,
             ),
             status_code=400,
         )
@@ -208,17 +274,19 @@ async def web_query(
             user=_user,
             ollama_host=app_settings.ollama_host,
             model_name=app_settings.model_name,
+            audience=audience,
         )
     except (RagConnectionError, RagQueryError) as exc:
         logger.warning("RAG web error: %s", exc)
         return HTMLResponse(
-            _QUERY_RESULT_TPL.render(answer=str(exc), context_used=[]),
+            _QUERY_RESULT_TPL.render(answer=str(exc), context_used=[], audience=None),
             status_code=500,
         )
     return HTMLResponse(
         _QUERY_RESULT_TPL.render(
             answer=result["answer"],
             context_used=result["context_used"],
+            audience=audience,
         ),
     )
 

@@ -4,6 +4,10 @@
         <label for="file">Seleccionar archivo PDF
             <input type="file" id="file" name="file" accept=".pdf,application/pdf" required>
         </label>
+        <label>
+            <input type="checkbox" name="is_public" value="true">
+            Marcar como público (visible para todos los departamentos)
+        </label>
         <button type="submit">Subir</button>
     </form>
     {% if error %}

@@ -8,6 +8,7 @@ from src.core.auth.rbac import require_min_level
 from src.core.config import settings as app_settings
 from src.core.database import get_session
 from src.core.services.rag_service import (
+    VALID_AUDIENCES,
     RagConnectionError,
     RagQueryError,
     execute_query,
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/api/v1/rag")
 class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=2000)
     document_ids: list[int] = Field(..., min_length=1)
+    audience: str = Field(default="general", pattern="|".join(VALID_AUDIENCES))
 
 
 class QueryResponse(BaseModel):
@@ -41,6 +43,7 @@ async def query(
             user=_user,
             ollama_host=app_settings.ollama_host,
             model_name=app_settings.model_name,
+            audience=body.audience,
         )
     except RagConnectionError as exc:
         logger.warning("RAG connection error: %s", exc)

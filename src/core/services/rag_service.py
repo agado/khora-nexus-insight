@@ -21,15 +21,46 @@ def _sanitize(text: str) -> str:
     return text.replace("</", "")
 
 
-def _build_prompt(query: str, context_chunks: list[str]) -> str:
+AUDIENCE_MAP: dict[str, str] = {
+    "general": (
+        "Responde basándote EXCLUSIVAMENTE en el contexto anterior. "
+        "Si el contexto no contiene información para responder la pregunta, "
+        "di 'No se encontró información relevante en los documentos seleccionados.' "
+        "No inventes ni añadas información externa."
+    ),
+    "tecnico": (
+        "Eres un experto técnico. Responde basándote EXCLUSIVAMENTE en el contexto anterior. "
+        "Usa vocabulario técnico preciso, incluye detalles de implementación y datos concretos. "
+        "Si el contexto no contiene información suficiente, indícalo claramente. "
+        "No inventes ni añadas información externa."
+    ),
+    "ejecutivo": (
+        "Eres un asesor de dirección. Responde basándote EXCLUSIVAMENTE en el contexto anterior. "
+        "Usa lenguaje de negocio claro. Enfócate en impacto, riesgos, costes y plazos. "
+        "Evita tecnicismos. Si el contexto no contiene información suficiente, indícalo "
+        "claramente. No inventes ni añadas información externa."
+    ),
+    "stakeholder": (
+        "Eres un consultor estratégico. Responde basándote EXCLUSIVAMENTE en el contexto anterior. "
+        "Enfócate en objetivos, beneficios esperados y alineación estratégica. "
+        "Traduce los hallazgos a valor de negocio. "
+        "Si el contexto no contiene información suficiente, indícalo claramente. "
+        "No inventes ni añadas información externa."
+    ),
+}
+
+VALID_AUDIENCES = frozenset(AUDIENCE_MAP.keys())
+DEFAULT_AUDIENCE = "general"
+
+
+def _build_prompt(query: str, context_chunks: list[str], audience: str = DEFAULT_AUDIENCE) -> str:
+    if audience not in VALID_AUDIENCES:
+        raise ValueError(f"Invalid audience: {audience}. Valid: {sorted(VALID_AUDIENCES)}")
     context = "\n---\n".join(context_chunks)
     return (
         f"<contexto>\n{context}\n</contexto>\n"
         f"<pregunta>\n{query}\n</pregunta>\n"
-        "Instrucción: Responde basándote EXCLUSIVAMENTE en el contexto anterior. "
-        "Si el contexto no contiene información para responder la pregunta, "
-        "di 'No se encontró información relevante en los documentos seleccionados.' "
-        "No inventes ni añadas información externa."
+        f"{AUDIENCE_MAP[audience]}"
     )
 
 
@@ -40,6 +71,7 @@ async def execute_query(
     user: dict,
     ollama_host: str,
     model_name: str,
+    audience: str = DEFAULT_AUDIENCE,
 ) -> dict:
     allowed = user.get("accessible_departments", [])
 
@@ -54,7 +86,7 @@ async def execute_query(
 
     context_chunks = [d.content_text[:MAX_CONTEXT_CHARS] for d in docs if d.content_text]
     safe_query = _sanitize(query_text)
-    prompt = _build_prompt(safe_query, context_chunks)
+    prompt = _build_prompt(safe_query, context_chunks, audience=audience)
 
     if not context_chunks:
         answer = "No se encontró contenido relevante en los documentos seleccionados."
@@ -65,6 +97,7 @@ async def execute_query(
                 "query": query_text,
                 "document_ids": document_ids,
                 "note": "empty context — no documents matched or content was null",
+                "audience": audience,
             },
         )
         db.add(log)
@@ -72,7 +105,7 @@ async def execute_query(
         return {"answer": answer, "context_used": []}
 
     try:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.post(
                 f"{ollama_host}/api/generate",
                 json={
@@ -99,7 +132,7 @@ async def execute_query(
     log = AuditLog(
         action="rag_query",
         user_id=user["user_id"],
-        metadata_={"query": query_text, "document_ids": document_ids},
+        metadata_={"query": query_text, "document_ids": document_ids, "audience": audience},
     )
     db.add(log)
     await db.flush()

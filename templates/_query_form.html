@@ -8,6 +8,15 @@
                 <textarea name="query" rows="3" required></textarea>
             </label>
             <label>
+                Audiencia
+                <select name="audience">
+                    <option value="general">General</option>
+                    <option value="tecnico">Técnico</option>
+                    <option value="ejecutivo">Ejecutivo</option>
+                    <option value="stakeholder">Stakeholder</option>
+                </select>
+            </label>
+            <label>
                 Documentos
                 <select name="document_ids" multiple required>
                     {% for doc in documents %}
