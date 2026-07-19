@@ -105,7 +105,7 @@ async def execute_query(
         return {"answer": answer, "context_used": []}
 
     try:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.post(
                 f"{ollama_host}/api/generate",
                 json={
