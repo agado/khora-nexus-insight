@@ -4,7 +4,13 @@ import httpx
 import pytest
 
 from src.core.models import Document
-from src.core.services.rag_service import RagConnectionError, RagQueryError, execute_query
+from src.core.services.rag_service import (
+    VALID_AUDIENCES,
+    RagConnectionError,
+    RagQueryError,
+    _build_prompt,
+    execute_query,
+)
 
 
 class TestExecuteQuery:
@@ -261,3 +267,52 @@ class TestExecuteQuery:
         log = mock_db.add.call_args[0][0]
         expected = "empty context — no documents matched or content was null"
         assert log.metadata_.get("note") == expected
+
+
+class TestBuildPrompt:
+    def test_default_audience_is_general(self):
+        from src.core.services.rag_service import DEFAULT_AUDIENCE
+
+        assert DEFAULT_AUDIENCE == "general"
+
+    def test_backward_compatible_no_audience(self):
+        result = _build_prompt("test", ["context"])
+        assert "EXCLUSIVAMENTE" in result
+        assert "<contexto>" in result
+        assert "<pregunta>" in result
+
+    def test_audience_general_same_as_default(self):
+        default = _build_prompt("test", ["context"])
+        explicit = _build_prompt("test", ["context"], audience="general")
+        assert default == explicit
+
+    def test_audience_tecnico_includes_technical_instruction(self):
+        result = _build_prompt("test", ["context"], audience="tecnico")
+        assert "vocabulario técnico preciso" in result
+        assert "detalles de implementación" in result
+
+    def test_audience_ejecutivo_includes_business_instruction(self):
+        result = _build_prompt("test", ["context"], audience="ejecutivo")
+        assert "lenguaje de negocio" in result
+        assert "impacto, riesgos, costes" in result
+
+    def test_audience_stakeholder_includes_strategic_instruction(self):
+        result = _build_prompt("test", ["context"], audience="stakeholder")
+        assert "alineación estratégica" in result
+        assert "valor de negocio" in result
+
+    def test_each_audience_produces_unique_prompt(self):
+        prompts = {}
+        for aud in sorted(VALID_AUDIENCES):
+            prompts[aud] = _build_prompt("test", ["context"], audience=aud)
+        unique = set(prompts.values())
+        assert len(unique) == len(VALID_AUDIENCES)
+
+    def test_invalid_audience_raises_value_error(self):
+        with pytest.raises(ValueError, match="Invalid audience"):
+            _build_prompt("test", ["context"], audience="invalid")
+
+    def test_query_and_context_still_present_with_audience(self):
+        result = _build_prompt("mi pregunta", ["mi contexto"], audience="tecnico")
+        assert "mi pregunta" in result
+        assert "mi contexto" in result

@@ -16,11 +16,16 @@ from src.core.services.document_service import (
     get_documents_by_departments,
     upload_document,
 )
-from src.core.services.rag_service import RagConnectionError, RagQueryError, execute_query
+from src.core.services.rag_service import (
+    RagConnectionError,
+    RagQueryError,
+    execute_query,
+)
 from src.main import templates
 
 _QUERY_RESULT_TPL = Template(
     "<article>"
+    "{% if audience %}<small>Audiencia: <strong>{{ audience }}</strong></small><br>{% endif %}"
     "<strong>Respuesta:</strong>"
     "<p>{{ answer }}</p>"
     "{% if context_used %}"
@@ -189,6 +194,7 @@ async def web_query(
     query = form.get("query", "")
     raw_ids = form.getlist("document_ids")
     ids = [int(x) for x in raw_ids if x.strip()]
+    audience = form.get("audience", "general")
     from src.core.config import settings as app_settings
 
     if len(query) > 2000:
@@ -196,6 +202,7 @@ async def web_query(
             _QUERY_RESULT_TPL.render(
                 answer="La consulta excede el máximo de 2000 caracteres.",
                 context_used=[],
+                audience=None,
             ),
             status_code=400,
         )
@@ -208,17 +215,19 @@ async def web_query(
             user=_user,
             ollama_host=app_settings.ollama_host,
             model_name=app_settings.model_name,
+            audience=audience,
         )
     except (RagConnectionError, RagQueryError) as exc:
         logger.warning("RAG web error: %s", exc)
         return HTMLResponse(
-            _QUERY_RESULT_TPL.render(answer=str(exc), context_used=[]),
+            _QUERY_RESULT_TPL.render(answer=str(exc), context_used=[], audience=None),
             status_code=500,
         )
     return HTMLResponse(
         _QUERY_RESULT_TPL.render(
             answer=result["answer"],
             context_used=result["context_used"],
+            audience=audience,
         ),
     )
 
