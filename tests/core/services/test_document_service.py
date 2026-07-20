@@ -2,6 +2,7 @@ import hashlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.models import Document
 from src.core.services.document_service import (
@@ -25,7 +26,7 @@ class TestUploadDocument:
     def _mock_db(self):
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = None
-        mock_db = AsyncMock()
+        mock_db = AsyncMock(spec=AsyncSession)
         mock_db.execute.return_value = mock_result
         mock_db.add = MagicMock()
         return mock_db

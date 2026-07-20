@@ -58,7 +58,7 @@ async def create_user(
     await db.flush()
 
     for dept_id in accessible_department_ids:
-        db.execute(user_department.insert().values(user_id=user.id, department_id=dept_id))
+        await db.execute(user_department.insert().values(user_id=user.id, department_id=dept_id))
     await db.flush()
     return user
 
