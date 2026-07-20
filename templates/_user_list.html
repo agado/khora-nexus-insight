@@ -1,0 +1,50 @@
+<h3>Usuarios</h3>
+
+{% if users %}
+<div class="nexus-table-wrap">
+<table class="nexus-table">
+    <thead>
+        <tr>
+            <th>Usuario</th>
+            <th>Rol</th>
+            <th>Departamento</th>
+            <th>Creado</th>
+            <th class="nexus-text-right">Acción</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td><strong>{{ user.username }}</strong></td>
+            <td><span class="nexus-badge nexus-badge-{% if user.role == 'admin' %}red{% elif user.role == 'lead' %}green{% else %}gray{% endif %}">{{ user.role }}</span></td>
+            <td class="nexus-text-small">{{ user.department_name }}</td>
+            <td class="nexus-text-small">{{ user.created_at[:10] if user.created_at else '' }}</td>
+            <td class="nexus-text-right nexus-flex nexus-gap-sm" style="justify-content:flex-end">
+                {% if session_user.user_id != user.id %}
+                <button class="nexus-btn nexus-btn-danger nexus-btn-sm"
+                        hx-post="/web/users/{{ user.id }}/delete"
+                        hx-confirm="¿Eliminar usuario {{ user.username }}?"
+                        hx-target="body" hx-swap="innerHTML">
+                    Eliminar
+                </button>
+                <button class="nexus-btn nexus-btn-secondary nexus-btn-sm"
+                        hx-get="/web/users/{{ user.id }}/reset-password"
+                        hx-target="#tab-content" hx-swap="innerHTML">
+                    Resetear
+                </button>
+                {% else %}
+                <span class="nexus-text-small">—</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% else %}
+<div class="nexus-empty">
+    <p>No hay usuarios registrados.</p>
+</div>
+{% endif %}
+
+<a href="/web/users/new" class="nexus-btn nexus-btn-primary nexus-mt-lg">+ Nuevo usuario</a>

@@ -7,6 +7,7 @@
     <button class="nexus-pill" hx-get="/web/documents">Documentos</button>
     <button class="nexus-pill active" hx-get="/web/query">Consultar</button>
     {% if session_user and session_user.get('role_level', 0) >= 3 %}
+    <button class="nexus-pill" hx-get="/web/users">Usuarios</button>
     <button class="nexus-pill" hx-get="/web/logs">Registros</button>
     {% endif %}
 </div>

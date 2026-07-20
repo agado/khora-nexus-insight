@@ -1,0 +1,40 @@
+<h3>Nuevo Usuario</h3>
+
+<form hx-post="/web/users" hx-target="#tab-content" hx-swap="innerHTML">
+    <label for="username">Usuario
+        <input type="text" id="username" name="username" required autocomplete="off">
+    </label>
+    <label for="password">Contraseña
+        <input type="password" id="password" name="password" required>
+    </label>
+    <label for="role">Rol
+        <select id="role" name="role" required>
+            <option value="">Seleccionar...</option>
+            <option value="staff">Staff</option>
+            <option value="lead">Lead</option>
+            <option value="admin">Admin</option>
+        </select>
+    </label>
+    <label for="department_id">Departamento principal
+        <select id="department_id" name="department_id" required>
+            <option value="">Seleccionar...</option>
+            {% for dept in departments %}
+            <option value="{{ dept.id }}">{{ dept.name }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label for="accessible_depts">Departamentos accesibles
+        <select id="accessible_depts" name="accessible_department_ids" multiple size="3">
+            {% for dept in departments %}
+            <option value="{{ dept.id }}">{{ dept.name }}</option>
+            {% endfor %}
+        </select>
+        <small class="nexus-doc-filter-hint">Mantén Ctrl/Cmd para seleccionar varios.</small>
+    </label>
+    <button type="submit" class="nexus-btn nexus-btn-primary">Crear usuario</button>
+    <a href="/web/users" class="nexus-btn nexus-btn-secondary">Cancelar</a>
+</form>
+
+{% if error %}
+<div class="nexus-toast nexus-toast-error nexus-toast--static">{{ error }}</div>
+{% endif %}
