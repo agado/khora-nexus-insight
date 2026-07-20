@@ -10,7 +10,7 @@
 > "Hola, soy [tu nombre] y os presento Nexus Insight, mi Trabajo de Fin de Máster.
 > Nexus Insight es una plataforma de análisis documental inteligente diseñada bajo un paradigma Zero-Trust.
 > ¿El problema? Las empresas no pueden usar ChatGPT con datos sensibles por riesgo de fuga,
-> los costes por token son impredecibles, y la comunicación entre departamentos pierde contexto.
+> los costes de API son impredecibles, y la comunicación entre departamentos pierde contexto.
 > Nexus Insight soluciona esto con IA 100% local, aislamiento departamental estricto,
 > y adaptación automática del lenguaje según el rol del usuario."
 
