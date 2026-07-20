@@ -8,6 +8,7 @@ from jwt import PyJWTError
 from starlette.templating import Jinja2Templates
 
 from src.core.auth.jwt import verify_token
+from src.core.config import settings
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,6 +19,7 @@ logger = logging.getLogger("nexus")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+templates.env.globals["company_name"] = settings.company_name
 
 from src.api.v1.auth import router as auth_router
 from src.api.v1.documents import router as documents_router
@@ -25,7 +27,7 @@ from src.api.v1.health import router as health_router
 from src.api.v1.rag import router as rag_router
 from src.api.v1.web import router as web_router
 
-app = FastAPI(title="Nexus Insight")
+app = FastAPI(title="Khora — Nexus Insight")
 
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 

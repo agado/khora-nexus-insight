@@ -1,34 +1,59 @@
 <div id="query-form-area">
-    <h3>Consultar Documentos</h3>
     {% if documents %}
-    <form hx-post="/web/query" hx-target="#query-result" hx-swap="innerHTML">
-        <fieldset>
-            <label>
-                Pregunta
-                <textarea name="query" rows="3" required></textarea>
+    <div id="query-form-container">
+        <h3>Consultar Documentos de {{ company_name }}</h3>
+        <form id="query-form" hx-post="/web/query" hx-target="#query-result" hx-swap="innerHTML"
+              hx-on::before-request="
+                  document.getElementById('query-form-container').classList.add('nexus-hidden');
+                  var q = document.getElementById('query').value;
+                  document.getElementById('query-waiting-question').textContent = q;
+                  document.getElementById('query-waiting').classList.remove('nexus-hidden');
+              "
+              hx-on::after-request="document.getElementById('query-waiting').classList.add('nexus-hidden')">
+            <label for="query">Pregunta
+                <textarea id="query" name="query" rows="3" required placeholder="Escribe tu consulta sobre los documentos seleccionados..."></textarea>
             </label>
-            <label>
-                Audiencia
-                <select name="audience">
+            <label for="audience">Audiencia
+                <select id="audience" name="audience">
                     <option value="general">General</option>
                     <option value="tecnico">Técnico</option>
                     <option value="ejecutivo">Ejecutivo</option>
                     <option value="stakeholder">Stakeholder</option>
                 </select>
             </label>
-            <label>
-                Documentos
-                <select name="document_ids" multiple required>
+            <label for="doc-filter" class="nexus-doc-filter-label">Documentos
+                <small class="nexus-doc-filter-hint">Usa el filtro para buscar. Mantén Ctrl/Cmd para seleccionar varios. Si no seleccionas ninguno, se usarán todos los disponibles.</small>
+                <input id="doc-filter" type="text" placeholder="Filtrar documentos..." class="nexus-doc-filter-input nexus-doc-filter">
+                <select id="document_ids" name="document_ids" multiple size="6">
                     {% for doc in documents %}
                     <option value="{{ doc.id }}">{{ doc.filename }}</option>
                     {% endfor %}
                 </select>
             </label>
-            <button type="submit">Consultar</button>
-        </fieldset>
-    </form>
+            <button type="submit" class="nexus-btn nexus-btn-primary">Consultar</button>
+        </form>
+    </div>
+
+    <div id="query-waiting" class="nexus-waiting nexus-hidden">
+        <div class="nexus-waiting-inner">
+            <div class="nexus-waiting-question">
+                <small>Pregunta</small>
+                <p id="query-waiting-question"></p>
+            </div>
+            <div class="nexus-waiting-spinner">
+                <p>Procesando consulta...</p>
+                <div class="nexus-spinner"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="query-result"></div>
     {% else %}
-    <p>No hay documentos disponibles para tu departamento. Sube documentos primero.</p>
+    <div class="nexus-empty">
+        <svg class="nexus-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
+        </svg>
+        <p>No hay documentos disponibles. Sube documentos primero.</p>
+    </div>
     {% endif %}
 </div>

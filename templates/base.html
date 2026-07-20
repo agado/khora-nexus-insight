@@ -1,16 +1,86 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Insight</title>
+    <title>Khora — Nexus Insight</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <script src="https://unpkg.com/htmx.org@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
+    <script>
+        document.addEventListener('htmx:afterSwap', function(evt) {
+            document.querySelectorAll('.markdown-body').forEach(function(el) {
+                if (!el.dataset.rendered) {
+                    el.innerHTML = marked.parse(el.textContent);
+                    el.dataset.rendered = 'true';
+                }
+            });
+        });
+
+        document.addEventListener('click', function(evt) {
+            var btn = evt.target.closest('.nexus-btn-copy');
+            if (!btn) return;
+            var answer = btn.closest('.nexus-result-answer');
+            if (!answer) return;
+            var body = answer.querySelector('.markdown-body');
+            if (!body) return;
+            navigator.clipboard.writeText(body.textContent).then(function() {
+                var container = document.getElementById('toast-container');
+                if (!container) return;
+                var toast = document.createElement('div');
+                toast.className = 'nexus-toast nexus-toast-success';
+                toast.textContent = 'Copiado al portapapeles';
+                container.appendChild(toast);
+                setTimeout(function() { toast.remove(); }, 4000);
+            });
+        });
+
+        document.addEventListener('input', function(evt) {
+            if (!evt.target.matches('.nexus-doc-filter')) return;
+            var filter = evt.target.value.toLowerCase();
+            var select = document.getElementById('document_ids');
+            if (!select) return;
+            for (var i = 0; i < select.options.length; i++) {
+                var opt = select.options[i];
+                opt.style.display = opt.text.toLowerCase().includes(filter) ? '' : 'none';
+            }
+        });
+    </script>
 </head>
 <body>
-    <main class="container">
+    <nav class="nexus-navbar">
+        <div class="nexus-navbar-inner">
+            <a href="/dashboard" class="nexus-brand">
+                <span class="nexus-brand-icon"></span>
+                <span class="nexus-brand-title">Nexus Insight</span>
+            </a>
+            <div class="nexus-navbar-right">
+                {% if session_user %}
+                <span class="nexus-text-small">{{ session_user.get('sub', '') }}</span>
+                <span class="badge-role badge-role-{{ session_user.get('role', 'staff') }}">
+                    {{ session_user.get('role', 'staff') }}
+                </span>
+                <a href="/logout" class="nexus-btn nexus-btn-secondary nexus-btn-sm">Salir</a>
+                {% endif %}
+            </div>
+        </div>
+        {% if company_name %}
+        <div class="nexus-navbar-org">{{ company_name }}</div>
+        {% endif %}
+    </nav>
+
+    <div id="toast-container"></div>
+
+    <main class="nexus-main">
         {% block content %}{% endblock %}
     </main>
+
+    <footer class="nexus-footer">
+        <span>© Khora Nexus Insight. Todos los derechos reservados.</span>
+        <span class="nexus-footer-sep">|</span>
+        <span>La información de la plataforma es responsabilidad de los usuarios de {{ company_name }}.</span>
+    </footer>
 </body>
 </html>

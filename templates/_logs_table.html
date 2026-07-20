@@ -1,4 +1,7 @@
-<table>
+<h3>Registros de Auditoría</h3>
+{% if logs %}
+<div class="nexus-table-wrap">
+<table class="nexus-table">
     <thead>
         <tr>
             <th>Acción</th>
@@ -10,22 +13,29 @@
     <tbody>
         {% for log in logs %}
         <tr>
-            <td>{{ log.action }}</td>
-            <td>{{ log.username }}</td>
-            <td>{{ log.timestamp[:19] }}</td>
+            <td><span class="nexus-badge {% if log.action == 'delete' %}nexus-badge-red{% elif log.action == 'upload' %}nexus-badge-green{% else %}nexus-badge-gray{% endif %}">{{ log.action }}</span></td>
+            <td><code class="nexus-text-mono">{{ log.username }}</code></td>
+            <td class="nexus-text-small">{{ log.timestamp[:19] }}</td>
             <td>
                 {% if log.metadata %}
-                <details>
-                    <summary>Ver detalle</summary>
-                    <pre>{{ log.metadata | tojson(indent=2) }}</pre>
+                <details class="nexus-logs-details">
+                    <summary class="nexus-logs-summary">Ver detalle</summary>
+                    <pre class="nexus-logs-pre">{{ log.metadata | tojson(indent=2) }}</pre>
                 </details>
+                {% else %}
+                <span class="nexus-text-small">—</span>
                 {% endif %}
             </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="4">No hay registros de actividad.</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+</div>
+{% else %}
+<div class="nexus-empty">
+    <svg class="nexus-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    <p>No hay registros de actividad.</p>
+</div>
+{% endif %}
