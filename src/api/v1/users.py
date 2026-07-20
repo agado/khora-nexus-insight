@@ -128,7 +128,10 @@ async def api_reset_password(
     _user=Depends(require_min_level(3)),
     db: AsyncSession = Depends(get_session),
 ):
-    ok = await reset_password(db, user_id, body.new_password)
+    try:
+        ok = await reset_password(db, user_id, body.new_password)
+    except ValueError as exc:
+        return HTMLResponse(status_code=409, content=str(exc))
     if not ok:
         return HTMLResponse(status_code=404, content="User not found")
     await log_action(
@@ -314,7 +317,22 @@ async def web_reset_password(
     if isinstance(_user, Response):
         return _user
     form = await request.form()
-    ok = await reset_password(db, user_id, form["new_password"])
+    try:
+        ok = await reset_password(db, user_id, form["new_password"])
+    except ValueError as exc:
+        edit_user = await get_user_by_id(db, user_id)
+        if not edit_user:
+            return HTMLResponse(status_code=404, content="User not found")
+        return templates.TemplateResponse(
+            request,
+            "_reset_password_form.html",
+            {
+                "user_id": user_id,
+                "username": edit_user.username,
+                "session_user": _user,
+                "error": str(exc),
+            },
+        )
     if not ok:
         return HTMLResponse(status_code=404, content="User not found")
     await log_action(
