@@ -47,7 +47,9 @@ def _lead_token() -> str:
 
 @pytest.fixture
 def client():
-    app.dependency_overrides[get_session] = lambda: AsyncMock()
+    mock_session = AsyncMock()
+    mock_session.add.return_value = None
+    app.dependency_overrides[get_session] = lambda: mock_session
     yield TestClient(app)
     app.dependency_overrides.pop(get_session, None)
 
@@ -67,7 +69,10 @@ class TestUpload:
         mock_doc.uploaded_by = 1
         mock_doc.created_at.isoformat.return_value = "2026-01-01T00:00:00"
 
-        with patch("src.api.v1.documents.upload_document", new_callable=AsyncMock) as mock_upload:
+        with (
+            patch("src.api.v1.documents.upload_document", new_callable=AsyncMock) as mock_upload,
+            patch("src.api.v1.documents.log_action", new_callable=AsyncMock),
+        ):
             mock_upload.return_value = mock_doc
             response = client.post(
                 "/api/v1/documents/upload",
@@ -307,30 +312,13 @@ class TestDocumentVisibility:
             )
         assert response.status_code == 404
 
-    def test_toggle_staff_can_toggle(self, client):
+    def test_toggle_staff_forbidden(self, client):
         token = _staff_token()
-        mock_doc = MagicMock(spec=Document)
-        mock_doc.id = 1
-        mock_doc.filename = "test.pdf"
-        mock_doc.sha256 = "abc"
-        mock_doc.department_id = 1
-        mock_doc.uploaded_by = 1
-        mock_doc.created_at.isoformat.return_value = "2026-01-01T00:00:00"
-
-        with (
-            patch(
-                "src.api.v1.documents.toggle_document_visibility", new_callable=AsyncMock
-            ) as mock_toggle,
-            patch("src.api.v1.documents.log_action", new_callable=AsyncMock),
-        ):
-            mock_toggle.return_value = mock_doc
-            mock_doc.is_public = True
-            response = client.patch(
-                "/api/v1/documents/1/toggle-public",
-                headers={"Authorization": f"Bearer {token}"},
-            )
-        assert response.status_code == 200
-        assert response.json()["is_public"] is True
+        response = client.patch(
+            "/api/v1/documents/1/toggle-public",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 403
 
     def test_upload_with_is_public(self, client):
         token = _admin_token()
@@ -343,7 +331,10 @@ class TestDocumentVisibility:
         mock_doc.is_public = True
         mock_doc.created_at.isoformat.return_value = "2026-01-01T00:00:00"
 
-        with patch("src.api.v1.documents.upload_document", new_callable=AsyncMock) as mock_upload:
+        with (
+            patch("src.api.v1.documents.upload_document", new_callable=AsyncMock) as mock_upload,
+            patch("src.api.v1.documents.log_action", new_callable=AsyncMock),
+        ):
             mock_upload.return_value = mock_doc
             response = client.post(
                 "/api/v1/documents/upload",

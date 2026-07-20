@@ -1,4 +1,4 @@
-<h3>Documentos</h3>
+<h3>Documentos de {{ company_name }}</h3>
 {% if documents %}
 <div class="nexus-table-wrap">
 <table class="nexus-table">
@@ -8,8 +8,8 @@
             <th>SHA-256</th>
             <th>Depto</th>
             <th>Subido</th>
-            <th>Público</th>
-            {% if role_level >= 2 %}<th style="text-align:right">Acción</th>{% endif %}
+            {% if role_level >= 2 %}<th>Público</th>{% endif %}
+            {% if role_level >= 2 %}<th class="nexus-text-right">Acción</th>{% endif %}
         </tr>
     </thead>
     <tbody hx-target="closest tr" hx-swap="outerHTML">
@@ -19,6 +19,7 @@
             <td><code class="nexus-text-mono">{{ doc.sha256[:16] }}...</code></td>
             <td><span class="nexus-text-small">#{{ doc.department_id }}</span></td>
             <td class="nexus-text-small">{{ doc.created_at.strftime('%Y-%m-%d') if doc.created_at else '' }}</td>
+            {% if role_level >= 2 %}
             <td>
                 <label class="nexus-toggle" title="Cambiar visibilidad pública">
                     <input type="checkbox" {{ 'checked' if doc.is_public else '' }}
@@ -32,8 +33,9 @@
                     {% endif %}
                 </label>
             </td>
+            {% endif %}
             {% if role_level >= 2 %}
-            <td style="text-align:right">
+            <td class="nexus-text-right">
                 <button class="nexus-btn nexus-btn-danger nexus-btn-sm"
                         hx-post="/web/documents/{{ doc.id }}/delete"
                         hx-confirm="¿Eliminar {{ doc.filename }}?">

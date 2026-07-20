@@ -8,11 +8,12 @@ from src.core.database import get_session
 from src.main import app
 
 
-def _cookie_token() -> str:
+def _cookie_token(role_level: int = 3) -> str:
     return create_access_token(
         {
             "sub": "admin",
             "role": "admin",
+            "role_level": role_level,
             "department_id": 1,
             "accessible_departments": [1, 2, 3],
             "user_id": 1,
@@ -22,7 +23,9 @@ def _cookie_token() -> str:
 
 @pytest.fixture
 def client():
-    app.dependency_overrides[get_session] = lambda: AsyncMock()
+    mock_session = AsyncMock()
+    mock_session.add.return_value = None
+    app.dependency_overrides[get_session] = lambda: mock_session
     yield TestClient(app)
     app.dependency_overrides.pop(get_session, None)
 
@@ -84,6 +87,14 @@ class TestDashboard:
         assert "Subir" in response.text
         assert "Documentos" in response.text
 
+    def test_dashboard_staff_hides_upload_tab(self, client):
+        token = _cookie_token(role_level=1)
+        client.cookies.set("access_token", token)
+        response = client.get("/dashboard")
+        assert response.status_code == 200
+        assert "Subir" not in response.text
+        assert "Documentos" in response.text
+
 
 class TestLogout:
     def test_logout_clears_cookie_and_redirects(self, auth_client):
@@ -124,7 +135,10 @@ class TestUploadTab:
         mock_doc.uploaded_by = 1
         mock_doc.created_at.isoformat.return_value = "2026-01-01T00:00:00"
 
-        with patch("src.api.v1.web.upload_document", new_callable=AsyncMock) as mock_up:
+        with (
+            patch("src.api.v1.web.upload_document", new_callable=AsyncMock) as mock_up,
+            patch("src.api.v1.web.log_action", new_callable=AsyncMock),
+        ):
             mock_up.return_value = mock_doc
             response = auth_client.post(
                 "/web/upload",

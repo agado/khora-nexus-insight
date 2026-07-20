@@ -2,11 +2,11 @@ import logging
 
 from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
-from jinja2 import Template
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.auth.rbac import require_web_user
+from src.core.auth.rbac import require_web_min_level, require_web_user
+from src.core.config import settings as app_settings
 from src.core.database import get_session
 from src.core.models import AuditLog, User
 from src.core.services.audit_service import log_action
@@ -24,22 +24,6 @@ from src.core.services.rag_service import (
     execute_query,
 )
 from src.main import templates
-
-_QUERY_RESULT_TPL = Template(
-    "<article>"
-    "{% if audience %}<small>Audiencia: <strong>{{ audience }}</strong></small><br>{% endif %}"
-    "<strong>Respuesta:</strong>"
-    "<p>{{ answer }}</p>"
-    "{% if context_used %}"
-    "<details>"
-    "<summary>Contexto utilizado ({{ context_used|length }} documentos)</summary>"
-    "{% for c in context_used %}"
-    "<blockquote>{{ c[:300] }}</blockquote>"
-    "{% endfor %}"
-    "</details>"
-    "{% endif %}"
-    "</article>"
-)
 
 logger = logging.getLogger("nexus")
 router = APIRouter()
@@ -96,7 +80,7 @@ async def dashboard(request: Request, _user=Depends(require_web_user)):
 
 
 @router.get("/web/upload")
-async def upload_form(request: Request, _user=Depends(require_web_user)):
+async def upload_form(request: Request, _user=Depends(require_web_min_level(2))):
     if isinstance(_user, Response):
         return _user
     return templates.TemplateResponse(request, "_upload_form.html", {"session_user": _user})
@@ -107,7 +91,7 @@ async def web_upload(
     request: Request,
     file: UploadFile = File(...),
     is_public: bool = Form(False),
-    _user=Depends(require_web_user),
+    _user=Depends(require_web_min_level(2)),
     db: AsyncSession = Depends(get_session),
 ):
     if isinstance(_user, Response):
@@ -177,14 +161,11 @@ async def web_documents(
 async def web_delete_document(
     document_id: int,
     request: Request,
-    _user=Depends(require_web_user),
+    _user=Depends(require_web_min_level(2)),
     db: AsyncSession = Depends(get_session),
 ):
     if isinstance(_user, Response):
         return _user
-    role_level = _user.get("role_level", 0)
-    if role_level < 2:
-        return HTMLResponse(status_code=403, content="Forbidden")
     accessible = _user.get("accessible_departments", [])
     deleted = await delete_document(db, document_id, accessible)
     if not deleted:
@@ -211,7 +192,7 @@ async def web_delete_document(
 async def web_toggle_public(
     document_id: int,
     request: Request,
-    _user=Depends(require_web_user),
+    _user=Depends(require_web_min_level(2)),
     db: AsyncSession = Depends(get_session),
 ):
     if isinstance(_user, Response):
@@ -263,15 +244,16 @@ async def web_query(
     raw_ids = form.getlist("document_ids")
     ids = [int(x) for x in raw_ids if x.strip()]
     audience = form.get("audience", "general")
-    from src.core.config import settings as app_settings
-
     if len(query) > 2000:
-        return HTMLResponse(
-            _QUERY_RESULT_TPL.render(
-                answer="La consulta excede el máximo de 2000 caracteres.",
-                context_used=[],
-                audience=None,
-            ),
+        return templates.TemplateResponse(
+            request,
+            "_query_result.html",
+            {
+                "query_text": query,
+                "answer": "La consulta excede el máximo de 2000 caracteres.",
+                "context_used": [],
+                "audience": None,
+            },
             status_code=400,
         )
 
@@ -287,16 +269,21 @@ async def web_query(
         )
     except (RagConnectionError, RagQueryError) as exc:
         logger.warning("RAG web error: %s", exc)
-        return HTMLResponse(
-            _QUERY_RESULT_TPL.render(answer=str(exc), context_used=[], audience=None),
+        return templates.TemplateResponse(
+            request,
+            "_query_result.html",
+            {"query_text": query, "answer": str(exc), "context_used": [], "audience": None},
             status_code=500,
         )
-    return HTMLResponse(
-        _QUERY_RESULT_TPL.render(
-            answer=result["answer"],
-            context_used=result["context_used"],
-            audience=audience,
-        ),
+    return templates.TemplateResponse(
+        request,
+        "_query_result.html",
+        {
+            "query_text": query,
+            "answer": result["answer"],
+            "context_used": result["context_used"],
+            "audience": audience,
+        },
     )
 
 
@@ -305,7 +292,7 @@ async def web_logs(
     request: Request,
     skip: int = 0,
     limit: int = 50,
-    _user=Depends(require_web_user),
+    _user=Depends(require_web_min_level(3)),
     db: AsyncSession = Depends(get_session),
 ):
     if isinstance(_user, Response):

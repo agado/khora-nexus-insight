@@ -1,23 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="max-width: 400px; margin: 4rem auto;">
-    <div class="nexus-card" style="text-align:center;padding:2rem">
-        <div style="margin-bottom:1.5rem">
-            <span style="display:inline-block;width:48px;height:48px;background:var(--nexus-primary);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)"></span>
+<div class="nexus-login-wrap">
+    <div class="nexus-card nexus-card--login">
+        <div class="nexus-mb-lg">
+            <span class="nexus-logo-hex"></span>
         </div>
-        <h1 style="font-size:1.5rem;font-weight:700;margin:0 0 0.25rem">Nexus Insight</h1>
-        <p class="nexus-text-small" style="margin-bottom:1.5rem">Inicia sesión para continuar</p>
-        <form method="post" action="/login" style="text-align:left">
+        <h1 class="nexus-login-title">Nexus Insight</h1>
+        <p class="nexus-company-subtitle">{{ company_name }}</p>
+        <p class="nexus-text-small nexus-mb-lg">Inicia sesión para continuar</p>
+        <form method="post" action="/login" class="nexus-text-left">
             <label for="username">Usuario
-                <input type="text" id="username" name="username" placeholder="admin" required>
+                <input type="text" id="username" name="username" placeholder="usuario" required>
             </label>
             <label for="password">Contraseña
                 <input type="password" id="password" name="password" placeholder="Contraseña" required>
             </label>
-            <button type="submit" class="nexus-btn nexus-btn-primary" style="width:100%;justify-content:center">Iniciar sesión</button>
+            <button type="submit" class="nexus-btn nexus-btn-primary nexus-btn-block">Iniciar sesión</button>
         </form>
         {% if error %}
-        <div class="nexus-toast nexus-toast-error" style="margin-top:1rem;animation:none">{{ error }}</div>
+        <div class="nexus-toast nexus-toast-error nexus-toast--static">{{ error }}</div>
         {% endif %}
     </div>
 </div>

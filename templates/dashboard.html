@@ -1,18 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="nexus-pills" hx-target="#tab-content" hx-trigger="click" hx-swap="innerHTML">
+    {% if session_user and session_user.get('role_level', 0) >= 2 %}
     <button class="nexus-pill" hx-get="/web/upload">Subir</button>
+    {% endif %}
     <button class="nexus-pill" hx-get="/web/documents">Documentos</button>
-    <button class="nexus-pill" hx-get="/web/query">Consultar</button>
+    <button class="nexus-pill active" hx-get="/web/query">Consultar</button>
+    {% if session_user and session_user.get('role_level', 0) >= 3 %}
     <button class="nexus-pill" hx-get="/web/logs">Registros</button>
+    {% endif %}
 </div>
 
-<div id="tab-content" class="nexus-card">
-    <div class="nexus-empty">
-        <svg class="nexus-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
-        </svg>
-        <p>Seleccione una pestaña para comenzar.</p>
-    </div>
-</div>
+<div id="tab-content" class="nexus-card" hx-get="/web/query" hx-trigger="load" hx-swap="innerHTML"></div>
 {% endblock %}

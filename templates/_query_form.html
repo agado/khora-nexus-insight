@@ -1,27 +1,52 @@
 <div id="query-form-area">
-    <h3>Consultar Documentos</h3>
     {% if documents %}
-    <form hx-post="/web/query" hx-target="#query-result" hx-swap="innerHTML">
-        <label for="query">Pregunta
-            <textarea id="query" name="query" rows="3" required placeholder="Escribe tu consulta sobre los documentos seleccionados..."></textarea>
-        </label>
-        <label for="audience">Audiencia
-            <select id="audience" name="audience">
-                <option value="general">General</option>
-                <option value="tecnico">Técnico</option>
-                <option value="ejecutivo">Ejecutivo</option>
-                <option value="stakeholder">Stakeholder</option>
-            </select>
-        </label>
-        <label for="document_ids">Documentos
-            <select id="document_ids" name="document_ids" multiple required>
-                {% for doc in documents %}
-                <option value="{{ doc.id }}">{{ doc.filename }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <button type="submit" class="nexus-btn nexus-btn-primary" aria-busy="false">Consultar</button>
-    </form>
+    <div id="query-form-container">
+        <h3>Consultar Documentos de {{ company_name }}</h3>
+        <form id="query-form" hx-post="/web/query" hx-target="#query-result" hx-swap="innerHTML"
+              hx-on::before-request="
+                  document.getElementById('query-form-container').classList.add('nexus-hidden');
+                  var q = document.getElementById('query').value;
+                  document.getElementById('query-waiting-question').textContent = q;
+                  document.getElementById('query-waiting').classList.remove('nexus-hidden');
+              "
+              hx-on::after-request="document.getElementById('query-waiting').classList.add('nexus-hidden')">
+            <label for="query">Pregunta
+                <textarea id="query" name="query" rows="3" required placeholder="Escribe tu consulta sobre los documentos seleccionados..."></textarea>
+            </label>
+            <label for="audience">Audiencia
+                <select id="audience" name="audience">
+                    <option value="general">General</option>
+                    <option value="tecnico">Técnico</option>
+                    <option value="ejecutivo">Ejecutivo</option>
+                    <option value="stakeholder">Stakeholder</option>
+                </select>
+            </label>
+            <label for="doc-filter" class="nexus-doc-filter-label">Documentos
+                <small class="nexus-doc-filter-hint">Usa el filtro para buscar. Mantén Ctrl/Cmd para seleccionar varios. Si no seleccionas ninguno, se usarán todos los disponibles.</small>
+                <input id="doc-filter" type="text" placeholder="Filtrar documentos..." class="nexus-doc-filter-input nexus-doc-filter">
+                <select id="document_ids" name="document_ids" multiple size="6">
+                    {% for doc in documents %}
+                    <option value="{{ doc.id }}">{{ doc.filename }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="submit" class="nexus-btn nexus-btn-primary">Consultar</button>
+        </form>
+    </div>
+
+    <div id="query-waiting" class="nexus-waiting nexus-hidden">
+        <div class="nexus-waiting-inner">
+            <div class="nexus-waiting-question">
+                <small>Pregunta</small>
+                <p id="query-waiting-question"></p>
+            </div>
+            <div class="nexus-waiting-spinner">
+                <p>Procesando consulta...</p>
+                <div class="nexus-spinner"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="query-result"></div>
     {% else %}
     <div class="nexus-empty">

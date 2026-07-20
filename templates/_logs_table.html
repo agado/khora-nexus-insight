@@ -18,9 +18,9 @@
             <td class="nexus-text-small">{{ log.timestamp[:19] }}</td>
             <td>
                 {% if log.metadata %}
-                <details style="font-size:0.8125rem">
-                    <summary style="cursor:pointer;color:var(--nexus-text-secondary)">Ver detalle</summary>
-                    <pre style="font-size:0.75rem;margin-top:0.5rem">{{ log.metadata | tojson(indent=2) }}</pre>
+                <details class="nexus-logs-details">
+                    <summary class="nexus-logs-summary">Ver detalle</summary>
+                    <pre class="nexus-logs-pre">{{ log.metadata | tojson(indent=2) }}</pre>
                 </details>
                 {% else %}
                 <span class="nexus-text-small">—</span>
