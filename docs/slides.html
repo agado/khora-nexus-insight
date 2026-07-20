@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Khora — Nexus Insight | TFM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1E40AF;
+      --primary-light: #3B82F6;
+      --accent: #0D9488;
+      --bg: #F8FAFC;
+      --surface: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #475569;
+      --border: #E2E8F0;
+      --success: #10B981;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .slide {
+      display: none;
+      min-height: 100vh;
+      padding: 4rem 6rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .slide.active { display: flex; }
+    .slide-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .slide-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-bottom: 2.5rem;
+    }
+    .slide-number {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background: var(--surface);
+      padding: 0.4rem 1rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-weight: 500;
+    }
+    .nav-arrows {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 1rem;
+    }
+    .nav-arrows button {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.5rem 1.2rem;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--text);
+      font-family: inherit;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .nav-arrows button:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    .nav-arrows button:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+    .nav-arrows button:disabled:hover {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    h1 { font-size: 3.5rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+    h1 span { color: var(--primary); }
+    h2 { font-size: 1.8rem; font-weight: 700; color: var(--primary); margin-bottom: 1rem; }
+    h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
+    p, li { font-size: 1.1rem; line-height: 1.7; color: var(--text); }
+    .muted { color: var(--text-muted); }
+    .hero { text-align: center; }
+    .hero p { font-size: 1.3rem; color: var(--text-muted); max-width: 700px; margin: 1rem auto 0; }
+    .hero .badge {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      padding: 0.3rem 1rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 1.5rem;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem; margin-top: 1rem; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .card h3 { color: var(--primary); font-size: 1.1rem; }
+    .card p { font-size: 0.95rem; color: var(--text-muted); }
+    .card-icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
+    .tag {
+      display: inline-block;
+      background: #EFF6FF;
+      color: var(--primary);
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin: 0.15rem;
+    }
+    .tag-green { background: #ECFDF5; color: #065F46; }
+    ul { list-style: none; padding: 0; }
+    ul li { padding: 0.3rem 0; padding-left: 1.5rem; position: relative; }
+    ul li::before { content: "▸"; position: absolute; left: 0; color: var(--primary); font-weight: 700; }
+    .mermaid-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-top: 1rem; text-align: center; }
+    .stack { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.5rem 0; }
+    .stack-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 1.2rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .center { text-align: center; }
+    .big-number { font-size: 3rem; font-weight: 800; color: var(--primary); }
+    .big-number-label { font-size: 0.9rem; color: var(--text-muted); }
+    hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  </style>
+</head>
+<body>
+
+<div id="slides">
+
+<!-- SLIDE 1: Title -->
+<div class="slide active" data-index="0">
+  <div class="hero" style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+    <div style="font-size:0.85rem;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Trabajo de Fin de Máster</div>
+    <h1><span>Nexus</span> Insight</h1>
+    <p>Plataforma de análisis documental inteligente<br>Zero-Trust, 100 % local, multi-rol</p>
+    <div class="badge">TFM — Desarrollo de Software</div>
+    <div style="margin-top:3rem;font-size:0.9rem;color:var(--text-muted);">
+      <div style="font-weight:600;">Khora</div>
+      <div>Julio 2026</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 2: Problem -->
+<div class="slide" data-index="1">
+  <div class="slide-title">El Problema</div>
+  <div class="slide-subtitle">Tres dolores que frenan la adopción de IA generativa en empresas</div>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-icon">🔒</div>
+      <h3>Fuga de Datos</h3>
+      <p> APIs cloud como ChatGPT procesan datos en servidores externos. Empresas reguladas (banca, salud, gobierno) lo tienen prohibido.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">💰</div>
+      <h3>Coste Impredecible</h3>
+      <p> Modelos SaaS cobran por token. Una consulta pesada puede costar centavos… o dólares. Sin control presupuestario.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔄</div>
+      <h3>Traducción entre Roles</h3>
+      <p>Un desarrollador escribe en técnico; un PM lee en estratégico. No hay adaptación automática del lenguaje.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: Solution -->
+<div class="slide" data-index="2">
+  <div class="slide-title">La Solución</div>
+  <div class="slide-subtitle">Filtrado de Doble Capa</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-icon">🛡️</div>
+      <h3>Capa 1: Seguridad</h3>
+      <p>Aislamiento departamental Zero-Trust. Cada usuario solo accede a documentos de su departamento. Inferencia 100 % local con Ollama.</p>
+      <div style="margin-top:1rem;">
+        <span class="tag">RBAC</span>
+        <span class="tag">JWT</span>
+        <span class="tag">SHA-256</span>
+        <span class="tag tag-green">No-Root</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🧠</div>
+      <h3>Capa 2: Adaptación Cognitiva</h3>
+      <p>Prompt Engineering dinámico: la misma consulta se responde en tono técnico (DEV), ejecutivo (PM) o multi-función (Startup).</p>
+      <div style="margin-top:1rem;">
+        <span class="tag">General</span>
+        <span class="tag">Técnico</span>
+        <span class="tag">Ejecutivo</span>
+        <span class="tag">Stakeholder</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 4: Architecture -->
+<div class="slide" data-index="3">
+  <div class="slide-title">Arquitectura</div>
+  <div class="slide-subtitle">Monolito Modular Zero-Trust en Docker</div>
+  <div class="mermaid-container">
+    <pre style="font-family:var(--nexus-mono,'SF Mono',monospace);font-size:0.75rem;line-height:1.6;text-align:left;background:var(--bg);padding:1rem;border-radius:8px;overflow-x:auto;">
+┌──────────────────────────────────────────────────┐
+│               Host / Cliente                      │
+│  ┌────────────┐   ┌────────────┐                 │
+│  │  Frontend  │   │  CLI / API │                 │
+│  │ J2/htmx    │   │  curl/nexus │                │
+│  └─────┬──────┘   └─────┬──────┘                 │
+│        └────────┬───────┘                        │
+└─────────────────┼────────────────────────────────┘
+                  │ :8000
+┌─────────────────┼────────────────────────────────┐
+│   nexus-network │  Docker Internal               │
+│                 ▼                                 │
+│  ┌──────────────────────────┐                    │
+│  │      FastAPI + Uvicorn   │                    │
+│  │  ┌─ JWT / RBAC ────────┐ │                    │
+│  │  │  Rate Limit / CSP   │ │                    │
+│  │  │  AuditLog (append)  │ │                    │
+│  │  └────────────────────-┘ │                    │
+│  └──────┬────────────┬──────┘                    │
+│         │ :5432      │ :11434                    │
+│         ▼            ▼                           │
+│  ┌──────────┐  ┌──────────┐                     │
+│  │PostgreSQL│  │  Ollama  │                     │
+│  │ (Persist)│  │ (Infer)  │                     │
+│  └──────────┘  └──────────┘                     │
+│  ▲ NO expuesto  ▲ NO expuesto                   │
+└──────────────────────────────────────────────────┘</pre>
+  </div>
+</div>
+
+<!-- SLIDE 5: Tech Stack -->
+<div class="slide" data-index="4">
+  <div class="slide-title">Stack Tecnológico</div>
+  <div class="slide-subtitle">Herramientas modernas, 100% open source, sin dependencias cloud</div>
+  <div class="grid-3">
+    <div class="card center">
+      <div style="font-size:2.5rem;margin-bottom:0.5rem;">🐍</div>
+      <h3>Backend</h3>
+      <p>Python 3.13<br>FastAPI • SQLAlchemy 2.0<br>Pydantic v2 • Argon2id</p>
+    </div>
+    <div class="card center">
+      <div style="font-size:2.5rem;margin-bottom:0.5rem;">🗄️</div>
+      <h3>Datos</h3>
+      <p>PostgreSQL 15<br>asyncpg • Alembic<br>ChromaDB (próximo)</p>
+    </div>
+    <div class="card center">
+      <div style="font-size:2.5rem;margin-bottom:0.5rem;">🤖</div>
+      <h3>IA Local</h3>
+      <p>Ollama • Qwen2.5-Coder<br>Inferencia 100% local<br>Sin coste por token</p>
+    </div>
+    <div class="card center">
+      <div style="font-size:2.5rem;margin-bottom:0.5rem;">🐳</div>
+      <h3>Infraestructura</h3>
+      <p>Docker • Docker Compose<br>Red interna aislada<br>Single-command deploy</p>
+    </div>
+    <div class="card center">
+      <div style="font-size:2.5rem;margin-bottom:0.5rem;">🎨</div>
+      <h3>Frontend</h3>
+      <p>Jinja2 • htmx 2<br>Pico CSS • Marked<br>DOMPurify</p>
+    </div>
+    <div class="card center">
+      <div style="font-size:2.5rem;margin-bottom:0.5rem;">✅</div>
+      <h3>Calidad</h3>
+      <p>Ruff • pre-commit<br>pytest • pytest-asyncio<br>TDD estricto</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 6: Security -->
+<div class="slide" data-index="5">
+  <div class="slide-title">Seguridad en Profundidad</div>
+  <div class="slide-subtitle">9 invariantes obligatorias verificadas por tests</div>
+  <div class="grid-2">
+    <div>
+      <ul>
+        <li><strong>RBAC departamental</strong> — JWT con accessible_departments</li>
+        <li><strong>Rate limiting</strong> — 5 login/min por IP</li>
+        <li><strong>CSP + Security Headers</strong> — XSS, clickjacking, MIME sniffing</li>
+        <li><strong>Password OWASP</strong> — ≥8, mayús, minús, dígito, especial</li>
+        <li><strong>SHA-256 en memoria</strong> — anti-duplicados + integridad</li>
+      </ul>
+    </div>
+    <div>
+      <ul>
+        <li><strong>Auditoría inmutable</strong> — Trigger SQL que bloquea UPDATE/DELETE</li>
+        <li><strong>Anti-enumeración</strong> — mismo error para user inexistente o pass incorrecta</li>
+        <li><strong>No-root containers</strong> — todos los servicios con usuario no privilegiado</li>
+        <li><strong>XSS sanitization</strong> — DOMPurify en toda salida RAG</li>
+      </ul>
+    </div>
+  </div>
+  <div style="margin-top:1.5rem;padding:1rem;background:#EFF6FF;border-radius:8px;text-align:center;font-size:0.95rem;color:var(--primary);font-weight:600;">
+    Cada invariante tiene un test que intenta violarla deliberadamente.
+  </div>
+</div>
+
+<!-- SLIDE 7: Key Features + Demo Flow -->
+<div class="slide" data-index="6">
+  <div class="slide-title">Funcionalidades Clave</div>
+  <div class="slide-subtitle">Del login a la respuesta adaptada, todo en un flujo continuo</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+    <div class="card" style="padding:1rem;">
+      <div style="font-weight:700;color:var(--primary);">1. Login seguro</div>
+      <p style="font-size:0.9rem;">Cookie httpOnly + SameSite=Lax. Rate limiting 5/min.</p>
+    </div>
+    <div class="card" style="padding:1rem;">
+      <div style="font-weight:700;color:var(--primary);">2. Subida de documentos</div>
+      <p style="font-size:0.9rem;">SHA-256 en memoria, magic bytes %PDF, 10 MB máx.</p>
+    </div>
+    <div class="card" style="padding:1rem;">
+      <div style="font-weight:700;color:var(--primary);">3. Gestión de usuarios</div>
+      <p style="font-size:0.9rem;">CRUD completo por admin. Roles: admin, lead, staff.</p>
+    </div>
+    <div class="card" style="padding:1rem;">
+      <div style="font-weight:700;color:var(--primary);">4. Consulta RAG adaptada</div>
+      <p style="font-size:0.9rem;">Selección de audiencia. Contexto filtrado por departamento.</p>
+    </div>
+    <div class="card" style="padding:1rem;">
+      <div style="font-weight:700;color:var(--primary);">5. Respuesta inteligente</div>
+      <p style="font-size:0.9rem;">Markdown renderizado + sanitizado. Cita fuentes.</p>
+    </div>
+    <div class="card" style="padding:1rem;">
+      <div style="font-weight:700;color:var(--primary);">6. Auditoría completa</div>
+      <p style="font-size:0.9rem;">Cada acción registrada en log append-only.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 8: Quality -->
+<div class="slide" data-index="7">
+  <div class="slide-title">Calidad y Métricas</div>
+  <div class="slide-subtitle">TDD estricto desde el Hito 1</div>
+  <div class="grid-3" style="margin-top:1rem;">
+    <div class="card center">
+      <div class="big-number">251</div>
+      <div class="big-number-label">Tests automatizados</div>
+      <p style="font-size:0.85rem;margin-top:0.5rem;">Unitarios + HTTP + Integración<br>Ejecutados en pre-push</p>
+    </div>
+    <div class="card center">
+      <div class="big-number">9</div>
+      <div class="big-number-label">Hitos completados</div>
+      <p style="font-size:0.85rem;margin-top:0.5rem;">Scaffolding → Seguridad<br>Cada hito con tag git</p>
+    </div>
+    <div class="card center">
+      <div class="big-number">0</div>
+      <div class="big-number-label">Dependencias cloud</div>
+      <p style="font-size:0.85rem;margin-top:0.5rem;">100% local<br>Coste cero en inferencia</p>
+    </div>
+  </div>
+  <div class="stack" style="justify-content:center;margin-top:1.5rem;">
+    <span class="stack-item">Conventional Commits</span>
+    <span class="stack-item">Ruff Lint + Format</span>
+    <span class="stack-item">pre-commit hooks</span>
+    <span class="stack-item">Type Hints</span>
+    <span class="stack-item">Clean Architecture</span>
+  </div>
+</div>
+
+<!-- SLIDE 9: Roadmap / Status -->
+<div class="slide" data-index="8">
+  <div class="slide-title">Roadmap — Estado Actual</div>
+  <div class="slide-subtitle">9 hitos completados, 100% funcional</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.6rem;">
+    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
+      <div style="font-weight:700;color:#065F46;">✅ H1</div>
+      <p style="font-size:0.8rem;">Scaffolding + Docker</p>
+    </div>
+    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
+      <div style="font-weight:700;color:#065F46;">✅ H2</div>
+      <p style="font-size:0.8rem;">DB + Migraciones + Seed</p>
+    </div>
+    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
+      <div style="font-weight:700;color:#065F46;">✅ H3</div>
+      <p style="font-size:0.8rem;">Auth JWT + RBAC</p>
+    </div>
+    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
+      <div style="font-weight:700;color:#065F46;">✅ H4</div>
+      <p style="font-size:0.8rem;">Ingesta + Frontend Web</p>
+    </div>
+    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
+      <div style="font-weight:700;color:#065F46;">✅ H5</div>
+      <p style="font-size:0.8rem;">Motor RAG + Adaptación</p>
+    </div>
+    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
+      <div style="font-weight:700;color:#065F46;">✅ H6</div>
+      <p style="font-size:0.8rem;">Auditoría + Logs</p>
+    </div>
+    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
+      <div style="font-weight:700;color:#065F46;">✅ H7</div>
+      <p style="font-size:0.8rem;">Admin usuarios + CRUD</p>
+    </div>
+    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
+      <div style="font-weight:700;color:#065F46;">✅ H8</div>
+      <p style="font-size:0.8rem;">UX corporativa + Tono</p>
+    </div>
+    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
+      <div style="font-weight:700;color:#065F46;">✅ H9</div>
+      <p style="font-size:0.8rem;">Seguridad OWASP</p>
+    </div>
+  </div>
+  <hr>
+  <div style="text-align:center;">
+    <p style="font-size:1rem;font-weight:600;">Demo en vivo: <span style="color:var(--primary);">login → subir documento → consultar → respuesta adaptada</span></p>
+  </div>
+</div>
+
+<!-- SLIDE 10: Thank you -->
+<div class="slide" data-index="9">
+  <div class="hero" style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+    <h1 style="font-size:3rem;">Gracias</h1>
+    <p style="font-size:1.3rem;color:var(--text-muted);margin-top:0.5rem;">
+      ¿Preguntas?
+    </p>
+    <div style="margin-top:2rem;">
+      <span class="tag" style="font-size:0.9rem;padding:0.4rem 1.2rem;">github.com/agado/khora-nexus-insight</span>
+    </div>
+    <div style="margin-top:3rem;font-size:0.85rem;color:var(--text-muted);">
+      Khora — Nexus Insight • TFM • Julio 2026
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="slide-number" id="slideNumber">1 / 10</div>
+
+<div class="nav-arrows">
+  <button id="prevBtn" disabled>← Anterior</button>
+  <button id="nextBtn">Siguiente →</button>
+</div>
+
+<script>
+(function() {
+  var slides = document.querySelectorAll('.slide');
+  var current = 0;
+  var total = slides.length;
+  var prevBtn = document.getElementById('prevBtn');
+  var nextBtn = document.getElementById('nextBtn');
+  var numberEl = document.getElementById('slideNumber');
+
+  function update() {
+    slides.forEach(function(s, i) {
+      s.classList.toggle('active', i === current);
+    });
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === total - 1;
+    numberEl.textContent = (current + 1) + ' / ' + total;
+  }
+
+  prevBtn.addEventListener('click', function() {
+    if (current > 0) { current--; update(); }
+  });
+  nextBtn.addEventListener('click', function() {
+    if (current < total - 1) { current++; update(); }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault();
+      if (current < total - 1) { current++; update(); }
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (current > 0) { current--; update(); }
+    }
+  });
+
+  update();
+})();
+</script>
+</body>
+</html>

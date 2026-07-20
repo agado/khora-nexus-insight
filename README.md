@@ -401,6 +401,20 @@ pre-commit install --hook-type pre-push  # hook pre-push (tests)
 ```
 
 ---
+
+## i. Presentación y Vídeo Demo
+
+### Slides
+- **Formato:** HTML interactivo (reveal.js) con estilo corporativo
+- **Archivo:** [`docs/slides.html`](./docs/slides.html) — abrir en navegador, navegar con ← →
+- **URL pública:** (pendiente de publicar — Google Slides, Canva o similar)
+
+### Vídeo Demo
+- **Guión:** [`docs/VIDEO_SCRIPT.md`](./docs/VIDEO_SCRIPT.md) — desglose por escenas con timings y narración
+- **Duración estimada:** 5–7 minutos
+- **URL pública:** (pendiente de grabar y publicar — YouTube, Drive o similar)
+
+---
 ## Licencia
 
 **All Rights Reserved.** Copyright © 2026 Khora Nexus Insight.  
