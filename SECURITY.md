@@ -71,7 +71,31 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 * **Regla:** Ante cualquier caída o excepción no controlada en el subsistema de auditoría (`AuditLog`), el flujo operativo del backend debe interrumpirse inmediatamente.
 * **Implementación:** Si un registro de auditoría síncrono falla al guardarse en PostgreSQL ➔ la transacción principal (ej. login o ingesta) se aborta con un rollback y se deniega el acceso al usuario.
 
-### 2.11 Sanitización de Memoria Transitoria
+### 2.11 Rate Limiting en Autenticación
+* **Regla:** El endpoint `POST /api/v1/auth/login` tiene un límite de 5 peticiones por minuto por dirección IP.
+* **Implementación:** Middleware `RateLimitMiddleware` con ventana deslizante in-memory (`collections.defaultdict` + timestamps). Tras el límite, devuelve `429 Too Many Requests` con JSON `{"detail": "Too many requests. Please try again later."}`.
+* **Test:** 1 test que verifica 5 éxitos + 1 rechazo (TDD RED → GREEN).
+
+### 2.12 Seguridad en Headers HTTP (CSP + Otros)
+* **Regla:** Toda respuesta HTTP del backend debe incluir los siguientes headers de seguridad:
+  * `Content-Security-Policy`: `default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; form-action 'self'`
+  * `X-Content-Type-Options: nosniff`
+  * `X-Frame-Options: DENY`
+  * `Referrer-Policy: strict-origin-when-cross-origin`
+* **Implementación:** `SecurityHeadersMiddleware` (Starlette `BaseHTTPMiddleware`) añade los headers tras cada respuesta.
+* **Test:** 1 test que verifica la presencia de los 4 headers en cualquier ruta.
+
+### 2.13 Política de Complejidad de Contraseñas
+* **Regla:** Toda contraseña debe cumplir:
+  * Mínimo 8 caracteres
+  * Al menos 1 letra mayúscula (`[A-Z]`)
+  * Al menos 1 letra minúscula (`[a-z]`)
+  * Al menos 1 dígito (`\d`)
+  * Al menos 1 carácter especial (`[^A-Za-z0-9]`)
+* **Implementación:** `validate_password_complexity()` en `security.py`. Se llama desde `create_user()` y `reset_password()` en `user_service.py`. Ante incumplimiento, lanza `ValueError` que el API captura y devuelve como `409 Conflict`.
+* **Tests:** 6 tests unitarios (cada regla) + 4 tests de integración (service con SQLite in-memory).
+
+### 2.14 Sanitización de Memoria Transitoria
 * **Regla:** El contenido de los documentos procesados en memoria RAM no debe persistir en el ciclo de vida del backend más allá de lo estrictamente necesario para el parsing.
 * **Implementación:** Forzar la liberación o sobreescritura de buffers en memoria una vez que el texto ha sido extraído y enviado al flujo de inferencia.
 
@@ -112,6 +136,9 @@ El sistema (y los agentes de IA) deben verificar automáticamente los siguientes
 * [ ] Todos los endpoints implementan inyección de dependencias para validación de JWT y roles.
 * [ ] Las respuestas de inferencia RAG generan de forma síncrona un registro en `AuditLog`.
 * [ ] Los logs del sistema se emiten de forma estructurada en formato JSON en consola.
+* [ ] El endpoint `/api/v1/auth/login` tiene rate limiting activo (5/min).
+* [ ] Todas las respuestas HTTP incluyen headers de seguridad (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Content-Security-Policy`).
+* [ ] La creación y reseteo de contraseñas validan complejidad OWASP.
 
 ---
 
@@ -152,8 +179,9 @@ Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP de
 
 ## 8. Estado del Documento
 * **Versión:** MVP 1.0  
-* **Última actualización:** 18 de Julio de 2026  
-* **Responsable:** Arquitectura de Seguridad Nexus Insight
+* **Última actualización:** 20 de Julio de 2026  
+* **Responsable:** Arquitectura de Seguridad Nexus Insight  
+* **Cambios:** Añadidas invariantes 2.11 (rate limiting), 2.12 (CSP), 2.13 (password complexity). Renumerada 2.11 antigua a 2.14.
 
 ---
 **All Rights Reserved.** Copyright © 2026 Khora Nexus Insight. Este documento es parte de un TFM y no puede ser reproducido sin autorización.

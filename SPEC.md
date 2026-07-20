@@ -95,6 +95,8 @@ AuditLog {
 
 * Descripción: Valida las credenciales del usuario contra el hash Argon2id y emite un token de acceso de corta duración.
 
+* Rate Limiting: 5 peticiones por minuto por dirección IP. La 6ª petición recibe `429 Too Many Requests`. Middleware in-memory con ventana deslizante.
+
 * Cuerpo de la Petición (Payload):
 
 ```JSON
@@ -127,6 +129,11 @@ AuditLog {
       "input": {"username": "admin"}
     }
   ]
+}
+
+// 429 Too Many Requests — rate limit excedido
+{
+  "detail": "Too many requests. Please try again later."
 }```
 ### 5.2 Módulo de Documentos
 * Ruta: POST /api/v1/documents/upload
@@ -356,6 +363,9 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 | **Mini-test-app para tests RBAC** | Dependency overrides globales en conftest | Aislamiento total: no contamina la app real, cada suite de tests es independiente. |
 | **AuditLog login diferido a H6** | AuditLog inline en login endpoint (H3) | Pareto: JSON logging cubre observabilidad ahora. La integración con AuditLog requiere el trigger inmutable de H6. |
 | **Admin username configurable (env var)** | Hardcoded `"admin"` en seed.py | OWASP A7: el nombre del admin se lee de `ADMIN_USERNAME` env var. Validación de no vacío previa al seed. Misma contraseña fuerte por Docker secrets. |
+| **Rate limiting custom middleware** | slowapi | KISS + testabilidad: 40 líneas, sin dependencia externa. In-memory sliding window con reset() para tests. |
+| **Security headers via BaseHTTPMiddleware** | Middleware inline en cada endpoint | DRY: un solo middleware añade CSP + headers de seguridad a todas las respuestas. Configuración centralizada. |
+| **Password complexity en service layer** | Solo en Pydantic validator | Defense in depth: la validación en el service layer cubre tanto API como CLI/web, sin depender de la capa HTTP. |
 
 ---
 
