@@ -150,12 +150,12 @@ class TestExecuteQuery:
 
         call_kwargs = mock_client.return_value.__aenter__.return_value.post.call_args[1]
         prompt = call_kwargs["json"]["prompt"]
-        assert "<contexto>" in prompt
-        assert "</contexto>" in prompt
-        assert "<pregunta>" in prompt
-        assert "</pregunta>" in prompt
+        assert "Contexto:" in prompt
+        assert "Pregunta:" in prompt
+        assert "Respuesta:" in prompt
         assert "mi pregunta" in prompt
         assert "texto importante" in prompt
+        assert "EXCLUSIVAMENTE" in prompt
 
     @pytest.mark.asyncio
     async def test_audit_log_inserted(self, mock_db, user_admin):
@@ -278,8 +278,9 @@ class TestBuildPrompt:
     def test_backward_compatible_no_audience(self):
         result = _build_prompt("test", ["context"])
         assert "EXCLUSIVAMENTE" in result
-        assert "<contexto>" in result
-        assert "<pregunta>" in result
+        assert "Contexto:" in result
+        assert "Pregunta:" in result
+        assert "Respuesta:" in result
 
     def test_audience_general_same_as_default(self):
         default = _build_prompt("test", ["context"])

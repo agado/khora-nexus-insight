@@ -75,11 +75,7 @@ def _build_prompt(query: str, context_chunks: list[str], audience: str = DEFAULT
     if audience not in VALID_AUDIENCES:
         raise ValueError(f"Invalid audience: {audience}. Valid: {sorted(VALID_AUDIENCES)}")
     context = "\n---\n".join(context_chunks)
-    return (
-        f"<contexto>\n{context}\n</contexto>\n"
-        f"<pregunta>\n{query}\n</pregunta>\n"
-        f"{AUDIENCE_MAP[audience]}"
-    )
+    return f"{AUDIENCE_MAP[audience]}\n\nContexto:\n{context}\n\nPregunta: {query}\n\nRespuesta:"
 
 
 async def execute_query(
