@@ -78,7 +78,7 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 
 ### 2.12 Seguridad en Headers HTTP (CSP + Otros)
 * **Regla:** Toda respuesta HTTP del backend debe incluir los siguientes headers de seguridad:
-  * `Content-Security-Policy`: `default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; form-action 'self'`
+  * `Content-Security-Policy`: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; form-action 'self'`
   * `X-Content-Type-Options: nosniff`
   * `X-Frame-Options: DENY`
   * `Referrer-Policy: strict-origin-when-cross-origin`
@@ -95,7 +95,18 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 * **Implementación:** `validate_password_complexity()` en `security.py`. Se llama desde `create_user()` y `reset_password()` en `user_service.py`. Ante incumplimiento, lanza `ValueError` que el API captura y devuelve como `409 Conflict`.
 * **Tests:** 6 tests unitarios (cada regla) + 4 tests de integración (service con SQLite in-memory).
 
-### 2.14 Sanitización de Memoria Transitoria
+### 2.14 Sanitización XSS en Salida RAG (DOMPurify)
+* **Regla:** Todo contenido renderizado mediante `marked.parse()` debe ser sanitizado antes de inyectarse al DOM.
+* **Implementación:** `DOMPurify.sanitize()` envuelve la salida de `marked.parse()` en el evento `htmx:afterSwap`. El script se carga desde `cdn.jsdelivr.net` (mismo origen CSP que marked). Adicionalmente, todos los enlaces generados por marked reciben `rel="noopener noreferrer"`.
+* **CDN:** `https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js`
+* **Test:** Cobertura manual (el sanitizador se ejecuta en cliente).
+
+### 2.15 Validación de Tipo MIME en Subida Web
+* **Regla:** El endpoint `POST /web/upload` debe verificar los magic bytes `%PDF` (0x25 0x50 0x44 0x46) antes de procesar el archivo, idéntico al endpoint API.
+* **Implementación:** `content.startswith(b"%PDF")` tras leer el archivo. Si falla, devuelve error con `_upload_form.html`.
+* **Test:** Cobertura manual (misma lógica que API, testeada en H4).
+
+### 2.16 Sanitización de Memoria Transitoria
 * **Regla:** El contenido de los documentos procesados en memoria RAM no debe persistir en el ciclo de vida del backend más allá de lo estrictamente necesario para el parsing.
 * **Implementación:** Forzar la liberación o sobreescritura de buffers en memoria una vez que el texto ha sido extraído y enviado al flujo de inferencia.
 
@@ -139,6 +150,9 @@ El sistema (y los agentes de IA) deben verificar automáticamente los siguientes
 * [ ] El endpoint `/api/v1/auth/login` tiene rate limiting activo (5/min).
 * [ ] Todas las respuestas HTTP incluyen headers de seguridad (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Content-Security-Policy`).
 * [ ] La creación y reseteo de contraseñas validan complejidad OWASP.
+* [ ] El contenido de `marked.parse()` se sanitiza con DOMPurify antes de inyectarse al DOM.
+* [ ] La subida web de documentos valida magic bytes `%PDF`.
+* [ ] Los enlaces generados por marked incluyen `rel="noopener noreferrer"`.
 
 ---
 
@@ -181,7 +195,7 @@ Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP de
 * **Versión:** MVP 1.0  
 * **Última actualización:** 20 de Julio de 2026  
 * **Responsable:** Arquitectura de Seguridad Nexus Insight  
-* **Cambios:** Añadidas invariantes 2.11 (rate limiting), 2.12 (CSP), 2.13 (password complexity). Renumerada 2.11 antigua a 2.14.
+* **Cambios:** Añadidas invariantes 2.11 (rate limiting), 2.12 (CSP), 2.13 (password complexity), 2.14 (DOMPurify XSS), 2.15 (MIME subida web). Renumeradas 2.11→2.16, 2.14→2.16. Añadido `'unsafe-eval'` a CSP por HTMX hx-on.
 
 ---
 **All Rights Reserved.** Copyright © 2026 Khora Nexus Insight. Este documento es parte de un TFM y no puede ser reproducido sin autorización.

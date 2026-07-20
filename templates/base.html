@@ -9,13 +9,21 @@
     <link rel="stylesheet" href="/static/css/theme.css">
     <script src="https://unpkg.com/htmx.org@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
     <script>
         document.addEventListener('htmx:afterSwap', function(evt) {
             document.querySelectorAll('.markdown-body').forEach(function(el) {
                 if (!el.dataset.rendered) {
-                    el.innerHTML = marked.parse(el.textContent);
+                    el.innerHTML = DOMPurify.sanitize(marked.parse(el.textContent));
                     el.dataset.rendered = 'true';
                 }
+            });
+        });
+
+        document.addEventListener('htmx:afterSwap', function(evt) {
+            if (typeof DOMPurify === 'undefined') return;
+            document.querySelectorAll('a[href]').forEach(function(el) {
+                if (!el.rel) el.rel = 'noopener noreferrer';
             });
         });
 

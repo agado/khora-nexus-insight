@@ -310,6 +310,8 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H9.1** ✅ | Rate limiting en login (5 POST/min por IP) | 6ª petición en 1 minuto → 429 Too Many Requests. Middleware in-memory sliding window. |
 | **H9.2** ✅ | CSP + security headers en todas las respuestas | `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`. |
 | **H9.3** ✅ | Password complexity policy | ≥8 caracteres, ≥1 mayúscula, ≥1 minúscula, ≥1 dígito, ≥1 especial. Aplicado en crear y resetear contraseña. |
+| **H9.4** ✅ | XSS sanitization en salida RAG | `marked.parse()` sanitizado con DOMPurify. Todos los enlaces con `rel="noopener noreferrer"`. |
+| **H9.5** ✅ | Magic bytes en subida web | Validación `%PDF` en `POST /web/upload` (idéntico al endpoint API). |
 
 ### H8 — Experiencia corporativa
 
