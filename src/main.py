@@ -9,6 +9,8 @@ from starlette.templating import Jinja2Templates
 
 from src.core.auth.jwt import verify_token
 from src.core.config import settings
+from src.core.middleware.rate_limiter import RateLimitMiddleware
+from src.core.middleware.security_headers import SecurityHeadersMiddleware
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,6 +31,9 @@ from src.api.v1.users import api_router as users_api_router, web_router as users
 from src.api.v1.web import router as web_router
 
 app = FastAPI(title="Khora — Nexus Insight")
+
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware)
 
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
