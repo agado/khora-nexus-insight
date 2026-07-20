@@ -1,0 +1,28 @@
+<div class="nexus-result">
+    <div class="nexus-result-question">
+        <small>Pregunta</small>
+        <p>{{ query_text }}</p>
+    </div>
+    <div class="nexus-result-answer">
+        <div class="nexus-flex-between">
+            <strong>Respuesta</strong>
+            <button class="nexus-btn nexus-btn-icon nexus-btn-copy" title="Copiar respuesta">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                </svg>
+            </button>
+        </div>
+        {% if audience %}<small>Audiencia: <strong>{{ audience }}</strong></small>{% endif %}
+        <div class="markdown-body">{{ answer }}</div>
+        {% if context_used %}
+        <details>
+            <summary>Contexto utilizado ({{ context_used|length }} documentos)</summary>
+            {% for c in context_used %}
+            <blockquote>{{ c[:300] }}</blockquote>
+            {% endfor %}
+        </details>
+        {% endif %}
+    </div>
+    <button class="nexus-btn nexus-btn-primary nexus-mt-lg"
+            hx-get="/web/query" hx-target="#query-form-area" hx-swap="innerHTML">+ Nueva consulta</button>
+</div>

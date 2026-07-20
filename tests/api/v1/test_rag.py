@@ -23,7 +23,9 @@ def _admin_token() -> str:
 
 @pytest.fixture
 def client():
-    app.dependency_overrides[get_session] = lambda: AsyncMock()
+    mock_session = AsyncMock()
+    mock_session.add.return_value = None
+    app.dependency_overrides[get_session] = lambda: mock_session
     yield TestClient(app)
     app.dependency_overrides.pop(get_session, None)
 

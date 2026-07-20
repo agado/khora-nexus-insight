@@ -1,27 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-<nav>
-    <ul><li><strong>Nexus Insight</strong></li></ul>
-    <ul>
-        <li>
-            <details class="dropdown">
-                <summary>{{ username }}</summary>
-                <ul>
-                    <li><a href="/logout">Cerrar sesión</a></li>
-                </ul>
-            </details>
-        </li>
-    </ul>
-</nav>
-<hr>
-<div role="tablist" hx-target="#tab-content">
-    <button role="tab" hx-get="/web/upload" hx-trigger="click" class="outline">Subir</button>
-    <button role="tab" hx-get="/web/documents" hx-trigger="click" class="outline">Documentos</button>
-    <button role="tab" hx-get="/web/query" hx-trigger="click" class="outline">Consultar</button>
-    <button role="tab" hx-get="/web/logs" hx-trigger="click" class="outline">Registros</button>
+<div class="nexus-pills" hx-target="#tab-content" hx-trigger="click" hx-swap="innerHTML">
+    {% if session_user and session_user.get('role_level', 0) >= 2 %}
+    <button class="nexus-pill" hx-get="/web/upload">Subir</button>
+    {% endif %}
+    <button class="nexus-pill" hx-get="/web/documents">Documentos</button>
+    <button class="nexus-pill active" hx-get="/web/query">Consultar</button>
+    {% if session_user and session_user.get('role_level', 0) >= 3 %}
+    <button class="nexus-pill" hx-get="/web/logs">Registros</button>
+    {% endif %}
 </div>
-<hr>
-<div id="tab-content">
-    <p>Seleccione una pestaña para comenzar.</p>
-</div>
+
+<div id="tab-content" class="nexus-card" hx-get="/web/query" hx-trigger="load" hx-swap="innerHTML"></div>
 {% endblock %}

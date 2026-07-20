@@ -1,3 +1,5 @@
+import re
+
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,37 +17,53 @@ class RagQueryError(Exception):
 
 MAX_CONTEXT_CHARS = 4000
 
+_PREFIX_PATTERNS = [
+    re.compile(
+        r"^(Claro|Por supuesto|Aquí tienes|Aquí está|Te ayudo|Te respondo)[^:]*:?\s*", re.IGNORECASE
+    ),
+    re.compile(r"^(Sí|Si),?\s+", re.IGNORECASE),
+    re.compile(r"^(De acuerdo|Entendido),?\s+", re.IGNORECASE),
+    re.compile(r"^¡(Claro|Por supuesto)!?\s*", re.IGNORECASE),
+]
+
+
+def _clean_response(text: str) -> str:
+    for pattern in _PREFIX_PATTERNS:
+        text = pattern.sub("", text)
+    return text.strip()
+
 
 def _sanitize(text: str) -> str:
     """Strip XML closing tags to prevent prompt-injection via context boundary."""
     return text.replace("</", "")
 
 
+_NO_INVENT = (
+    "NO INVENTES NADA. NO USES TU CONOCIMIENTO PROPIO. "
+    "NO AÑADAS INFORMACIÓN EXTERNA. "
+    "NO RESPONDAS CON DATOS QUE NO APAREZCAN EN EL CONTEXTO. "
+    "Si el contexto NO contiene información para responder, "
+    "responde ÚNICAMENTE: 'No se encontró información relevante en los documentos proporcionados.' "
+    "Si el contexto contiene información PARCIAL, responde SÓLO con esa información "
+    "y luego indica: 'Nota: la información disponible es parcial.' "
+)
+
 AUDIENCE_MAP: dict[str, str] = {
-    "general": (
-        "Responde basándote EXCLUSIVAMENTE en el contexto anterior. "
-        "Si el contexto no contiene información para responder la pregunta, "
-        "di 'No se encontró información relevante en los documentos seleccionados.' "
-        "No inventes ni añadas información externa."
-    ),
+    "general": ("Responde basándote EXCLUSIVAMENTE en el contexto anterior. " + _NO_INVENT),
     "tecnico": (
         "Eres un experto técnico. Responde basándote EXCLUSIVAMENTE en el contexto anterior. "
         "Usa vocabulario técnico preciso, incluye detalles de implementación y datos concretos. "
-        "Si el contexto no contiene información suficiente, indícalo claramente. "
-        "No inventes ni añadas información externa."
+        + _NO_INVENT
     ),
     "ejecutivo": (
         "Eres un asesor de dirección. Responde basándote EXCLUSIVAMENTE en el contexto anterior. "
         "Usa lenguaje de negocio claro. Enfócate en impacto, riesgos, costes y plazos. "
-        "Evita tecnicismos. Si el contexto no contiene información suficiente, indícalo "
-        "claramente. No inventes ni añadas información externa."
+        "Evita tecnicismos. " + _NO_INVENT
     ),
     "stakeholder": (
         "Eres un consultor estratégico. Responde basándote EXCLUSIVAMENTE en el contexto anterior. "
         "Enfócate en objetivos, beneficios esperados y alineación estratégica. "
-        "Traduce los hallazgos a valor de negocio. "
-        "Si el contexto no contiene información suficiente, indícalo claramente. "
-        "No inventes ni añadas información externa."
+        "Traduce los hallazgos a valor de negocio. " + _NO_INVENT
     ),
 }
 
@@ -75,13 +93,21 @@ async def execute_query(
 ) -> dict:
     allowed = user.get("accessible_departments", [])
 
-    result = await db.execute(
-        select(Document).where(
-            Document.id.in_(document_ids),
-            Document.department_id.in_(allowed),
-            Document.content_text.isnot(None),
+    if document_ids:
+        result = await db.execute(
+            select(Document).where(
+                Document.id.in_(document_ids),
+                Document.department_id.in_(allowed),
+                Document.content_text.isnot(None),
+            )
         )
-    )
+    else:
+        result = await db.execute(
+            select(Document).where(
+                Document.department_id.in_(allowed),
+                Document.content_text.isnot(None),
+            )
+        )
     docs = list(result.scalars().all())
 
     context_chunks = [d.content_text[:MAX_CONTEXT_CHARS] for d in docs if d.content_text]
@@ -112,11 +138,11 @@ async def execute_query(
                     "model": model_name,
                     "prompt": prompt,
                     "stream": False,
-                    "options": {"temperature": 0.1},
+                    "options": {"temperature": 0.0},
                 },
             )
         resp.raise_for_status()
-        answer = resp.json().get("response", "")
+        answer = _clean_response(resp.json().get("response", ""))
     except httpx.ConnectError as exc:
         raise RagConnectionError(
             "No se pudo conectar con el motor de IA (Ollama). "

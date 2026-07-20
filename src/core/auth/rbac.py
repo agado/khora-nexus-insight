@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import Depends, HTTPException, Request, Response, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import HTTPBearer
 from jwt import PyJWTError
 
@@ -111,3 +111,15 @@ def require_min_level(min_level: int):
         return current_user
 
     return level_checker
+
+
+def require_web_min_level(min_level: int):
+    async def _checker(_user=Depends(require_web_user)):
+        if isinstance(_user, Response):
+            return _user
+        user_level = ROLE_LEVELS.get(_user.get("role", ""), 0)
+        if user_level < min_level:
+            return HTMLResponse(status_code=403, content="Acceso denegado")
+        return _user
+
+    return _checker

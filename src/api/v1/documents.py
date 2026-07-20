@@ -55,7 +55,7 @@ async def upload(
     file: UploadFile = File(...),
     department_id: int | None = Form(None),
     is_public: bool = Form(False),
-    _user: dict = Depends(require_min_level(1)),
+    _user: dict = Depends(require_min_level(2)),
     db: AsyncSession = Depends(get_session),
 ):
     content = await file.read()
@@ -160,7 +160,7 @@ async def delete_document_endpoint(
 @router.patch("/{document_id}/toggle-public")
 async def toggle_public(
     document_id: int,
-    _user: dict = Depends(require_min_level(1)),
+    _user: dict = Depends(require_min_level(2)),
     db: AsyncSession = Depends(get_session),
 ):
     accessible = _user.get("accessible_departments", [])
