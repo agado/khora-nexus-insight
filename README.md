@@ -402,6 +402,36 @@ pre-commit install --hook-type pre-push  # hook pre-push (tests)
 
 ---
 
+---
+
+## j. Evaluación — Cómo probar el proyecto
+
+### Opción 1 (recomendada): Docker local
+
+```bash
+# Requisito: Docker + Docker Compose instalados
+git clone https://github.com/agado/khora-nexus-insight.git
+cd khora-nexus-insight
+cp .env.example .env
+docker compose up --build
+# Abrir http://localhost:8000
+# Credenciales: admin / admin123
+```
+
+### Opción 2: GitHub Codespaces (gratuito, sin instalación local)
+
+1. Ir a `https://github.com/agado/khora-nexus-insight`
+2. Botón verde **Code** → **Codespaces** → **Create codespace on main**
+3. Esperar a que se configure el entorno (2-3 minutos)
+4. En la terminal del codespace: `docker compose up --build`
+5. Abrir el puerto 8000 (Codespaces muestra un aviso automático)
+
+### Opción 3: Despliegue cloud (futuro)
+
+Servicios como **Railway**, **Render** o **Fly.io** tienen capas gratuitas suficientes. Pendiente de evaluación.
+
+---
+
 ## i. Presentación y Vídeo Demo
 
 ### Slides

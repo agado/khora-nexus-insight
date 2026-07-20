@@ -94,13 +94,11 @@
       color: var(--text);
       border-color: var(--border);
     }
-
     h1 { font-size: 3.5rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
     h1 span { color: var(--primary); }
     h2 { font-size: 1.8rem; font-weight: 700; color: var(--primary); margin-bottom: 1rem; }
     h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
     p, li { font-size: 1.1rem; line-height: 1.7; color: var(--text); }
-    .muted { color: var(--text-muted); }
     .hero { text-align: center; }
     .hero p { font-size: 1.3rem; color: var(--text-muted); max-width: 700px; margin: 1rem auto 0; }
     .hero .badge {
@@ -113,8 +111,19 @@
       font-weight: 600;
       margin-top: 1.5rem;
     }
+    .hero-quote {
+      font-size: 1.6rem;
+      font-weight: 300;
+      font-style: italic;
+      color: var(--text);
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+    .hero-quote strong { font-style: normal; font-weight: 600; color: var(--primary); }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem; }
     .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem; margin-top: 1rem; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -138,8 +147,8 @@
     ul { list-style: none; padding: 0; }
     ul li { padding: 0.3rem 0; padding-left: 1.5rem; position: relative; }
     ul li::before { content: "▸"; position: absolute; left: 0; color: var(--primary); font-weight: 700; }
-    .mermaid-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-top: 1rem; text-align: center; }
-    .stack { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.5rem 0; }
+    .arch-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-top: 1rem; text-align: center; }
+    .stack { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.5rem 0; justify-content: center; }
     .stack-item {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -152,6 +161,28 @@
     .big-number { font-size: 3rem; font-weight: 800; color: var(--primary); }
     .big-number-label { font-size: 0.9rem; color: var(--text-muted); }
     hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+    .flow-step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem;
+      text-align: center;
+    }
+    .flow-step .step-num {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      width: 28px;
+      height: 28px;
+      line-height: 28px;
+      border-radius: 50%;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .flow-step h4 { font-size: 1rem; color: var(--primary); }
+    .flow-step p { font-size: 0.85rem; color: var(--text-muted); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
   </style>
 </head>
 <body>
@@ -163,7 +194,7 @@
   <div class="hero" style="flex:1;display:flex;flex-direction:column;justify-content:center;">
     <div style="font-size:0.85rem;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Trabajo de Fin de Máster</div>
     <h1><span>Nexus</span> Insight</h1>
-    <p>Plataforma de análisis documental inteligente<br>Zero-Trust, 100 % local, multi-rol</p>
+    <p>IA segura y adaptada a cada rol,<br>100% local, zero dependencias cloud</p>
     <div class="badge">TFM — Desarrollo de Software</div>
     <div style="margin-top:3rem;font-size:0.9rem;color:var(--text-muted);">
       <div style="font-weight:600;">Khora</div>
@@ -175,265 +206,246 @@
 <!-- SLIDE 2: Problem -->
 <div class="slide" data-index="1">
   <div class="slide-title">El Problema</div>
-  <div class="slide-subtitle">Tres dolores que frenan la adopción de IA generativa en empresas</div>
+  <div class="slide-subtitle">Tres barreras que impiden a las empresas adoptar IA generativa</div>
   <div class="grid-3">
     <div class="card">
       <div class="card-icon">🔒</div>
-      <h3>Fuga de Datos</h3>
-      <p> APIs cloud como ChatGPT procesan datos en servidores externos. Empresas reguladas (banca, salud, gobierno) lo tienen prohibido.</p>
+      <h3>Riesgo de Fuga de Datos</h3>
+      <p>ChatGPT y otras APIs procesan datos en servidores externos. Para banca, salud, gobierno o startups con propiedad intelectual, eso es directamente ilegal o inasumible.</p>
     </div>
     <div class="card">
-      <div class="card-icon">💰</div>
-      <h3>Coste Impredecible</h3>
-      <p> Modelos SaaS cobran por token. Una consulta pesada puede ser barata… o dispararse. Sin control presupuestario.</p>
+      <div class="card-icon">📊</div>
+      <h3>Coste Sin Control</h3>
+      <p>Los modelos SaaS cobran por token. Sin previsibilidad. Un uso intensivo puede disparar la factura sin previo aviso.</p>
     </div>
     <div class="card">
       <div class="card-icon">🔄</div>
-      <h3>Traducción entre Roles</h3>
-      <p>Un desarrollador escribe en técnico; un PM lee en estratégico. No hay adaptación automática del lenguaje.</p>
+      <h3>Fricción entre Roles</h3>
+      <p>Un desarrollador escribe en lenguaje técnico. Un PM necesita leerlo en términos de negocio. No hay un puente que traduzca automáticamente.</p>
     </div>
   </div>
 </div>
 
-<!-- SLIDE 3: Solution -->
+<!-- SLIDE 3: Soul / Vision -->
 <div class="slide" data-index="2">
-  <div class="slide-title">La Solución</div>
-  <div class="slide-subtitle">Filtrado de Doble Capa</div>
-  <div class="grid-2">
-    <div class="card">
-      <div class="card-icon">🛡️</div>
-      <h3>Capa 1: Seguridad</h3>
-      <p>Aislamiento departamental Zero-Trust. Cada usuario solo accede a documentos de su departamento. Inferencia 100 % local con Ollama.</p>
-      <div style="margin-top:1rem;">
-        <span class="tag">RBAC</span>
-        <span class="tag">JWT</span>
-        <span class="tag">SHA-256</span>
-        <span class="tag tag-green">No-Root</span>
-      </div>
+  <div class="slide-title">El Alma del Proyecto</div>
+  <div class="slide-subtitle">¿Por qué existe Nexus Insight?</div>
+  <div class="hero-quote" style="margin: 2rem auto; text-align: center;">
+    "Democratizar el acceso a la IA generativa<br>
+    sin comprometer la <strong>privacidad</strong>,<br>
+    el <strong>presupuesto</strong> ni la <strong>comunicación</strong> entre equipos."
+  </div>
+  <div class="grid-3" style="margin-top: 2rem;">
+    <div class="card center">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">🏛️</div>
+      <h3>Soberanía de Datos</h3>
+      <p>Los datos nunca abandonan la infraestructura del cliente. Ni un solo byte viaja a la nube.</p>
     </div>
-    <div class="card">
-      <div class="card-icon">🧠</div>
-      <h3>Capa 2: Adaptación Cognitiva</h3>
-      <p>Prompt Engineering dinámico: la misma consulta se responde en tono técnico (DEV), ejecutivo (PM) o multi-función (Startup).</p>
-      <div style="margin-top:1rem;">
-        <span class="tag">General</span>
-        <span class="tag">Técnico</span>
-        <span class="tag">Ejecutivo</span>
-        <span class="tag">Stakeholder</span>
-      </div>
+    <div class="card center">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">🤝</div>
+      <h3>Traducción Automática</h3>
+      <p>La misma consulta, respuestas adaptadas: técnica para DEV, estratégica para PM, global para Startups.</p>
+    </div>
+    <div class="card center">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">💰</div>
+      <h3>Coste Cero en Inferencia</h3>
+      <p>Sin APIs externas, sin suscripciones, sin sorpresas. Solo hardware local y un modelo abierto.</p>
     </div>
   </div>
 </div>
 
-<!-- SLIDE 4: Architecture -->
+<!-- SLIDE 4: Solution - Dual Layer -->
 <div class="slide" data-index="3">
-  <div class="slide-title">Arquitectura</div>
-  <div class="slide-subtitle">Monolito Modular Zero-Trust en Docker</div>
-  <div class="mermaid-container">
-    <pre style="font-family:var(--nexus-mono,'SF Mono',monospace);font-size:0.75rem;line-height:1.6;text-align:left;background:var(--bg);padding:1rem;border-radius:8px;overflow-x:auto;">
-┌──────────────────────────────────────────────────┐
-│               Host / Cliente                      │
-│  ┌────────────┐   ┌────────────┐                 │
-│  │  Frontend  │   │  CLI / API │                 │
-│  │ J2/htmx    │   │  curl/nexus │                │
-│  └─────┬──────┘   └─────┬──────┘                 │
-│        └────────┬───────┘                        │
-└─────────────────┼────────────────────────────────┘
-                  │ :8000
-┌─────────────────┼────────────────────────────────┐
-│   nexus-network │  Docker Internal               │
-│                 ▼                                 │
-│  ┌──────────────────────────┐                    │
-│  │      FastAPI + Uvicorn   │                    │
-│  │  ┌─ JWT / RBAC ────────┐ │                    │
-│  │  │  Rate Limit / CSP   │ │                    │
-│  │  │  AuditLog (append)  │ │                    │
-│  │  └────────────────────-┘ │                    │
-│  └──────┬────────────┬──────┘                    │
-│         │ :5432      │ :11434                    │
-│         ▼            ▼                           │
-│  ┌──────────┐  ┌──────────┐                     │
-│  │PostgreSQL│  │  Ollama  │                     │
-│  │ (Persist)│  │ (Infer)  │                     │
-│  └──────────┘  └──────────┘                     │
-│  ▲ NO expuesto  ▲ NO expuesto                   │
-└──────────────────────────────────────────────────┘</pre>
-  </div>
-</div>
-
-<!-- SLIDE 5: Tech Stack -->
-<div class="slide" data-index="4">
-  <div class="slide-title">Stack Tecnológico</div>
-  <div class="slide-subtitle">Herramientas modernas, 100% open source, sin dependencias cloud</div>
-  <div class="grid-3">
-    <div class="card center">
-      <div style="font-size:2.5rem;margin-bottom:0.5rem;">🐍</div>
-      <h3>Backend</h3>
-      <p>Python 3.13<br>FastAPI • SQLAlchemy 2.0<br>Pydantic v2 • Argon2id</p>
-    </div>
-    <div class="card center">
-      <div style="font-size:2.5rem;margin-bottom:0.5rem;">🗄️</div>
-      <h3>Datos</h3>
-      <p>PostgreSQL 15<br>asyncpg • Alembic<br>ChromaDB (próximo)</p>
-    </div>
-    <div class="card center">
-      <div style="font-size:2.5rem;margin-bottom:0.5rem;">🤖</div>
-      <h3>IA Local</h3>
-      <p>Ollama + modelo local<br>Inferencia 100% local<br>Sin coste de API</p>
-    </div>
-    <div class="card center">
-      <div style="font-size:2.5rem;margin-bottom:0.5rem;">🐳</div>
-      <h3>Infraestructura</h3>
-      <p>Docker • Docker Compose<br>Red interna aislada<br>Single-command deploy</p>
-    </div>
-    <div class="card center">
-      <div style="font-size:2.5rem;margin-bottom:0.5rem;">🎨</div>
-      <h3>Frontend</h3>
-      <p>Jinja2 • htmx 2<br>Pico CSS • Marked<br>DOMPurify</p>
-    </div>
-    <div class="card center">
-      <div style="font-size:2.5rem;margin-bottom:0.5rem;">✅</div>
-      <h3>Calidad</h3>
-      <p>Ruff • pre-commit<br>pytest • pytest-asyncio<br>TDD estricto</p>
-    </div>
-  </div>
-</div>
-
-<!-- SLIDE 6: Security -->
-<div class="slide" data-index="5">
-  <div class="slide-title">Seguridad en Profundidad</div>
-  <div class="slide-subtitle">9 invariantes obligatorias verificadas por tests</div>
+  <div class="slide-title">El Diferenciador</div>
+  <div class="slide-subtitle">Filtrado de Doble Capa: primero seguridad, luego adaptación</div>
   <div class="grid-2">
+    <div class="card" style="border-left: 4px solid var(--primary);">
+      <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.8rem;">
+        <span style="background:var(--primary);color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;">1</span>
+        <h3 style="margin:0;">Capa de Seguridad</h3>
+      </div>
+      <p>Aislamiento Zero-Trust por departamento. Cada usuario solo ve los documentos de su área. La IA corre en un contenedor aislado, sin acceso a internet.</p>
+      <div style="margin-top:0.8rem;">
+        <span class="tag">RBAC departamental</span>
+        <span class="tag">JWT con alcance</span>
+        <span class="tag">Inferencia aislada</span>
+      </div>
+    </div>
+    <div class="card" style="border-left: 4px solid var(--accent);">
+      <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.8rem;">
+        <span style="background:var(--accent);color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;">2</span>
+        <h3 style="margin:0;">Capa de Adaptación Cognitiva</h3>
+      </div>
+      <p>Prompt Engineering dinámico: según la audiencia seleccionada, el sistema reescribe la instrucción para que la respuesta use el tono, formato y nivel de detalle adecuados.</p>
+      <div style="margin-top:0.8rem;">
+        <span class="tag">General</span>
+        <span class="tag tag-green">Técnico</span>
+        <span class="tag">Ejecutivo</span>
+        <span class="tag tag-green">Stakeholder</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 5: Architecture -->
+<div class="slide" data-index="4">
+  <div class="slide-title">Arquitectura</div>
+  <div class="slide-subtitle">Monolito modular Zero-Trust, todo en Docker</div>
+  <div class="arch-box">
+    <pre style="font-family:'SF Mono',monospace;font-size:0.75rem;line-height:1.6;text-align:left;background:var(--bg);padding:1rem;border-radius:8px;overflow-x:auto;">
+┌──────────────────────────────────────────────────┐
+│                   Cliente                          │
+│   Navegador (Jinja2/htmx)  ·  CLI (nexus.py)      │
+└──────────────────────┬───────────────────────────┘
+                       │ :8000  (único punto de entrada)
+┌──────────────────────┼───────────────────────────┐
+│   Docker · nexus-network  (red interna aislada)   │
+│                      ▼                             │
+│  ┌──────────────────────────────┐                  │
+│  │      FastAPI + Uvicorn        │                  │
+│  │  JWT · RBAC · Rate Limit     │                  │
+│  │  CSP · AuditLog (append)     │                  │
+│  └──────┬────────────┬──────────┘                  │
+│         │ :5432      │ :11434                      │
+│         ▼            ▼                              │
+│  ┌──────────┐  ┌──────────┐                        │
+│  │PostgreSQL│  │  Ollama  │                        │
+│  │ (datos)  │  │  (IA)    │                        │
+│  └──────────┘  └──────────┘                        │
+│  ▲ Sin puerto   ▲ Sin puerto                       │
+│    al host        al host                           │
+└────────────────────────────────────────────────────┘</pre>
+  </div>
+</div>
+
+<!-- SLIDE 6: Demo Flow -->
+<div class="slide" data-index="5">
+  <div class="slide-title">Demo: El Ciclo Completo</div>
+  <div class="slide-subtitle">Seis pasos, de la autenticación a la respuesta inteligente</div>
+  <div class="grid-3">
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <h4>Login Seguro</h4>
+      <p>Cookie httpOnly + SameSite=Lax. Si fallas 5 veces, rate limiter te bloquea.</p>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <h4>Subir Documento</h4>
+      <p>SHA-256 en memoria, magic bytes %PDF, 10 MB máximo. Sin duplicados.</p>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">3</div>
+      <h4>Gestión de Usuarios</h4>
+      <p>El admin crea/edita usuarios con roles y departamentos. Cada acción se audita.</p>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">4</div>
+      <h4>Consulta RAG</h4>
+      <p>Seleccionas documentos, escribes tu pregunta y eliges la audiencia.</p>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">5</div>
+      <h4>Respuesta Adaptada</h4>
+      <p>Markdown sanitizado con DOMPurify. Tono según el rol del destinatario.</p>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">6</div>
+      <h4>Auditoría Inmutable</h4>
+      <p>Cada operación queda registrada en el log. Nadie puede borrar ni modificar.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 7: Security -->
+<div class="slide" data-index="6">
+  <div class="slide-title">Seguridad en Profundidad</div>
+  <div class="slide-subtitle">Cada invariante se verifica con un test diseñado para violarla</div>
+  <div class="two-col">
     <div>
       <ul>
-        <li><strong>RBAC departamental</strong> — JWT con accessible_departments</li>
-        <li><strong>Rate limiting</strong> — 5 login/min por IP</li>
-        <li><strong>CSP + Security Headers</strong> — XSS, clickjacking, MIME sniffing</li>
-        <li><strong>Password OWASP</strong> — ≥8, mayús, minús, dígito, especial</li>
-        <li><strong>SHA-256 en memoria</strong> — anti-duplicados + integridad</li>
+        <li><strong>RBAC departamental</strong> — JWT con lista de departamentos accesibles</li>
+        <li><strong>Rate limiting</strong> — 5 intentos/minuto por IP en login</li>
+        <li><strong>Content-Security-Policy</strong> — XSS, clickjacking, MIME sniffing bloqueados</li>
+        <li><strong>Contraseñas OWASP</strong> — ≥8 car., mayúscula, minúscula, dígito, especial</li>
+        <li><strong>SHA-256 en memoria</strong> — integridad + detección de duplicados</li>
       </ul>
     </div>
     <div>
       <ul>
-        <li><strong>Auditoría inmutable</strong> — Trigger SQL que bloquea UPDATE/DELETE</li>
-        <li><strong>Anti-enumeración</strong> — mismo error para user inexistente o pass incorrecta</li>
-        <li><strong>No-root containers</strong> — todos los servicios con usuario no privilegiado</li>
-        <li><strong>XSS sanitization</strong> — DOMPurify en toda salida RAG</li>
+        <li><strong>Auditoría inmutable</strong> — Trigger SQL que rechaza UPDATE/DELETE</li>
+        <li><strong>Anti-enumeración</strong> — Mismo mensaje para usuario inexistente o contraseña errónea</li>
+        <li><strong>Contenedores no-root</strong> — Todos los servicios con usuario sin privilegios</li>
+        <li><strong>Sanitización XSS</strong> — DOMPurify en toda salida de la IA antes de llegar al navegador</li>
+        <li><strong>Validación criptográfica</strong> — Firma SHA-256 antes de persistir</li>
       </ul>
     </div>
   </div>
   <div style="margin-top:1.5rem;padding:1rem;background:#EFF6FF;border-radius:8px;text-align:center;font-size:0.95rem;color:var(--primary);font-weight:600;">
-    Cada invariante tiene un test que intenta violarla deliberadamente.
+    🔬 10 invariantes · 251 tests · 0 dependencias cloud
   </div>
 </div>
 
-<!-- SLIDE 7: Key Features + Demo Flow -->
-<div class="slide" data-index="6">
-  <div class="slide-title">Funcionalidades Clave</div>
-  <div class="slide-subtitle">Del login a la respuesta adaptada, todo en un flujo continuo</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
-    <div class="card" style="padding:1rem;">
-      <div style="font-weight:700;color:var(--primary);">1. Login seguro</div>
-      <p style="font-size:0.9rem;">Cookie httpOnly + SameSite=Lax. Rate limiting 5/min.</p>
-    </div>
-    <div class="card" style="padding:1rem;">
-      <div style="font-weight:700;color:var(--primary);">2. Subida de documentos</div>
-      <p style="font-size:0.9rem;">SHA-256 en memoria, magic bytes %PDF, 10 MB máx.</p>
-    </div>
-    <div class="card" style="padding:1rem;">
-      <div style="font-weight:700;color:var(--primary);">3. Gestión de usuarios</div>
-      <p style="font-size:0.9rem;">CRUD completo por admin. Roles: admin, lead, staff.</p>
-    </div>
-    <div class="card" style="padding:1rem;">
-      <div style="font-weight:700;color:var(--primary);">4. Consulta RAG adaptada</div>
-      <p style="font-size:0.9rem;">Selección de audiencia. Contexto filtrado por departamento.</p>
-    </div>
-    <div class="card" style="padding:1rem;">
-      <div style="font-weight:700;color:var(--primary);">5. Respuesta inteligente</div>
-      <p style="font-size:0.9rem;">Markdown renderizado + sanitizado. Cita fuentes.</p>
-    </div>
-    <div class="card" style="padding:1rem;">
-      <div style="font-weight:700;color:var(--primary);">6. Auditoría completa</div>
-      <p style="font-size:0.9rem;">Cada acción registrada en log append-only.</p>
-    </div>
-  </div>
-</div>
-
-<!-- SLIDE 8: Quality -->
+<!-- SLIDE 8: Results -->
 <div class="slide" data-index="7">
-  <div class="slide-title">Calidad y Métricas</div>
-  <div class="slide-subtitle">TDD estricto desde el Hito 1</div>
+  <div class="slide-title">Resultados</div>
+  <div class="slide-subtitle">9 hitos completados con metodología TDD</div>
   <div class="grid-3" style="margin-top:1rem;">
     <div class="card center">
       <div class="big-number">251</div>
       <div class="big-number-label">Tests automatizados</div>
-      <p style="font-size:0.85rem;margin-top:0.5rem;">Unitarios + HTTP + Integración<br>Ejecutados en pre-push</p>
+      <p style="font-size:0.85rem;margin-top:0.5rem;">Unitarios + HTTP + integración<br>Ejecutados en cada pre-push</p>
     </div>
     <div class="card center">
       <div class="big-number">9</div>
-      <div class="big-number-label">Hitos completados</div>
-      <p style="font-size:0.85rem;margin-top:0.5rem;">Scaffolding → Seguridad<br>Cada hito con tag git</p>
+      <div class="big-number-label">Hitos entregados</div>
+      <p style="font-size:0.85rem;margin-top:0.5rem;">Del scaffolding a la seguridad<br>Cada hito etiquetado en git</p>
     </div>
     <div class="card center">
       <div class="big-number">0</div>
       <div class="big-number-label">Dependencias cloud</div>
-      <p style="font-size:0.85rem;margin-top:0.5rem;">100% local<br>Sin costes de API externa</p>
+      <p style="font-size:0.85rem;margin-top:0.5rem;">100% local<br>Sin costes recurrentes</p>
     </div>
   </div>
-  <div class="stack" style="justify-content:center;margin-top:1.5rem;">
+  <div class="stack" style="margin-top:1.5rem;">
+    <span class="stack-item">TDD (RED→GREEN→REFACTOR)</span>
     <span class="stack-item">Conventional Commits</span>
-    <span class="stack-item">Ruff Lint + Format</span>
-    <span class="stack-item">pre-commit hooks</span>
-    <span class="stack-item">Type Hints</span>
+    <span class="stack-item">Ruff (lint + format)</span>
+    <span class="stack-item">pre-commit / pre-push</span>
     <span class="stack-item">Clean Architecture</span>
+    <span class="stack-item">Single-command deploy</span>
   </div>
 </div>
 
-<!-- SLIDE 9: Roadmap / Status -->
+<!-- SLIDE 9: Stack + Roadmap -->
 <div class="slide" data-index="8">
-  <div class="slide-title">Roadmap — Estado Actual</div>
-  <div class="slide-subtitle">9 hitos completados, 100% funcional</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.6rem;">
-    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
-      <div style="font-weight:700;color:#065F46;">✅ H1</div>
-      <p style="font-size:0.8rem;">Scaffolding + Docker</p>
+  <div class="slide-title">Tecnología y Futuro</div>
+  <div class="slide-subtitle">Open source, modular, preparado para evolucionar</div>
+  <div class="grid-2">
+    <div>
+      <h3>Stack Actual</h3>
+      <div class="stack" style="justify-content:start;">
+        <span class="stack-item">Python 3.13</span>
+        <span class="stack-item">FastAPI</span>
+        <span class="stack-item">SQLAlchemy 2.0</span>
+        <span class="stack-item">PostgreSQL 15</span>
+        <span class="stack-item">Ollama + modelo local</span>
+        <span class="stack-item">Docker Compose</span>
+        <span class="stack-item">Jinja2 + htmx</span>
+        <span class="stack-item">Pico CSS + Marked</span>
+        <span class="stack-item">DOMPurify</span>
+        <span class="stack-item">pytest + Ruff</span>
+      </div>
     </div>
-    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
-      <div style="font-weight:700;color:#065F46;">✅ H2</div>
-      <p style="font-size:0.8rem;">DB + Migraciones + Seed</p>
+    <div>
+      <h3>Próximos Pasos</h3>
+      <ul>
+        <li><strong>ChromaDB</strong> — búsqueda semántica vectorial</li>
+        <li><strong>Guardrails anti-prompt-injection</strong> — filtros de entrada/salida</li>
+        <li><strong>Rotación de claves JWT</strong> — hardening criptográfico</li>
+        <li><strong>OpenTelemetry</strong> — trazabilidad distribuida</li>
+        <li><strong>CI/CD</strong> — GitHub Actions (tests + lint + cobertura)</li>
+      </ul>
     </div>
-    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
-      <div style="font-weight:700;color:#065F46;">✅ H3</div>
-      <p style="font-size:0.8rem;">Auth JWT + RBAC</p>
-    </div>
-    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
-      <div style="font-weight:700;color:#065F46;">✅ H4</div>
-      <p style="font-size:0.8rem;">Ingesta + Frontend Web</p>
-    </div>
-    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
-      <div style="font-weight:700;color:#065F46;">✅ H5</div>
-      <p style="font-size:0.8rem;">Motor RAG + Adaptación</p>
-    </div>
-    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
-      <div style="font-weight:700;color:#065F46;">✅ H6</div>
-      <p style="font-size:0.8rem;">Auditoría + Logs</p>
-    </div>
-    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
-      <div style="font-weight:700;color:#065F46;">✅ H7</div>
-      <p style="font-size:0.8rem;">Admin usuarios + CRUD</p>
-    </div>
-    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
-      <div style="font-weight:700;color:#065F46;">✅ H8</div>
-      <p style="font-size:0.8rem;">UX corporativa + Tono</p>
-    </div>
-    <div class="card" style="padding:0.8rem;text-align:center;background:#ECFDF5;border-color:var(--success);">
-      <div style="font-weight:700;color:#065F46;">✅ H9</div>
-      <p style="font-size:0.8rem;">Seguridad OWASP</p>
-    </div>
-  </div>
-  <hr>
-  <div style="text-align:center;">
-    <p style="font-size:1rem;font-weight:600;">Demo en vivo: <span style="color:var(--primary);">login → subir documento → consultar → respuesta adaptada</span></p>
   </div>
 </div>
 
@@ -447,7 +459,10 @@
     <div style="margin-top:2rem;">
       <span class="tag" style="font-size:0.9rem;padding:0.4rem 1.2rem;">github.com/agado/khora-nexus-insight</span>
     </div>
-    <div style="margin-top:3rem;font-size:0.85rem;color:var(--text-muted);">
+    <div style="margin-top:0.8rem;font-size:0.85rem;color:var(--text-muted);">
+      slides: agado.github.io/khora-nexus-insight/slides.html
+    </div>
+    <div style="margin-top:2rem;font-size:0.85rem;color:var(--text-muted);">
       Khora — Nexus Insight • TFM • Julio 2026
     </div>
   </div>
