@@ -97,6 +97,12 @@ async def web_upload(
     if isinstance(_user, Response):
         return _user
     content = await file.read()
+    if not content.startswith(b"%PDF"):
+        return templates.TemplateResponse(
+            request,
+            "_upload_form.html",
+            {"session_user": _user, "error": "Formato inválido. Solo se permiten archivos PDF."},
+        )
     target_department = _user.get("department_id")
     accessible = _user.get("accessible_departments", [])
     if target_department not in accessible:

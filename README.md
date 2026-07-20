@@ -185,6 +185,12 @@ nexus-insight/
 
 * **Control de acceso por roles y departamentos**: Jerarquía de roles (admin=3, lead=2, staff=1). Acceso aislado por departamento vía tabla M2M `user_department`. JWT transporta `user_id`, `role`, `accessible_departments`.
 
+* **Protección anti-fuerza bruta**: Rate limiting de 5 intentos por minuto por IP en el endpoint de login. Middleware in-memory con ventana deslizante.
+
+* **Seguridad en headers HTTP**: `Content-Security-Policy` (scripts/style limitados a `self` + CDNs), `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` en todas las respuestas.
+
+* **Política de complejidad de contraseñas**: Validación OWASP (≥8 caracteres, mayúscula, minúscula, dígito, carácter especial) en creación y reseteo de contraseñas.
+
 * **Ingesta con validación criptográfica**: Cálculo de SHA‑256 en memoria antes de almacenar metadatos. Validación de tipo de archivo por magic bytes (%PDF). Límite de 10 MB.
 
 * **Extracción de texto**: PyPDF para PDFs, fallback a UTF-8 para texto plano.
@@ -279,6 +285,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H6** | Auditoría y trazabilidad: Alembic, trigger PostgreSQL inmutable, AuditLog completo, visor Registros | Ver detalle abajo ↓ |
 | **H7** ✅ | Ciclo de vida documental: borrar docs, is\_public, CRUD usuarios, export .txt, CLI query | Ver detalle abajo ↓ |
 | **H8** ✅ | Experiencia corporativa: mejora visual, adaptación de tono por departamento/stakeholder, administración de usuarios | Ver detalle abajo ↓ |
+| **H9** ✅ | Seguridad: rate limiting (login 5/min), CSP + security headers, password complexity policy | Ver detalle abajo ↓ |
 
 ### H6 — Auditoría y trazabilidad
 
@@ -295,6 +302,16 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H7.2** | Documento de acceso general (`is_public`) | Columna. Bypass del filtro departamental en listado + RAG. |
 | **H7.3** ✅ | CRUD usuarios (admin) | Alta/baja/modificación de usuarios desde frontend. API completa. 34 tests. |
 | **H7.4** | Exportar respuesta .txt + CLI query | Botón en consulta. `nexus.py query` funcional. |
+
+### H9 — Seguridad (OWASP)
+
+| Código | Objetivo | Criterio de Aceptación |
+|--------|----------|------------------------|
+| **H9.1** ✅ | Rate limiting en login (5 POST/min por IP) | 6ª petición en 1 minuto → 429 Too Many Requests. Middleware in-memory sliding window. |
+| **H9.2** ✅ | CSP + security headers en todas las respuestas | `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`. |
+| **H9.3** ✅ | Password complexity policy | ≥8 caracteres, ≥1 mayúscula, ≥1 minúscula, ≥1 dígito, ≥1 especial. Aplicado en crear y resetear contraseña. |
+| **H9.4** ✅ | XSS sanitization en salida RAG | `marked.parse()` sanitizado con DOMPurify. Todos los enlaces con `rel="noopener noreferrer"`. |
+| **H9.5** ✅ | Magic bytes en subida web | Validación `%PDF` en `POST /web/upload` (idéntico al endpoint API). |
 
 ### H8 — Experiencia corporativa
 

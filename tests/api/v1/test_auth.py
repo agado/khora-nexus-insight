@@ -7,8 +7,18 @@ from fastapi.testclient import TestClient
 from src.core.auth.jwt import create_access_token
 from src.core.auth.rbac import get_current_user, require_role
 
+try:
+    from src.core.middleware.rate_limiter import reset_login_limiter
+except ImportError:
+    reset_login_limiter = None
+
 
 class TestLoginEndpoint:
+    @pytest.fixture(autouse=True)
+    def _reset_limiter(self):
+        if reset_login_limiter:
+            reset_login_limiter()
+
     def test_login_success(self, client):
         with (
             patch(
@@ -107,3 +117,28 @@ class TestRBAC:
         )
         assert response.status_code == 403
         assert response.json()["detail"] == "Insufficient permissions"
+
+
+class TestLoginRateLimit:
+    @pytest.fixture(autouse=True)
+    def _reset_limiter(self):
+        if reset_login_limiter:
+            reset_login_limiter()
+
+    def test_login_rate_limited_after_attempts(self, client):
+        with (
+            patch("src.api.v1.auth.authenticate_user", new_callable=AsyncMock) as mock_auth,
+            patch("src.api.v1.auth.log_action", new_callable=AsyncMock),
+        ):
+            mock_auth.return_value = {"access_token": "valid.jwt.token", "user_id": 1}
+            for _ in range(5):
+                response = client.post(
+                    "/api/v1/auth/login",
+                    json={"username": "admin", "password": "admin123"},
+                )
+                assert response.status_code == 200
+            response = client.post(
+                "/api/v1/auth/login",
+                json={"username": "admin", "password": "admin123"},
+            )
+            assert response.status_code == 429

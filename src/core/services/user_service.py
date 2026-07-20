@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.core.auth.rbac import ROLE_LEVELS
-from src.core.auth.security import hash_password
+from src.core.auth.security import hash_password, validate_password_complexity
 from src.core.models import Department, User, user_department
 
 VALID_ROLES = frozenset(ROLE_LEVELS.keys())
@@ -38,6 +38,7 @@ async def create_user(
     department_id: int,
     accessible_department_ids: list[int],
 ) -> User:
+    validate_password_complexity(password)
     if role not in VALID_ROLES:
         raise ValueError(f"Invalid role: {role}. Valid: {sorted(VALID_ROLES)}")
     if not accessible_department_ids:
@@ -77,6 +78,7 @@ async def delete_user(db: AsyncSession, user_id: int, current_user_id: int) -> b
 
 
 async def reset_password(db: AsyncSession, user_id: int, new_password: str) -> bool:
+    validate_password_complexity(new_password)
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
