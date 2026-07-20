@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -40,6 +40,8 @@ async def create_user(
 ) -> User:
     if role not in VALID_ROLES:
         raise ValueError(f"Invalid role: {role}. Valid: {sorted(VALID_ROLES)}")
+    if not accessible_department_ids:
+        raise ValueError("Debe seleccionar al menos un departamento accesible")
 
     existing = await db.execute(select(User).where(User.username == username))
     if existing.scalar_one_or_none():
@@ -83,3 +85,46 @@ async def reset_password(db: AsyncSession, user_id: int, new_password: str) -> b
     user.hashed_password = hash_password(new_password)
     await db.flush()
     return True
+
+
+async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
+    result = await db.execute(
+        select(User)
+        .options(selectinload(User.department), selectinload(User.accessible_departments))
+        .where(User.id == user_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_user(
+    db: AsyncSession,
+    user_id: int,
+    username: str,
+    role: str,
+    department_id: int,
+    accessible_department_ids: list[int],
+) -> User:
+    if role not in VALID_ROLES:
+        raise ValueError(f"Invalid role: {role}. Valid: {sorted(VALID_ROLES)}")
+    if not accessible_department_ids:
+        raise ValueError("Debe seleccionar al menos un departamento accesible")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise ValueError("User not found")
+
+    existing = await db.execute(select(User).where(User.username == username, User.id != user_id))
+    if existing.scalar_one_or_none():
+        raise ValueError("Username already exists")
+
+    user.username = username
+    user.role = role
+    user.department_id = department_id
+
+    await db.execute(sa_delete(user_department).where(user_department.c.user_id == user_id))
+    for dept_id in accessible_department_ids:
+        db.execute(user_department.insert().values(user_id=user_id, department_id=dept_id))
+
+    await db.flush()
+    return user

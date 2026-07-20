@@ -47,6 +47,17 @@
                 opt.style.display = opt.text.toLowerCase().includes(filter) ? '' : 'none';
             }
         });
+
+        document.addEventListener('click', function(evt) {
+            var pill = evt.target.closest('.nexus-pill');
+            if (!pill) return;
+            var pills = pill.closest('.nexus-pills');
+            if (!pills) return;
+            pills.querySelectorAll('.nexus-pill').forEach(function(p) {
+                p.classList.remove('active');
+            });
+            pill.classList.add('active');
+        });
     </script>
 </head>
 <body>

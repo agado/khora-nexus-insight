@@ -5,7 +5,7 @@
     <button class="nexus-pill" hx-get="/web/upload">Subir</button>
     {% endif %}
     <button class="nexus-pill" hx-get="/web/documents">Documentos</button>
-    <button class="nexus-pill active" hx-get="/web/query">Consultar</button>
+    <button class="nexus-pill" hx-get="/web/query">Consultar</button>
     {% if session_user and session_user.get('role_level', 0) >= 3 %}
     <button class="nexus-pill" hx-get="/web/users">Usuarios</button>
     <button class="nexus-pill" hx-get="/web/logs">Registros</button>
@@ -13,4 +13,12 @@
 </div>
 
 <div id="tab-content" class="nexus-card" hx-get="/web/query" hx-trigger="load" hx-swap="innerHTML"></div>
+<script>
+(function() {
+    var pills = document.querySelector('.nexus-pills');
+    if (!pills) return;
+    var consultar = pills.querySelector('[hx-get="/web/query"]');
+    if (consultar) consultar.classList.add('active');
+})();
+</script>
 {% endblock %}

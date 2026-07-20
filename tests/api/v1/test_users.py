@@ -172,6 +172,24 @@ class TestCreateUser:
         )
         assert response.status_code == 422
 
+    def test_api_empty_accessible_departments_returns_409(self, client):
+        with patch("src.api.v1.users.create_user", new_callable=AsyncMock) as mock_create:
+            mock_create.side_effect = ValueError(
+                "Debe seleccionar al menos un departamento accesible"
+            )
+            response = client.post(
+                self.API,
+                json={
+                    "username": "newuser",
+                    "password": "pass123",
+                    "role": "staff",
+                    "department_id": 1,
+                    "accessible_department_ids": [],
+                },
+                headers={"Authorization": f"Bearer {_admin_token()}"},
+            )
+        assert response.status_code == 409
+
     def test_web_requires_admin(self, staff_client):
         response = staff_client.post(
             self.WEB,
@@ -311,3 +329,201 @@ class TestResetPassword:
             mock_list.return_value = []
             response = auth_client.post(self.WEB, data={"new_password": "newpass123"})
         assert response.status_code == 200
+
+
+class TestUpdateUser:
+    API = "/api/v1/admin/users/2"
+    WEB_GET = "/web/users/2/edit"
+    WEB_POST = "/web/users/2/edit"
+
+    def test_api_requires_admin(self, client):
+        response = client.put(
+            self.API,
+            json={
+                "username": "hacker",
+                "role": "staff",
+                "department_id": 1,
+                "accessible_department_ids": [1],
+            },
+            headers={"Authorization": f"Bearer {_staff_token()}"},
+        )
+        assert response.status_code == 403
+
+    def test_api_updates_user_role_and_department(self, client):
+        mock_user = MagicMock(spec=User)
+        mock_user.id = 2
+        mock_user.username = "ceo"
+        mock_user.role = "staff"
+        mock_user.department_id = 2
+        mock_user.created_at.isoformat.return_value = "2026-01-01T00:00:00"
+
+        with (
+            patch("src.api.v1.users.update_user", new_callable=AsyncMock) as mock_update,
+            patch("src.api.v1.users.log_action", new_callable=AsyncMock),
+        ):
+            mock_update.return_value = mock_user
+            response = client.put(
+                self.API,
+                json={
+                    "username": "ceo",
+                    "role": "staff",
+                    "department_id": 2,
+                    "accessible_department_ids": [2],
+                },
+                headers={"Authorization": f"Bearer {_admin_token()}"},
+            )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["username"] == "ceo"
+        assert data["role"] == "staff"
+
+    def test_api_update_not_found(self, client):
+        with (
+            patch("src.api.v1.users.update_user", new_callable=AsyncMock) as mock_update,
+        ):
+            mock_update.side_effect = ValueError("User not found")
+            response = client.put(
+                "/api/v1/admin/users/999",
+                json={
+                    "username": "ghost",
+                    "role": "staff",
+                    "department_id": 1,
+                    "accessible_department_ids": [1],
+                },
+                headers={"Authorization": f"Bearer {_admin_token()}"},
+            )
+        assert response.status_code == 404
+
+    def test_api_update_invalid_role(self, client):
+        response = client.put(
+            self.API,
+            json={
+                "username": "ceo",
+                "role": "superadmin",
+                "department_id": 1,
+                "accessible_department_ids": [1],
+            },
+            headers={"Authorization": f"Bearer {_admin_token()}"},
+        )
+        assert response.status_code == 422
+
+    def test_api_update_duplicate_username(self, client):
+        with (
+            patch("src.api.v1.users.update_user", new_callable=AsyncMock) as mock_update,
+        ):
+            mock_update.side_effect = ValueError("Username already exists")
+            response = client.put(
+                self.API,
+                json={
+                    "username": "admin",
+                    "role": "staff",
+                    "department_id": 1,
+                    "accessible_department_ids": [1],
+                },
+                headers={"Authorization": f"Bearer {_admin_token()}"},
+            )
+        assert response.status_code == 409
+
+    def test_api_update_empty_accessible_returns_409(self, client):
+        with (
+            patch("src.api.v1.users.update_user", new_callable=AsyncMock) as mock_update,
+        ):
+            mock_update.side_effect = ValueError(
+                "Debe seleccionar al menos un departamento accesible"
+            )
+            response = client.put(
+                self.API,
+                json={
+                    "username": "ceo",
+                    "role": "staff",
+                    "department_id": 1,
+                    "accessible_department_ids": [],
+                },
+                headers={"Authorization": f"Bearer {_admin_token()}"},
+            )
+        assert response.status_code == 409
+
+    def test_web_edit_form_requires_admin(self, staff_client):
+        response = staff_client.get(self.WEB_GET)
+        assert response.status_code == 403
+
+    def test_web_edit_form_renders(self, auth_client):
+        mock_user = MagicMock(spec=User)
+        mock_user.id = 2
+        mock_user.username = "ceo"
+        mock_user.role = "admin"
+        mock_user.department_id = 1
+
+        with (
+            patch("src.api.v1.users.get_user_by_id", new_callable=AsyncMock) as mock_get,
+            patch("src.api.v1.users.get_departments", new_callable=AsyncMock) as mock_depts,
+        ):
+            mock_get.return_value = mock_user
+            mock_depts.return_value = [{"id": 1, "name": "IT"}]
+            response = auth_client.get(self.WEB_GET)
+        assert response.status_code == 200
+        assert "ceo" in response.text
+
+    def test_web_edit_form_user_not_found(self, auth_client):
+        with (
+            patch("src.api.v1.users.get_user_by_id", new_callable=AsyncMock) as mock_get,
+        ):
+            mock_get.return_value = None
+            response = auth_client.get("/web/users/999/edit")
+        assert response.status_code == 404
+
+    def test_web_edit_submit_requires_admin(self, staff_client):
+        response = staff_client.post(
+            self.WEB_POST,
+            data={
+                "username": "ceo",
+                "role": "staff",
+                "department_id": 2,
+                "accessible_department_ids": [2],
+            },
+        )
+        assert response.status_code == 403
+
+    def test_web_edit_submit_success(self, auth_client):
+        mock_user = MagicMock(spec=User)
+        mock_user.id = 2
+        mock_user.username = "ceo"
+        mock_user.role = "staff"
+
+        with (
+            patch("src.api.v1.users.update_user", new_callable=AsyncMock) as mock_update,
+            patch("src.api.v1.users.list_users", new_callable=AsyncMock) as mock_list,
+            patch("src.api.v1.users.log_action", new_callable=AsyncMock),
+        ):
+            mock_update.return_value = mock_user
+            mock_list.return_value = [{"id": 2, "username": "ceo", "role": "staff"}]
+            response = auth_client.post(
+                self.WEB_POST,
+                data={
+                    "username": "ceo",
+                    "role": "staff",
+                    "department_id": 2,
+                    "accessible_department_ids": [2],
+                },
+            )
+        assert response.status_code == 200
+        assert "correctamente" in response.text
+
+    def test_web_edit_submit_invalid_role(self, auth_client):
+        with (
+            patch("src.api.v1.users.update_user", new_callable=AsyncMock) as mock_update,
+            patch("src.api.v1.users.get_departments", new_callable=AsyncMock) as mock_depts,
+        ):
+            mock_update.side_effect = ValueError("Invalid role")
+            mock_depts.return_value = [{"id": 1, "name": "IT"}]
+            response = auth_client.post(
+                self.WEB_POST,
+                data={
+                    "username": "ceo",
+                    "role": "superadmin",
+                    "department_id": 1,
+                    "accessible_department_ids": [1],
+                },
+            )
+        assert response.status_code == 200
+        assert "error" in response.text or "Invalid" in response.text

@@ -195,6 +195,8 @@ nexus-insight/
 
 * **Auditoría inmutable (Zero‑Trust)**: Tabla append‑only con triggers que bloquean UPDATE/DELETE.
 
+* **Administración de usuarios (admin)**: CRUD completo desde interfaz web con edición de rol, departamento y departamentos accesibles. Validación OWASP y auditoría de cada acción.
+
 * **Observabilidad nativa**: Logs JSON estructurados sin latencia de red.
 
 ### Arquitectura de Red y Soberanía de Datos (Zero-Trust)
@@ -275,8 +277,8 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H4** ✅ | Ingesta documental por API + frontend web + CLI: SHA-256, extracción texto (pypdf), búsqueda textual, roles (admin/lead/staff), departamentos M2M, login web, dashboard, upload, lista documentos, logout, CLI upload/get/list | Upload → 200/409. 167 tests. Frontend funcional. CLI funcional. |
 | **H5** ✅ | Motor RAG: consulta con filtro RBAC, contexto a Ollama, delimitadores XML anti-inyección + sanitización OWASP, truncado de contexto a 4K chars, endpoint API + frontend web + CLI | `POST /api/v1/rag/query` → 200. 186 tests. Frontend Consultar funcional. |
 | **H6** | Auditoría y trazabilidad: Alembic, trigger PostgreSQL inmutable, AuditLog completo, visor Registros | Ver detalle abajo ↓ |
-| **H7** | Ciclo de vida documental: borrar docs, is_public, CRUD usuarios, export .txt, CLI query | Ver detalle abajo ↓ |
-| **H8** | Experiencia corporativa: mejora visual, adaptación de tono por departamento/stakeholder | Ver detalle abajo ↓ |
+| **H7** ✅ | Ciclo de vida documental: borrar docs, is\_public, CRUD usuarios, export .txt, CLI query | Ver detalle abajo ↓ |
+| **H8** ✅ | Experiencia corporativa: mejora visual, adaptación de tono por departamento/stakeholder, administración de usuarios | Ver detalle abajo ↓ |
 
 ### H6 — Auditoría y trazabilidad
 
@@ -291,15 +293,16 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 |--------|----------|------------------------|
 | **H7.1** | Borrar documentos (admin/lead) + staff sin subir | `DELETE /api/v1/documents/{id}` → 200/404/403. Botón frontend. |
 | **H7.2** | Documento de acceso general (`is_public`) | Columna. Bypass del filtro departamental en listado + RAG. |
-| **H7.3** | CRUD usuarios (admin) | Alta/baja/modificación de usuarios desde frontend. |
+| **H7.3** ✅ | CRUD usuarios (admin) | Alta/baja/modificación de usuarios desde frontend. API completa. 34 tests. |
 | **H7.4** | Exportar respuesta .txt + CLI query | Botón en consulta. `nexus.py query` funcional. |
 
 ### H8 — Experiencia corporativa
 
 | Código | Objetivo | Criterio de Aceptación |
 |--------|----------|------------------------|
-| **H8.1** | Mejora visual (tema Pico CSS, logo, tipografía) | Aspecto corporativo, coherente con la marca. |
-| **H8.2** | Adaptación de tono por departamento/stakeholder | Selector de audiencia en consulta. El prompt se adapta automáticamente. |
+| **H8.1** ✅ | Mejora visual (tema Pico CSS, logo, tipografía) | Aspecto corporativo, coherente con la marca. 0 inline styles. |
+| **H8.2** ✅ | Adaptación de tono por departamento/stakeholder | Selector de audiencia en consulta. El prompt se adapta automáticamente. |
+| **H8.3** ✅ | Administración de usuarios (web) | Lista, crear, editar, eliminar, resetear contraseña desde pestaña Usuarios. Navegación HTMX dentro del tab. Feedback visual con toasts. Validación OWASP (rol, departamentos accesibles, unicidad). Auditoría de cada acción. |
 
 ### Post-MVP (Futuro)
 
