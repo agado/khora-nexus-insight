@@ -16,6 +16,7 @@ services:
       - MODEL_NAME=${MODEL_NAME:-qwen2.5-coder:1.5b}
     volumes:
       - ./src:/app/src
+      - ./templates:/app/templates
     depends_on:
       db_service:
         condition: service_healthy

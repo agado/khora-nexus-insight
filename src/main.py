@@ -25,6 +25,7 @@ from src.api.v1.auth import router as auth_router
 from src.api.v1.documents import router as documents_router
 from src.api.v1.health import router as health_router
 from src.api.v1.rag import router as rag_router
+from src.api.v1.users import api_router as users_api_router, web_router as users_web_router
 from src.api.v1.web import router as web_router
 
 app = FastAPI(title="Khora — Nexus Insight")
@@ -35,6 +36,8 @@ app.include_router(auth_router)
 app.include_router(documents_router)
 app.include_router(health_router)
 app.include_router(rag_router)
+app.include_router(users_api_router)
+app.include_router(users_web_router)
 app.include_router(web_router)
 
 

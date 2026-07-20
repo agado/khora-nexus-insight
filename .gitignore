@@ -45,6 +45,9 @@ ollama_storage/
 logs/
 *.log
 
+# Runtime artifacts
+cookies.txt
+
 # Editor & System Files
 .opencode
 .vscode/*

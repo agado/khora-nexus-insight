@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import os
 
-from sqlalchemy import select
+from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.orm import Session
 
 from src.core.auth.security import hash_password
@@ -13,6 +13,9 @@ SEED_DEPARTMENTS = [
     {"name": "IT"},
     {"name": "RRHH"},
     {"name": "PM"},
+    {"name": "Marketing"},
+    {"name": "Atención al Cliente"},
+    {"name": "Finanzas"},
 ]
 
 
@@ -23,14 +26,28 @@ def _build_seed_users() -> list[dict]:
             "password": "admin123",
             "role": "admin",
             "department_name": "IT",
-            "accessible_department_names": ["IT", "RRHH", "PM"],
+            "accessible_department_names": [
+                "IT",
+                "RRHH",
+                "PM",
+                "Marketing",
+                "Atención al Cliente",
+                "Finanzas",
+            ],
         },
         {
             "username": "ceo",
             "password": "ceo123",
             "role": "admin",
             "department_name": "IT",
-            "accessible_department_names": ["IT", "RRHH", "PM"],
+            "accessible_department_names": [
+                "IT",
+                "RRHH",
+                "PM",
+                "Marketing",
+                "Atención al Cliente",
+                "Finanzas",
+            ],
         },
         {
             "username": "lead_it",
@@ -112,18 +129,22 @@ def _upsert_user(session: Session, user_data: dict) -> None:
     existing = session.execute(
         select(User).where(User.username == user_data["username"])
     ).scalar_one_or_none()
-    if existing:
-        return
     dept_id = _get_department_id(session, user_data["department_name"])
-    user = User(
-        username=user_data["username"],
-        hashed_password=hash_password(user_data["password"]),
-        role=user_data["role"],
-        department_id=dept_id,
-    )
-    session.add(user)
+    if existing:
+        existing.department_id = dept_id
+        existing.role = user_data["role"]
+        user = existing
+    else:
+        user = User(
+            username=user_data["username"],
+            hashed_password=hash_password(user_data["password"]),
+            role=user_data["role"],
+            department_id=dept_id,
+        )
+        session.add(user)
     session.flush()
 
+    session.execute(sa_delete(user_department).where(user_department.c.user_id == user.id))
     for dept_name in user_data.get("accessible_department_names", [user_data["department_name"]]):
         access_dept_id = _get_department_id(session, dept_name)
         session.execute(

@@ -498,6 +498,7 @@ body {
 .nexus-gap-md { gap: 1rem; }
 .nexus-flex { display: flex; align-items: center; }
 .nexus-flex-wrap { flex-wrap: wrap; }
+.nexus-flex-end { display: flex; align-items: center; justify-content: flex-end; }
 
 .nexus-hidden { display: none !important; }
 .nexus-w-full { width: 100%; }
