@@ -67,7 +67,7 @@ Facilidad de uso: Plataforma accesible para equipos multidisciplinares.
 * Backend: FastAPI (ASGI) sobre Python 3.13.
 * Validación: Pydantic v2 (tipado estricto).
 * Base de datos: PostgreSQL 15 + SQLAlchemy 2.0 (async con asyncpg).
-* IA Local: Ollama ejecutando el modelo qwen2.5-coder:1.5b en contenedor aislado.
+* IA Local: Ollama ejecutando el modelo qwen2.5:1.5b en contenedor aislado.
 * Infraestructura: Docker + Docker Compose.
 * Automatización: `nexus.py` (MVP).
 * Calidad de código: Ruff + pre‑commit + pre‑push (tests).
@@ -97,14 +97,25 @@ cp .env.example .env
 ```
 
 2. Preparar el entorno Python local (necesario para herramientas de desarrollo: hooks, lint, tests)
-```bash
+<details>
+<summary>Windows (PowerShell 7+)</summary>
+
+```powershell
 python -m venv .venv
-# Windows
 .venv\Scripts\Activate.ps1
-# Linux / macOS
-# source .venv/bin/activate
 pip install -r requirements.txt
 ```
+</details>
+
+<details>
+<summary>Linux / macOS</summary>
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+</details>
 
 3. Instalar hooks de git (se ejecutan automáticamente al commitear y al hacer push)
 ```bash
@@ -113,15 +124,30 @@ pre-commit install --hook-type pre-push
 ```
 
 4. Desplegar la infraestructura (API, base de datos, motor de IA)
+
+> También disponible via `python nexus.py dev` en cualquier OS.
+
+<details>
+<summary>Windows (PowerShell 7+)</summary>
+
+```powershell
+docker compose up --build
+```
+</details>
+
+<details>
+<summary>Linux / macOS</summary>
+
 ```bash
 docker compose up --build
 ```
+</details>
 
 > El seed de datos de prueba (usuarios, departamentos) se ejecuta automáticamente al arrancar.
 
 5. Inicializar el modelo de IA (solo la primera vez)
 ```bash
-docker compose exec ollama_service ollama run qwen2.5-coder:1.5b
+docker compose exec ollama_service ollama run qwen2.5:1.5b
 ```
 
 6. Acceder a la documentación interactiva de la API
@@ -256,7 +282,7 @@ flowchart TB
 Este modelo arquitectónico soluciona de raíz los riesgos de filtración de datos y ataques perimetrales mediante tres principios de diseño:
 
 * **Soberanía de Datos Absoluta (Inferencia 100% Local):**
-    * **Consumo sin fugas:** A diferencia de las APIs comerciales (OpenAI, Anthropic), el procesamiento del modelo `qwen2.5-coder:1.5b` ocurre de forma confinada dentro del contenedor local de **Ollama** (`ollama/ollama:latest`).
+    * **Consumo sin fugas:** A diferencia de las APIs comerciales (OpenAI, Anthropic), el procesamiento del modelo `qwen2.5:1.5b` ocurre de forma confinada dentro del contenedor local de **Ollama** (`ollama/ollama:latest`).
     * **Sin telemetría externa:** Ni los datos del usuario, ni los fragmentos de los documentos inyectados en el contexto, ni los prompts de consulta viajan por internet ni son compartidos para entrenar modelos externos.
 * **Aislamiento de Red Zero-Trust (Cortafuegos Perimetral):**
     * **Invisibilidad de servicios:** PostgreSQL (puerto `5432`) y Ollama (puerto `11434`) operan en la red virtual privada `nexus-network` **sin mapear o exponer puertos hacia el host exterior**. Son invisibles ante escaneos de puertos en la máquina física.

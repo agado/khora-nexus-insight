@@ -62,7 +62,7 @@ class TestExecuteQuery:
                 [1],
                 user_staff,
                 "http://ollama:11434",
-                "qwen2.5-coder:1.5b",
+                "qwen2.5:1.5b",
             )
 
         assert result["context_used"] == []
@@ -94,7 +94,7 @@ class TestExecuteQuery:
                 [1, 2],
                 user_admin,
                 "http://ollama:11434",
-                "qwen2.5-coder:1.5b",
+                "qwen2.5:1.5b",
             )
 
         assert result["answer"] == "No compartir claves"
@@ -121,7 +121,7 @@ class TestExecuteQuery:
                     [1],
                     user_admin,
                     "http://ollama:11434",
-                    "qwen2.5-coder:1.5b",
+                    "qwen2.5:1.5b",
                 )
 
     @pytest.mark.asyncio
@@ -145,7 +145,7 @@ class TestExecuteQuery:
                 [1],
                 user_admin,
                 "http://ollama:11434",
-                "qwen2.5-coder:1.5b",
+                "qwen2.5:1.5b",
             )
 
         call_kwargs = mock_client.return_value.__aenter__.return_value.post.call_args[1]
@@ -178,7 +178,7 @@ class TestExecuteQuery:
                 [1],
                 user_admin,
                 "http://ollama:11434",
-                "qwen2.5-coder:1.5b",
+                "qwen2.5:1.5b",
             )
 
         assert mock_db.add.called
@@ -207,7 +207,7 @@ class TestExecuteQuery:
                     [1],
                     user_admin,
                     "http://ollama:11434",
-                    "qwen2.5-coder:1.5b",
+                    "qwen2.5:1.5b",
                 )
 
     @pytest.mark.asyncio
@@ -234,7 +234,7 @@ class TestExecuteQuery:
                     [1],
                     user_admin,
                     "http://ollama:11434",
-                    "qwen2.5-coder:1.5b",
+                    "qwen2.5:1.5b",
                 )
 
     @pytest.mark.asyncio
@@ -254,7 +254,7 @@ class TestExecuteQuery:
                 [1],
                 user_admin,
                 "http://ollama:11434",
-                "qwen2.5-coder:1.5b",
+                "qwen2.5:1.5b",
             )
 
         mock_client.return_value.__aenter__.return_value.post.assert_not_called()

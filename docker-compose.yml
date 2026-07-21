@@ -15,7 +15,7 @@ services:
       - COMPANY_NAME=${COMPANY_NAME:-Your Company}
       - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db_service:5432/${DB_NAME}
       - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama_service:11434}
-      - MODEL_NAME=${MODEL_NAME:-qwen2.5-coder:1.5b}
+      - MODEL_NAME=${MODEL_NAME:-qwen2.5:1.5b}
     volumes:
       - ./src:/app/src
       - ./templates:/app/templates
@@ -55,7 +55,7 @@ services:
       - nexus-network
     # Pasamos la variable del modelo al contenedor
     environment:
-      - MODEL_NAME=${MODEL_NAME:-qwen2.5-coder:1.5b}
+      - MODEL_NAME=${MODEL_NAME:-qwen2.5:1.5b}
     entrypoint: [ "/bin/sh", "-c" ]
     command: 
       - |
