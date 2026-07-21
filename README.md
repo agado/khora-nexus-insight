@@ -10,7 +10,7 @@ La IA se ejecuta en un contenedor aislado dentro de una red interna de Docker, c
 
 Puntos clave para técnicos:
 
-Seguridad y soberanía: Arquitectura y ejecución local para máxima privacidad.
+Seguridad y soberanía: Arquitectura y ejecución local para máxima privacidad. Las variables de entorno usan el prefijo `NEXUS_` para evitar colisiones con otras aplicaciones.
 
 Modularidad: Diseño escalable y mantenible.
 
