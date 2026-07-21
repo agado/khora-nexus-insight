@@ -260,7 +260,7 @@ async def web_query(
                 "context_used": [],
                 "audience": None,
             },
-            status_code=400,
+            status_code=200,
         )
 
     try:
@@ -279,7 +279,7 @@ async def web_query(
             request,
             "_query_result.html",
             {"query_text": query, "answer": str(exc), "context_used": [], "audience": None},
-            status_code=500,
+            status_code=200,
         )
     return templates.TemplateResponse(
         request,
