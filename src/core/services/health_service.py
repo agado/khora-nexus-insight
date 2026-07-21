@@ -1,5 +1,9 @@
+import logging
+
 import asyncpg
 import httpx
+
+logger = logging.getLogger("nexus")
 
 
 async def check_db(db_url: str) -> dict:
@@ -7,8 +11,9 @@ async def check_db(db_url: str) -> dict:
         conn = await asyncpg.connect(db_url)
         await conn.close()
         return {"status": "healthy"}
-    except Exception as e:
-        return {"status": "unhealthy", "detail": str(e)}
+    except Exception:
+        logger.exception("Health check DB failed")
+        return {"status": "unhealthy", "detail": "Database connection failed"}
 
 
 async def check_ollama(ollama_host: str) -> dict:
@@ -18,8 +23,9 @@ async def check_ollama(ollama_host: str) -> dict:
             if resp.status_code == 200:
                 return {"status": "healthy"}
             return {"status": "unhealthy", "detail": f"HTTP {resp.status_code}"}
-    except Exception as e:
-        return {"status": "unhealthy", "detail": str(e)}
+    except Exception:
+        logger.exception("Health check Ollama failed")
+        return {"status": "unhealthy", "detail": "Ollama service unreachable"}
 
 
 def aggregate(db_result: dict, ollama_result: dict) -> dict:
