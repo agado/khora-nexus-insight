@@ -117,6 +117,8 @@ pre-commit install --hook-type pre-push
 docker compose up --build
 ```
 
+> El seed de datos de prueba (usuarios, departamentos) se ejecuta automáticamente al arrancar.
+
 5. Inicializar el modelo de IA (solo la primera vez)
 ```bash
 docker compose exec ollama_service ollama run qwen2.5-coder:1.5b
@@ -144,6 +146,8 @@ nexus-insight/
 ├── ruff.toml
 ├── SECURITY.md                     ← invariantes de seguridad
 ├── SPEC.md
+├── migrations/                     ← migraciones Alembic
+│   └── versions/
 ├── src/
 │   ├── main.py                      ← entry point
 │   ├── api/
@@ -151,10 +155,13 @@ nexus-insight/
 │   │       ├── auth.py              ← login JWT
 │   │       ├── documents.py         ← CRUD documentos
 │   │       ├── health.py            ← health check
+│   │       ├── users.py             ← gestión usuarios web/API
+│   │       ├── rag.py               ← endpoint RAG API
 │   │       └── web.py               ← frontend web (Jinja2/htmx)
 │   ├── core/
 │   │   ├── config.py                ← settings
 │   │   ├── database.py              ← DB engine
+│   │   ├── seed.py                  ← datos de prueba
 │   │   ├── auth/                    ← JWT, RBAC, seguridad
 │   │   ├── services/                ← use cases (business logic)
 │   │   └── storage/                 ← file I/O
@@ -163,6 +170,10 @@ nexus-insight/
 │   ├── login.html
 │   ├── dashboard.html
 │   ├── _upload_form.html
+│   ├── _user_form.html               ← crear usuario con validación pw
+│   ├── _user_list.html
+│   ├── _query_form.html
+│   ├── _query_result.html
 │   └── _document_list.html
 ├── static/
 │   └── css/
