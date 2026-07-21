@@ -15,8 +15,10 @@ services:
       - ENV=production
       - JWT_SECRET=${PROD_JWT_SECRET}
       - JWT_ALGORITHM=${PROD_JWT_ALGORITHM:-HS256}
+      - JWT_EXPIRATION_MINUTES=${PROD_JWT_EXPIRATION_MINUTES:-30}
+      - COMPANY_NAME=${PROD_COMPANY_NAME:-Global Solutions Corp}
       - DATABASE_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@db_service:5432/${PROD_DB_NAME}
-      - OLLAMA_HOST=http://ollama_service:11434
+      - OLLAMA_HOST=${PROD_OLLAMA_HOST:-http://ollama_service:11434}
       - MODEL_NAME=${PROD_MODEL_NAME}
       - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
     secrets:
