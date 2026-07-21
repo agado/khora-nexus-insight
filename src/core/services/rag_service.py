@@ -39,11 +39,9 @@ def _sanitize(text: str) -> str:
 
 
 _NO_INVENT = (
-    "NO INVENTES NADA. NO USES TU CONOCIMIENTO PROPIO. "
-    "NO AÑADAS INFORMACIÓN EXTERNA. "
-    "NO RESPONDAS CON DATOS QUE NO APAREZCAN EN EL CONTEXTO. "
+    "NO INVENTES NADA. "
     "Si el contexto NO contiene información para responder, "
-    "responde ÚNICAMENTE: 'No se encontró información relevante en los documentos proporcionados.' "
+    "responde ÚNICAMENTE: 'No se encontró información relevante.' "
     "Si el contexto contiene información PARCIAL, responde SÓLO con esa información "
     "y luego indica: 'Nota: la información disponible es parcial.' "
 )
