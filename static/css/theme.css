@@ -585,6 +585,9 @@ body {
 .pw-ok {
   color: #059669;
 }
+.pw-ko {
+  color: #DC2626;
+}
 .nexus-pw-match {
   margin-top: 0.1rem;
 }

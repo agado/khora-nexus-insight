@@ -38,7 +38,7 @@
         };
         for (var id in checks) {
             var el = document.getElementById(id);
-            el.className = 'pw-req' + (checks[id] ? ' pw-ok' : '');
+            el.className = 'pw-req' + (checks[id] ? ' pw-ok' : ' pw-ko');
             el.textContent = (checks[id] ? '✓' : '✗') + el.textContent.slice(1);
         }
         var match = document.getElementById('pw-match');
