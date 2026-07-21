@@ -330,8 +330,9 @@ Tanto los desarrolladores como los agentes de IA automatizados deben operar bajo
 | **401 Unauthorized** | No Autenticado | Token JWT ausente, expirado o con firma criptográfica corrupta. |
 | **403 Forbidden** | No Autorizado (RBAC) | El usuario está autenticado pero su rol no posee privilegios para la ruta. |
 | **404 Not Found** | Recurso Inexistente | El identificador del documento o endpoint solicitado no existe en el sistema. |
+| **200 OK** **(con error)** | Error de interfaz (HTMX) | La UI web utiliza HTMX, que ignora respuestas no-2xx. Los errores de formulario se retornan como 200 con HTML parcial que muestra el mensaje de error al usuario. |
 | **500 Internal Error**| Fallo Crítico del Servidor | Excepciones imprevistas, caídas de base de datos o pérdida de red con Ollama. |
-
+ 
 ### 9.2 Mensajes de Éxito Estructurados
 Las respuestas operativas exitosas deben retornar payloads informativos que confirmen la ejecución para facilitar las tareas de monitorización:
 * **200 OK:** Operaciones estándar de consulta, login y lectura de datos.
@@ -350,6 +351,9 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 | **Truncado de contexto a 4000 chars/doc** | Envío íntegro del documento | Previene DoS por contexto masivo. El modelo no necesita más de 4000 caracteres por documento para tareas RAG. |
 | **Validación de longitud máxima de query (2000 chars)** | Sin límite | Previene abuso del prompt. Rechazo temprano con 400 Bad Request. |
 | **Fail-Closed por transacciones atómicas** | Lógica manual de rollback | SQLAlchemy `commit()` maneja el rollback automáticamente si AuditLog falla. |
+| **HTMX error responses como 200** | Códigos 4xx/5xx estándar | HTMX ignora respuestas no-2xx. Los errores de formulario se devuelven como 200 con HTML de error para que HTMX los renderice. |
+| **Campo confirmar contraseña** | Validación solo servidor | UX: reduce errores de tipeo antes del envío. Validación dual (cliente JS + servidor Pydantic). |
+| **Validación en tiempo real (JS)** | Validación solo en servidor | Feedback inmediato al usuario. Checklist con iconos verde/rojo. Sin envío de contraseña en form_data rellenado (OWASP). |
 | **`nexus.py`** | Makefile | Portable Windows/Linux/Mac sin dependencias externas. |
 | **Rollback automático en transacciones DB** | Lógica manual de rollback | `database.py` envuelve cada sesión en try/except → rollback + raise. |
 | **Seed idempotente (upsert por username)** | Insert directo cada vez | Evita duplicados al re-ejecutar `nexus.py seed`. `--reset` para truncar y recrear. |

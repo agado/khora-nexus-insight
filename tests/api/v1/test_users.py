@@ -219,7 +219,8 @@ class TestCreateUser:
                 self.WEB,
                 data={
                     "username": "newuser",
-                    "password": "pass123",
+                    "password": "Pass123!",
+                    "password_confirm": "Pass123!",
                     "role": "staff",
                     "department_id": 1,
                     "accessible_department_ids": [1],

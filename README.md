@@ -203,6 +203,8 @@ nexus-insight/
 
 * **Administración de usuarios (admin)**: CRUD completo desde interfaz web con edición de rol, departamento y departamentos accesibles. Validación OWASP y auditoría de cada acción.
 
+* **UX de creación de usuarios**: Formulario con requisitos visibles de contraseña, campo de confirmación, validación en tiempo real (checklist verde/roja), y preservación de datos del formulario en errores de validación (sin reenviar la contraseña por seguridad OWASP).
+
 * **Observabilidad nativa**: Logs JSON estructurados sin latencia de red.
 
 ### Arquitectura de Red y Soberanía de Datos (Zero-Trust)
@@ -312,6 +314,8 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H9.3** ✅ | Password complexity policy | ≥8 caracteres, ≥1 mayúscula, ≥1 minúscula, ≥1 dígito, ≥1 especial. Aplicado en crear y resetear contraseña. |
 | **H9.4** ✅ | XSS sanitization en salida RAG | `marked.parse()` sanitizado con DOMPurify. Todos los enlaces con `rel="noopener noreferrer"`. |
 | **H9.5** ✅ | Magic bytes en subida web | Validación `%PDF` en `POST /web/upload` (idéntico al endpoint API). |
+| **H9.6** ✅ | Error RAG genérico (no exponer internos) | `str(exc)` reemplazado por "Error al procesar la consulta". El error real se loguea. |
+| **H9.7** ✅ | JS extraído a archivo estático | `static/js/main.js` con `let`/`const`. Sin JS inline en templates. |
 
 ### H8 — Experiencia corporativa
 

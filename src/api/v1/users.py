@@ -223,6 +223,25 @@ async def web_create_user(
     if isinstance(_user, Response):
         return _user
     form = await request.form()
+    if form["password"] != form.get("password_confirm", ""):
+        depts = await get_departments(db)
+        return templates.TemplateResponse(
+            request,
+            "_user_form.html",
+            {
+                "departments": depts,
+                "error": "Las contraseñas no coinciden.",
+                "session_user": _user,
+                "form_data": {
+                    "username": form.get("username", ""),
+                    "role": form.get("role", ""),
+                    "department_id": form.get("department_id", ""),
+                    "accessible_department_ids": [
+                        int(x) for x in form.getlist("accessible_department_ids") if x.strip()
+                    ],
+                },
+            },
+        )
     ids = [int(x) for x in form.getlist("accessible_department_ids") if x.strip()]
     try:
         user = await create_user(
@@ -238,7 +257,19 @@ async def web_create_user(
         return templates.TemplateResponse(
             request,
             "_user_form.html",
-            {"departments": depts, "error": str(exc), "session_user": _user},
+            {
+                "departments": depts,
+                "error": str(exc),
+                "session_user": _user,
+                "form_data": {
+                    "username": form.get("username", ""),
+                    "role": form.get("role", ""),
+                    "department_id": form.get("department_id", ""),
+                    "accessible_department_ids": [
+                        int(x) for x in form.getlist("accessible_department_ids") if x.strip()
+                    ],
+                },
+            },
         )
     await log_action(
         db,
