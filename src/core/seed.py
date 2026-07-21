@@ -106,7 +106,7 @@ def _get_department_id(session: Session, department_name: str) -> int:
 
 
 def _is_production() -> bool:
-    return os.environ.get("ENV", "").lower() == "production"
+    return os.environ.get("NEXUS_ENV", "").lower() == "production"
 
 
 def _resolve_admin_password() -> str:

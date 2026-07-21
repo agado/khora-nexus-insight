@@ -12,7 +12,7 @@ services:
     ports:
       - "${PROD_API_PORT:-8000}:8000"
     environment:
-      - ENV=production
+      - NEXUS_ENV=production
       - JWT_SECRET=${PROD_JWT_SECRET}
       - JWT_ALGORITHM=${PROD_JWT_ALGORITHM:-HS256}
       - JWT_EXPIRATION_MINUTES=${PROD_JWT_EXPIRATION_MINUTES:-30}
