@@ -360,7 +360,7 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 | **SQLAlchemy parametrizado** | Concatenación de strings SQL | Las queries siempre usan bind parameters. Sin riesgo de SQL injection. |
 | **`argon2-cffi` directo** | `passlib[argon2]` | Librería mantenida activamente. Sin deprecation warnings. Contrato de API idéntico. |
 | **Docker Secrets para admin password** | Variable de entorno directa | OWASP: la password se monta como archivo en `/run/secrets/`, no visible en `docker inspect` ni logs. |
-| **Auto‑bootstrap en prod** | Seed manual post‑deploy | `docker-compose.prod.yml` ejecuta `alembic upgrade head && python -m src.core.seed` al arrancar. Un solo comando. |
+| **Auto‑bootstrap en prod y dev** | Seed manual post‑deploy | Ambos `docker-compose.yml` y `docker-compose.prod.yml` ejecutan `alembic upgrade head && python -m src.core.seed` al arrancar. Un solo comando. |
 | **`algorithms=["HS256"]` explícito** | Algoritmo implícito u omitido | Previene CVE-2015-9235 (algorithm confusion). Aunque el proyecto es monolito, la defensa en profundidad lo exige. |
 | **Service layer para autenticación** | Lógica de auth inline en endpoint | SRP + testabilidad: `authenticate_user()` se testea sin FastAPI ni HTTP. El endpoint solo maneja HTTP, el servicio maneja el caso de uso. |
 | **RBAC vía `require_role(role)` factory** | Inline `if role != "admin"` en cada endpoint | DRY + OCP: añadir protección a un nuevo endpoint solo cambia el argumento. Sin lógica repetida. |
