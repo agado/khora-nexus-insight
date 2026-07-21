@@ -155,6 +155,7 @@ El sistema (y los agentes de IA) deben verificar automáticamente los siguientes
 * [ ] Los enlaces generados por marked incluyen `rel="noopener noreferrer"`.
 * [ ] La contraseña no se reenvía en `form_data` del formulario de creación de usuario (OWASP).
 * [ ] El formulario de creación de usuario incluye confirmación de contraseña y validación en tiempo real.
+* [ ] Los errores RAG no exponen detalles internos al usuario; se devuelve mensaje genérico y se loguea el error real.
 
 ---
 

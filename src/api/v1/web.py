@@ -278,7 +278,12 @@ async def web_query(
         return templates.TemplateResponse(
             request,
             "_query_result.html",
-            {"query_text": query, "answer": str(exc), "context_used": [], "audience": None},
+            {
+                "query_text": query,
+                "answer": "Error al procesar la consulta.",
+                "context_used": [],
+                "audience": None,
+            },
             status_code=200,
         )
     return templates.TemplateResponse(

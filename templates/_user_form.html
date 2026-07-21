@@ -25,34 +25,6 @@
                oninput="validatePassword()">
         <small class="nexus-hint nexus-pw-match" id="pw-match"></small>
     </label>
-    <script>
-    function validatePassword() {
-        var pw = document.getElementById('password').value;
-        var cf = document.getElementById('password_confirm').value;
-        var checks = {
-            'req-len': pw.length >= 8,
-            'req-up': /[A-Z]/.test(pw),
-            'req-low': /[a-z]/.test(pw),
-            'req-dig': /\d/.test(pw),
-            'req-sym': /[^A-Za-z0-9]/.test(pw),
-        };
-        for (var id in checks) {
-            var el = document.getElementById(id);
-            el.className = 'pw-req' + (checks[id] ? ' pw-ok' : ' pw-ko');
-            el.textContent = (checks[id] ? '✓' : '✗') + el.textContent.slice(1);
-        }
-        var match = document.getElementById('pw-match');
-        if (cf.length === 0) {
-            match.textContent = '';
-        } else if (pw === cf) {
-            match.textContent = '✓ Coinciden';
-            match.className = 'nexus-hint nexus-pw-match pw-ok';
-        } else {
-            match.textContent = '✗ No coinciden';
-            match.className = 'nexus-hint nexus-pw-match';
-        }
-    }
-    </script>
     <label for="role">Rol
         <select id="role" name="role" required>
             <option value="">Seleccionar...</option>
