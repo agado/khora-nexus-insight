@@ -150,6 +150,7 @@ El sistema (y los agentes de IA) deben verificar automáticamente los siguientes
 * [ ] El endpoint `/api/v1/auth/login` tiene rate limiting activo (5/min).
 * [ ] Todas las respuestas HTTP incluyen headers de seguridad (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Content-Security-Policy`).
 * [ ] La creación y reseteo de contraseñas validan complejidad OWASP.
+* [ ] La directiva `_NO_INVENT` del prompt RAG está activa y adaptada al modelo 1.5B.
 * [ ] El contenido de `marked.parse()` se sanitiza con DOMPurify antes de inyectarse al DOM.
 * [ ] La subida web de documentos valida magic bytes `%PDF`.
 * [ ] Los enlaces generados por marked incluyen `rel="noopener noreferrer"`.

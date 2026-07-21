@@ -222,7 +222,7 @@ AuditLog {
 
 * Filtrado de los document_ids solicitados según los permisos del rol.
 
-* Construcción del súper-prompt contextualizado en la capa de aplicación.
+* Construcción del súper-prompt con directiva anti-alucinación `_NO_INVENT` que restringe al modelo a usar únicamente el contexto. La directiva se ha simplificado para compatibilidad con Qwen2.5 1.5B eliminando prohibiciones redundantes que provocaban rechazo del modelo.
 
 * Envío del prompt al contenedor de Ollama mediante HTTP interno.
 
@@ -370,6 +370,7 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 | **Rate limiting custom middleware** | slowapi | KISS + testabilidad: 40 líneas, sin dependencia externa. In-memory sliding window con reset() para tests. |
 | **Security headers via BaseHTTPMiddleware** | Middleware inline en cada endpoint | DRY: un solo middleware añade CSP + headers de seguridad a todas las respuestas. Configuración centralizada. |
 | **Password complexity en service layer** | Solo en Pydantic validator | Defense in depth: la validación en el service layer cubre tanto API como CLI/web, sin depender de la capa HTTP. |
+| **Directiva `_NO_INVENT` simplificada para 1.5B** | Prohibiciones múltiples agresivas | El modelo Qwen2.5 1.5B rechazaba responder con instrucciones redundantes. La versión simplificada mantiene seguridad anti-alucinación sin bloquear inferencia. |
 
 ---
 
