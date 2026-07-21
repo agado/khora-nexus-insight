@@ -208,7 +208,7 @@ nexus-insight/
 
 * **Protección antiduplicados**: Rechazo automático de documentos con SHA-256 duplicado.
 
-* **Flujo RAG 100% local**: Recuperación contextual por rol + generación en contenedor aislado de Ollama (próximo hito H5).
+* **Flujo RAG 100% local**: Recuperación contextual por rol + generación en contenedor aislado de Ollama. Prompt anti-alucinación (`_NO_INVENT`) que restringe al modelo a usar solo el contexto proporcionado, adaptado para el modelo Qwen2.5 1.5B.
 
 * **Auditoría inmutable (Zero‑Trust)**: Tabla append‑only con triggers que bloquean UPDATE/DELETE.
 
