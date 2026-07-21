@@ -153,6 +153,8 @@ El sistema (y los agentes de IA) deben verificar automáticamente los siguientes
 * [ ] El contenido de `marked.parse()` se sanitiza con DOMPurify antes de inyectarse al DOM.
 * [ ] La subida web de documentos valida magic bytes `%PDF`.
 * [ ] Los enlaces generados por marked incluyen `rel="noopener noreferrer"`.
+* [ ] La contraseña no se reenvía en `form_data` del formulario de creación de usuario (OWASP).
+* [ ] El formulario de creación de usuario incluye confirmación de contraseña y validación en tiempo real.
 
 ---
 

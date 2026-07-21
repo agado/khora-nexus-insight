@@ -203,6 +203,8 @@ nexus-insight/
 
 * **Administración de usuarios (admin)**: CRUD completo desde interfaz web con edición de rol, departamento y departamentos accesibles. Validación OWASP y auditoría de cada acción.
 
+* **UX de creación de usuarios**: Formulario con requisitos visibles de contraseña, campo de confirmación, validación en tiempo real (checklist verde/roja), y preservación de datos del formulario en errores de validación (sin reenviar la contraseña por seguridad OWASP).
+
 * **Observabilidad nativa**: Logs JSON estructurados sin latencia de red.
 
 ### Arquitectura de Red y Soberanía de Datos (Zero-Trust)
