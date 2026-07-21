@@ -1,21 +1,17 @@
-from os import getenv
-
 from fastapi import APIRouter, Depends
 
+from src.core.config import settings
 from src.core.services.health_service import aggregate, check_db, check_ollama
 
 router = APIRouter(prefix="/api/v1")
 
 
 def get_db_url() -> str:
-    url = getenv("DATABASE_URL")
-    if not url:
-        raise ValueError("DATABASE_URL not set")
-    return url.replace("postgresql+asyncpg://", "postgresql://")
+    return settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
 
 
 def get_ollama_host() -> str:
-    return getenv("OLLAMA_HOST", "http://ollama_service:11434")
+    return settings.ollama_host
 
 
 @router.get("/health/db")

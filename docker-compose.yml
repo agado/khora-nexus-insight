@@ -8,11 +8,11 @@ services:
       - "${API_PORT:-8000}:8000"
     command: ["sh", "-c", "alembic upgrade head && python -m src.core.seed && uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"]
     environment:
-      - ENV=${ENV:-development}
+      - NEXUS_ENV=${NEXUS_ENV:-development}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
       - JWT_EXPIRATION_MINUTES=${JWT_EXPIRATION_MINUTES:-30}
-      - COMPANY_NAME=${COMPANY_NAME:-Global Solutions Corp}
+      - COMPANY_NAME=${COMPANY_NAME:-Your Company}
       - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db_service:5432/${DB_NAME}
       - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama_service:11434}
       - MODEL_NAME=${MODEL_NAME:-qwen2.5-coder:1.5b}

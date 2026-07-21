@@ -24,7 +24,7 @@ Para mitigar vectores de ataque y garantizar el aislamiento perimetral, el backe
 * Inyección de dependencias nativa para validación de contratos de entrada/salida.
 
 ### 3.2 Capa Core (Núcleo)
-* **Configuración:** Gestión centralizada y tipada de variables de entorno mediante `Pydantic Settings`.
+* **Configuración:** Gestión centralizada y tipada de variables de entorno mediante `Pydantic Settings`. Todas las variables usan el prefijo `NEXUS_` para evitar colisiones. `COMPANY_NAME` por defecto usa valor agnóstico ("Your Company").
 * **Persistencia:** Conexión y *pooling* asíncrono a PostgreSQL utilizando `SQLAlchemy 2.0` y el driver `asyncpg`.
 * **Seguridad:** Proveedor de identidad local con firmado/verificación de tokens JWT (`src/core/auth/jwt.py` → HS256) y hasheo Argon2id (`src/core/auth/security.py`).
 * **Servicios:** Lógica de autenticación desacoplada en `src/core/services/auth_service.py` (Clean Architecture: endpoint → servicio → infraestructura).
@@ -371,6 +371,9 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 | **Security headers via BaseHTTPMiddleware** | Middleware inline en cada endpoint | DRY: un solo middleware añade CSP + headers de seguridad a todas las respuestas. Configuración centralizada. |
 | **Password complexity en service layer** | Solo en Pydantic validator | Defense in depth: la validación en el service layer cubre tanto API como CLI/web, sin depender de la capa HTTP. |
 | **Directiva `_NO_INVENT` simplificada para 1.5B** | Prohibiciones múltiples agresivas | El modelo Qwen2.5 1.5B rechazaba responder con instrucciones redundantes. La versión simplificada mantiene seguridad anti-alucinación sin bloquear inferencia. |
+| **Prefijo `NEXUS_` en variables de entorno** | Sin prefijo o prefijo genérico `ENV` | Evita colisiones con variables del sistema (ej: `ENV` → `NEXUS_ENV`). Claridad en logs y debugging. |
+| **COMPANY_NAME por defecto agnóstico** | Valor hardcoded real de empresa | OWASP: evita exponer información del cliente en configuraciones por defecto. "Your Company" como placeholder. |
+| **health.py usa `settings` en vez de `getenv()`** | `os.getenv()` con default hardcoded | Consistencia con el resto del código: toda configuración pasa por Pydantic Settings. Centraliza defaults y validación. |
 
 ---
 

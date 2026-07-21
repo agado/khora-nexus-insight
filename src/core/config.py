@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expiration_minutes: int = 30
     admin_username: str = "admin"
-    company_name: str = "Global Solutions Corp"
+    company_name: str = "Your Company"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

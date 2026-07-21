@@ -41,7 +41,8 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 * **Implementación dev:** Variables de entorno inyectadas desde `.env` no versionado. `.env.example` contiene solo valores ficticios.
 * **Implementación prod (OWASP):** Docker Secrets monta `admin_password.txt` como archivo en `/run/secrets/admin_password` dentro del contenedor. No visible en `docker inspect`, logs, ni `ps aux`. El seed lo lee mediante `ADMIN_PASSWORD_FILE`.
 * **Hashing:** Contraseñas hasheadas con `argon2-cffi` (Argon2id). Sin almacenamiento en texto plano.
-* **Admin username:** Configurable vía variable de entorno `ADMIN_USERNAME` (dev default: `"admin"`). No hardcodeado en el código de seed. Validación: si está vacío, el seed se aborta con error.
+* **Admin username:** Configurable vía variable de entorno `NEXUS_ADMIN_USERNAME` (dev default: `"admin"`). No hardcodeado en el código de seed. Validación: si está vacío, el seed se aborta con error.
+* **Namespace `NEXUS_`:** Todas las variables de entorno del proyecto usan el prefijo `NEXUS_` para evitar colisiones con variables del sistema o de otras aplicaciones (ej: `NEXUS_ENV`, `NEXUS_DATABASE_URL`).
 
 ### 2.7 Control de Acceso Basado en Roles (RBAC)
 * **Regla:** Todos los endpoints sensibles (excepto login y health check) requieren validación JWT y rol verificado.
@@ -157,6 +158,7 @@ El sistema (y los agentes de IA) deben verificar automáticamente los siguientes
 * [ ] La contraseña no se reenvía en `form_data` del formulario de creación de usuario (OWASP).
 * [ ] El formulario de creación de usuario incluye confirmación de contraseña y validación en tiempo real.
 * [ ] Los errores RAG no exponen detalles internos al usuario; se devuelve mensaje genérico y se loguea el error real.
+* [ ] Los errores de health check no exponen URLs internas ni cadenas de conexión; se devuelve mensaje genérico y se loguea el error real.
 
 ---
 
@@ -197,9 +199,9 @@ Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP de
 
 ## 8. Estado del Documento
 * **Versión:** MVP 1.0  
-* **Última actualización:** 20 de Julio de 2026  
+* **Última actualización:** 21 de Julio de 2026  
 * **Responsable:** Arquitectura de Seguridad Nexus Insight  
-* **Cambios:** Añadidas invariantes 2.11 (rate limiting), 2.12 (CSP), 2.13 (password complexity), 2.14 (DOMPurify XSS), 2.15 (MIME subida web). Renumeradas 2.11→2.16, 2.14→2.16. Añadido `'unsafe-eval'` a CSP por HTMX hx-on.
+* **Cambios:** Añadidas invariantes 2.6 (namespace NEXUS_), 2.11 (rate limiting), 2.12 (CSP), 2.13 (password complexity), 2.14 (DOMPurify XSS), 2.15 (MIME subida web). Renumeradas 2.11→2.16, 2.14→2.16. Añadido `'unsafe-eval'` a CSP por HTMX hx-on. Añadidos checklist OWASP (password en form_data, confirmación pw, validación tiempo real).
 
 ---
 **All Rights Reserved.** Copyright © 2026 Khora Nexus Insight. Este documento es parte de un TFM y no puede ser reproducido sin autorización.

@@ -55,6 +55,7 @@ The application code lives inside `src/`. Business domains must be completely de
 * **Explicit Imports:** Never use wildcard imports (`from module import *`).
 * **Explicit Package Safety:** When introducing or changing any Python third-party dependency, you **MUST append a reminder at the end of your response text instructing the user to run:** `pip freeze | grep -i <paquete> >> requirements.txt`. If environment mismatches occur, remind the user to clear pip cache or refresh the virtual environment (`python -m venv venv`).
 * **Git Control:** Each milestone follows: `git checkout -b feat/hX-nombre` → TDD (RED→GREEN→REFACTOR) → commits atómicos con [conventional commits](https://www.conventionalcommits.org/) → PR a `main` → `git tag -a hX -m "Hito X: descripción"`.
+* **Rebase antes de PR:** Toda rama debe hacer `git rebase main` antes de solicitar PR para garantizar que está actualizada y que los tests pasan con los últimos cambios. Si hay conflictos, se resuelven en la rama, no en `main`.
 * **Pre-commit/Pre-push:** Ejecutar `pre-commit install` (lint + format) y `pre-commit install --hook-type pre-push` (tests) tras clonar el repo.
 * **Single-Command Deployment:** Docker setups must allow the professor to completely launch the API, database, and background processes using exclusively: `docker compose up --build`.
 
@@ -89,6 +90,7 @@ Every technical implementation must lay the groundwork to perfectly populate the
 3.  **Command Reminders:** Output package and version freeze commands whenever changes occur.
 4.  **Second Vigilance (AI + Human):** This workflow applies equally to human developers and AI agents. Every change acts as a second pair of eyes, ensuring quality, SDD, TDD, and SSDLC compliance at all times.
 5.  **Living Documentation (DoD):** No hito se cierra sin revisar y sincronizar los tres documentos vivos (`README.md`, `SPEC.md`, `SECURITY.md`). La documentación desactualizada se considera deuda técnica al mismo nivel que el código sin testar.
+6.  **Rebase Before PR:** Toda rama debe hacer `git rebase main` antes de solicitar PR. Si hay conflictos, se resuelven en la rama, no en `main`.
 
 ---
 

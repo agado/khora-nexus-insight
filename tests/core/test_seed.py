@@ -102,7 +102,7 @@ class TestSeedDatabase:
 
 class TestSeedProductionMode:
     def test_is_production_true(self):
-        with patch.dict(os.environ, {"ENV": "production"}):
+        with patch.dict(os.environ, {"NEXUS_ENV": "production"}):
             assert _is_production() is True
 
     def test_is_production_false_when_not_set(self):
@@ -125,7 +125,7 @@ class TestSeedProductionMode:
             assert _resolve_admin_password() == "file_secret"
 
     def test_seed_prod_creates_only_admin(self, session: Session):
-        with patch.dict(os.environ, {"ENV": "production", "ADMIN_PASSWORD": "prod_pw"}):
+        with patch.dict(os.environ, {"NEXUS_ENV": "production", "ADMIN_PASSWORD": "prod_pw"}):
             seed_database(session)
         depts = session.execute(select(Department)).scalars().all()
         assert len(depts) == len(SEED_DEPARTMENTS)
