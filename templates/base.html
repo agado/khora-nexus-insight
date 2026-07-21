@@ -11,63 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
     <script src="/static/js/main.js" defer></script>
-    <script>
-        document.addEventListener('htmx:afterSwap', function(evt) {
-            document.querySelectorAll('.markdown-body').forEach(function(el) {
-                if (!el.dataset.rendered) {
-                    el.innerHTML = DOMPurify.sanitize(marked.parse(el.textContent));
-                    el.dataset.rendered = 'true';
-                }
-            });
-        });
-
-        document.addEventListener('htmx:afterSwap', function(evt) {
-            if (typeof DOMPurify === 'undefined') return;
-            document.querySelectorAll('a[href]').forEach(function(el) {
-                if (!el.rel) el.rel = 'noopener noreferrer';
-            });
-        });
-
-        document.addEventListener('click', function(evt) {
-            var btn = evt.target.closest('.nexus-btn-copy');
-            if (!btn) return;
-            var answer = btn.closest('.nexus-result-answer');
-            if (!answer) return;
-            var body = answer.querySelector('.markdown-body');
-            if (!body) return;
-            navigator.clipboard.writeText(body.textContent).then(function() {
-                var container = document.getElementById('toast-container');
-                if (!container) return;
-                var toast = document.createElement('div');
-                toast.className = 'nexus-toast nexus-toast-success';
-                toast.textContent = 'Copiado al portapapeles';
-                container.appendChild(toast);
-                setTimeout(function() { toast.remove(); }, 4000);
-            });
-        });
-
-        document.addEventListener('input', function(evt) {
-            if (!evt.target.matches('.nexus-doc-filter')) return;
-            var filter = evt.target.value.toLowerCase();
-            var select = document.getElementById('document_ids');
-            if (!select) return;
-            for (var i = 0; i < select.options.length; i++) {
-                var opt = select.options[i];
-                opt.style.display = opt.text.toLowerCase().includes(filter) ? '' : 'none';
-            }
-        });
-
-        document.addEventListener('click', function(evt) {
-            var pill = evt.target.closest('.nexus-pill');
-            if (!pill) return;
-            var pills = pill.closest('.nexus-pills');
-            if (!pills) return;
-            pills.querySelectorAll('.nexus-pill').forEach(function(p) {
-                p.classList.remove('active');
-            });
-            pill.classList.add('active');
-        });
-    </script>
 </head>
 <body>
     <nav class="nexus-navbar">
