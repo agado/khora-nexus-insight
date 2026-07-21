@@ -263,7 +263,6 @@ async def web_create_user(
                 "session_user": _user,
                 "form_data": {
                     "username": form.get("username", ""),
-                    "password": form.get("password", ""),
                     "role": form.get("role", ""),
                     "department_id": form.get("department_id", ""),
                     "accessible_department_ids": [
