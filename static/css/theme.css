@@ -566,6 +566,12 @@ body {
 .nexus-doc-filter-input {
   margin-bottom: 0.25rem;
 }
+.nexus-hint {
+  display: block;
+  color: var(--nexus-text-secondary);
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+}
 
 .nexus-logs-details {
   font-size: 0.8125rem;

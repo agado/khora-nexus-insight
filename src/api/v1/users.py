@@ -238,7 +238,20 @@ async def web_create_user(
         return templates.TemplateResponse(
             request,
             "_user_form.html",
-            {"departments": depts, "error": str(exc), "session_user": _user},
+            {
+                "departments": depts,
+                "error": str(exc),
+                "session_user": _user,
+                "form_data": {
+                    "username": form.get("username", ""),
+                    "password": form.get("password", ""),
+                    "role": form.get("role", ""),
+                    "department_id": form.get("department_id", ""),
+                    "accessible_department_ids": [
+                        int(x) for x in form.getlist("accessible_department_ids") if x.strip()
+                    ],
+                },
+            },
         )
     await log_action(
         db,
