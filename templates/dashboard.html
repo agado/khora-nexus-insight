@@ -13,12 +13,4 @@
 </div>
 
 <div id="tab-content" class="nexus-card" hx-get="/web/query" hx-trigger="load" hx-swap="innerHTML"></div>
-<script>
-(function() {
-    var pills = document.querySelector('.nexus-pills');
-    if (!pills) return;
-    var consultar = pills.querySelector('[hx-get="/web/query"]');
-    if (consultar) consultar.classList.add('active');
-})();
-</script>
 {% endblock %}
