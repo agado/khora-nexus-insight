@@ -572,6 +572,22 @@ body {
   margin-top: 0.25rem;
   font-size: 0.8rem;
 }
+.nexus-pw-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+}
+.pw-req {
+  color: var(--nexus-text-secondary);
+}
+.pw-ok {
+  color: #059669;
+}
+.nexus-pw-match {
+  margin-top: 0.1rem;
+}
 
 .nexus-logs-details {
   font-size: 0.8125rem;
