@@ -1,9 +1,10 @@
 import pytest
 import pytest_asyncio
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.core.models import Base, Department, User
-from src.core.services.user_service import create_user, reset_password
+from src.core.models import Base, Department, User, user_department
+from src.core.services.user_service import create_user, reset_password, update_user
 
 
 @pytest_asyncio.fixture
@@ -63,3 +64,32 @@ class TestResetPasswordPasswordValidation:
     async def test_reset_password_strong_password_succeeds(self, db_session):
         ok = await reset_password(db_session, user_id=1, new_password="Strong1!")
         assert ok is True
+
+
+@pytest.mark.asyncio
+class TestUpdateUserAccessibleDepartments:
+    """Regression: verifies update_user persists accessible_department_ids (missing await bug)."""
+
+    async def test_update_user_persists_accessible_departments(self, db_session):
+        dept2 = Department(name="HR")
+        db_session.add(dept2)
+        await db_session.flush()
+
+        user = await update_user(
+            db=db_session,
+            user_id=1,
+            username="admin",
+            role="admin",
+            department_id=1,
+            accessible_department_ids=[1, dept2.id],
+        )
+        assert user is not None
+
+        result = await db_session.execute(
+            select(user_department.c.department_id).where(user_department.c.user_id == user.id)
+        )
+        saved_ids = {row[0] for row in result.fetchall()}
+        assert saved_ids == {1, dept2.id}, (
+            f"Expected {{1, {dept2.id}}}, got {saved_ids}. "
+            "Bug: missing await in db.execute prevents persisting accessible departments."
+        )
