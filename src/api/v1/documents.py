@@ -23,6 +23,16 @@ router = APIRouter(prefix="/api/v1/documents")
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
+def _validate_file(content: bytes, target_department: int, accessible: list[int]) -> str | None:
+    if len(content) > MAX_FILE_SIZE:
+        return "File too large (max 10 MB)"
+    if not content.startswith(b"%PDF"):
+        return "Invalid file type. Only PDF files are allowed."
+    if target_department not in accessible:
+        return "You do not have access to this department"
+    return None
+
+
 class DocumentResponse(BaseModel):
     id: int
     filename: str
@@ -59,22 +69,12 @@ async def upload(
     db: AsyncSession = Depends(get_session),
 ):
     content = await file.read()
-    if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
-
-    if not content.startswith(b"%PDF"):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid file type. Only PDF files are allowed.",
-        )
-
     target_department = department_id or _user.get("department_id")
     accessible = _user.get("accessible_departments", [])
-    if target_department not in accessible:
-        raise HTTPException(
-            status_code=403,
-            detail="You do not have access to this department",
-        )
+    error = _validate_file(content, target_department, accessible)
+    if error:
+        status_code = 413 if "large" in error else 400
+        raise HTTPException(status_code=status_code, detail=error)
 
     try:
         doc = await upload_document(
