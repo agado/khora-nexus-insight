@@ -348,8 +348,23 @@ async def web_reset_password(
     if isinstance(_user, Response):
         return _user
     form = await request.form()
+    new_password = form["new_password"]
+    if new_password != form.get("password_confirm", ""):
+        edit_user = await get_user_by_id(db, user_id)
+        if not edit_user:
+            return HTMLResponse(status_code=404, content="User not found")
+        return templates.TemplateResponse(
+            request,
+            "_reset_password_form.html",
+            {
+                "user_id": user_id,
+                "username": edit_user.username,
+                "session_user": _user,
+                "error": "Las contraseñas no coinciden.",
+            },
+        )
     try:
-        ok = await reset_password(db, user_id, form["new_password"])
+        ok = await reset_password(db, user_id, new_password)
     except ValueError as exc:
         edit_user = await get_user_by_id(db, user_id)
         if not edit_user:
