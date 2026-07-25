@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -7,6 +9,8 @@ from src.core.auth.security import hash_password, validate_password_complexity
 from src.core.models import Department, User, user_department
 
 VALID_ROLES = frozenset(ROLE_LEVELS.keys())
+
+logger = logging.getLogger("nexus")
 
 
 async def list_users(db: AsyncSession) -> list[dict]:
@@ -46,6 +50,7 @@ async def create_user(
 
     existing = await db.execute(select(User).where(User.username == username))
     if existing.scalar_one_or_none():
+        logger.warning("Create user failed: username already exists username=%s", username)
         raise ValueError("Username already exists")
 
     user = User(
@@ -60,20 +65,26 @@ async def create_user(
     for dept_id in accessible_department_ids:
         await db.execute(user_department.insert().values(user_id=user.id, department_id=dept_id))
     await db.flush()
+    logger.info("User created: id=%s username=%s role=%s", user.id, username, role)
     return user
 
 
 async def delete_user(db: AsyncSession, user_id: int, current_user_id: int) -> bool:
     if user_id == current_user_id:
+        logger.warning("Self-deletion attempt: user_id=%s", user_id)
         raise ValueError("Cannot delete yourself")
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
+        logger.warning("Delete failed: user not found id=%s", user_id)
         return False
 
     await db.delete(user)
     await db.flush()
+    logger.info(
+        "User deleted: id=%s username=%s by_user=%s", user_id, user.username, current_user_id
+    )
     return True
 
 
@@ -86,6 +97,7 @@ async def reset_password(db: AsyncSession, user_id: int, new_password: str) -> b
 
     user.hashed_password = hash_password(new_password)
     await db.flush()
+    logger.info("Password reset: user_id=%s", user_id)
     return True
 
 
@@ -118,6 +130,11 @@ async def update_user(
 
     existing = await db.execute(select(User).where(User.username == username, User.id != user_id))
     if existing.scalar_one_or_none():
+        logger.warning(
+            "Update user failed: username already exists user_id=%s new_username=%s",
+            user_id,
+            username,
+        )
         raise ValueError("Username already exists")
 
     user.username = username
@@ -129,4 +146,7 @@ async def update_user(
         await db.execute(user_department.insert().values(user_id=user_id, department_id=dept_id))
 
     await db.flush()
+    logger.info(
+        "User updated: id=%s username=%s role=%s dept=%s", user_id, username, role, department_id
+    )
     return user

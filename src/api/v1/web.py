@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.v1.documents import _validate_file
 from src.core.auth.rbac import require_web_min_level, require_web_user
 from src.core.config import settings as app_settings
 from src.core.database import get_session
@@ -97,19 +98,14 @@ async def web_upload(
     if isinstance(_user, Response):
         return _user
     content = await file.read()
-    if not content.startswith(b"%PDF"):
-        return templates.TemplateResponse(
-            request,
-            "_upload_form.html",
-            {"session_user": _user, "error": "Formato inválido. Solo se permiten archivos PDF."},
-        )
     target_department = _user.get("department_id")
     accessible = _user.get("accessible_departments", [])
-    if target_department not in accessible:
+    error = _validate_file(content, target_department, accessible)
+    if error:
         return templates.TemplateResponse(
             request,
             "_upload_form.html",
-            {"session_user": _user, "error": "Departamento no accesible"},
+            {"session_user": _user, "error": error},
         )
 
     try:

@@ -1,5 +1,3 @@
-import re
-
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,21 +14,6 @@ class RagQueryError(Exception):
 
 
 MAX_CONTEXT_CHARS = 4000
-
-_PREFIX_PATTERNS = [
-    re.compile(
-        r"^(Claro|Por supuesto|Aquí tienes|Aquí está|Te ayudo|Te respondo)[^:]*:?\s*", re.IGNORECASE
-    ),
-    re.compile(r"^(Sí|Si),?\s+", re.IGNORECASE),
-    re.compile(r"^(De acuerdo|Entendido),?\s+", re.IGNORECASE),
-    re.compile(r"^¡(Claro|Por supuesto)!?\s*", re.IGNORECASE),
-]
-
-
-def _clean_response(text: str) -> str:
-    for pattern in _PREFIX_PATTERNS:
-        text = pattern.sub("", text)
-    return text.strip()
 
 
 def _sanitize(text: str) -> str:
@@ -136,7 +119,7 @@ async def execute_query(
                 },
             )
         resp.raise_for_status()
-        answer = _clean_response(resp.json().get("response", ""))
+        answer = resp.json().get("response", "").strip()
     except httpx.ConnectError as exc:
         raise RagConnectionError(
             "No se pudo conectar con el motor de IA (Ollama). "
