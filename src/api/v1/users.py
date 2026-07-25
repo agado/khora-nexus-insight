@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, Request, Response
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -85,7 +85,7 @@ async def api_create_user(
             accessible_department_ids=body.accessible_department_ids,
         )
     except ValueError as exc:
-        return HTMLResponse(status_code=409, content=str(exc))
+        return JSONResponse(status_code=409, content={"detail": str(exc)})
     await log_action(
         db,
         action="create_user",
@@ -110,9 +110,9 @@ async def api_delete_user(
     try:
         deleted = await delete_user(db, user_id, current_user_id=_user["user_id"])
     except ValueError as exc:
-        return HTMLResponse(status_code=409, content=str(exc))
+        return JSONResponse(status_code=409, content={"detail": str(exc)})
     if not deleted:
-        return HTMLResponse(status_code=404, content="User not found")
+        return JSONResponse(status_code=404, content={"detail": "User not found"})
     await log_action(
         db,
         action="delete_user",
@@ -131,9 +131,9 @@ async def api_reset_password(
     try:
         ok = await reset_password(db, user_id, body.new_password)
     except ValueError as exc:
-        return HTMLResponse(status_code=409, content=str(exc))
+        return JSONResponse(status_code=409, content={"detail": str(exc)})
     if not ok:
-        return HTMLResponse(status_code=404, content="User not found")
+        return JSONResponse(status_code=404, content={"detail": "User not found"})
     await log_action(
         db,
         action="reset_password",
@@ -161,8 +161,8 @@ async def api_update_user(
     except ValueError as exc:
         msg = str(exc)
         if "not found" in msg:
-            return HTMLResponse(status_code=404, content=msg)
-        return HTMLResponse(status_code=409, content=msg)
+            return JSONResponse(status_code=404, content={"detail": msg})
+        return JSONResponse(status_code=409, content={"detail": msg})
     await log_action(
         db,
         action="update_user",
