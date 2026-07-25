@@ -126,7 +126,7 @@ async def update_user(
 
     await db.execute(sa_delete(user_department).where(user_department.c.user_id == user_id))
     for dept_id in accessible_department_ids:
-        db.execute(user_department.insert().values(user_id=user_id, department_id=dept_id))
+        await db.execute(user_department.insert().values(user_id=user_id, department_id=dept_id))
 
     await db.flush()
     return user
