@@ -111,6 +111,14 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 * **Regla:** El contenido de los documentos procesados en memoria RAM no debe persistir en el ciclo de vida del backend más allá de lo estrictamente necesario para el parsing.
 * **Implementación:** Forzar la liberación o sobreescritura de buffers en memoria una vez que el texto ha sido extraído y enviado al flujo de inferencia.
 
+### 2.17 Sanitización de Errores en Respuestas (OWASP A05:2021)
+* **Regla:** Los mensajes de error expuestos al usuario no deben contener detalles internos del sistema (URLs, cadenas de conexión, stack traces, nombres de servicios). El error real debe registrarse en logs.
+* **Implementación:**
+  * **Health check:** `str(e)` en `health_service.py` se reemplaza por mensajes genéricos (`"Database connection failed"`, `"Ollama service unreachable"`). El error real se loggea con `logger.exception`.
+  * **RAG query:** `str(exc)` en `web.py` se reemplaza por `"Error al procesar la consulta."`. El error real se loggea con `logger.warning`.
+  * **API JSON:** Los errores en endpoints `/api/v1/*` devuelven `JSONResponse` con cuerpo `{"detail": "<mensaje>"}` y `Content-Type: application/json`, sin exponer trazas internas.
+* **Test:** Verificación manual de que los errores no exponen información interna del sistema.
+
 ---
 
 ## 3. Observabilidad (Logs Estructurados)
@@ -199,9 +207,9 @@ Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP de
 
 ## 8. Estado del Documento
 * **Versión:** MVP 1.0  
-* **Última actualización:** 21 de Julio de 2026  
+* **Última actualización:** 25 de Julio de 2026  
 * **Responsable:** Arquitectura de Seguridad Nexus Insight  
-* **Cambios:** Añadidas invariantes 2.6 (namespace NEXUS_), 2.11 (rate limiting), 2.12 (CSP), 2.13 (password complexity), 2.14 (DOMPurify XSS), 2.15 (MIME subida web). Renumeradas 2.11→2.16, 2.14→2.16. Añadido `'unsafe-eval'` a CSP por HTMX hx-on. Añadidos checklist OWASP (password en form_data, confirmación pw, validación tiempo real).
+* **Cambios:** Añadidas invariantes 2.6 (namespace NEXUS_), 2.11 (rate limiting), 2.12 (CSP), 2.13 (password complexity), 2.14 (DOMPurify XSS), 2.15 (MIME subida web), 2.17 (sanitización errores OWASP). Renumeradas 2.11→2.16, 2.14→2.16. Añadido `'unsafe-eval'` a CSP por HTMX hx-on. Añadidos checklist OWASP (password en form_data, confirmación pw, validación tiempo real, errores RAG genéricos, errores health genéricos).
 
 ---
 **All Rights Reserved.** Copyright © 2026 Khora Nexus Insight. Este documento es parte de un TFM y no puede ser reproducido sin autorización.

@@ -22,6 +22,7 @@ Para mitigar vectores de ataque y garantizar el aislamiento perimetral, el backe
 * Enrutadores completamente versionados bajo el prefijo `/api/v1/`.
 * Control de ciclo de vida asíncrono de las peticiones mediante Uvicorn.
 * Inyección de dependencias nativa para validación de contratos de entrada/salida.
+* Todos los errores en endpoints `/api/v1/*` se devuelven como `JSONResponse` con cuerpo `{"detail": "<mensaje>"}` y `Content-Type: application/json`. Nunca se exponen stack traces ni detalles internos del sistema.
 
 ### 3.2 Capa Core (Núcleo)
 * **Configuración:** Gestión centralizada y tipada de variables de entorno mediante `Pydantic Settings`. Todas las variables usan el prefijo `NEXUS_` para evitar colisiones. `COMPANY_NAME` por defecto usa valor agnóstico ("Your Company").
