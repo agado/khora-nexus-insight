@@ -97,8 +97,9 @@ cd nexus-insight
 
 ```bash
 cp .env.example .env
-# Abre .env y personaliza al menos JWT_SECRET (dev) o PROD_JWT_SECRET (prod)
 ```
+
+Abre `.env` y personaliza al menos `JWT_SECRET` (desarrollo) o `PROD_JWT_SECRET` (producción).
 
 2. Preparar el entorno Python local (necesario para herramientas de desarrollo: hooks, lint, tests)
 <details>
@@ -458,12 +459,10 @@ pre-commit install --hook-type pre-push  # hook pre-push (tests)
 git clone https://github.com/agado/khora-nexus-insight.git
 cd khora-nexus-insight
 cp .env.example .env
-# ⚠️ Edita .env antes de arrancar: personaliza JWT_SECRET (desarrollo)
-#    o PROD_JWT_SECRET (producción). El valor por defecto es inseguro.
 docker compose up --build
-# Abrir http://localhost:8000
-# Credenciales: admin / admin123
 ```
+
+> ⚠️ Edita `.env` antes de arrancar: personaliza `JWT_SECRET` (desarrollo) o `PROD_JWT_SECRET` (producción). El valor por defecto es inseguro y en producción la app no arrancará.
 
 ### Opción 2: GitHub Codespaces (gratuito, sin instalación local)
 
