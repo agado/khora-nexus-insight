@@ -225,6 +225,17 @@ async def web_create_user(
     if isinstance(_user, Response):
         return _user
     form = await request.form()
+
+    def _form_data() -> dict:
+        return {
+            "username": form.get("username", ""),
+            "role": form.get("role", ""),
+            "department_id": form.get("department_id", ""),
+            "accessible_department_ids": [
+                int(x) for x in form.getlist("accessible_department_ids") if x.strip()
+            ],
+        }
+
     if form["password"] != form.get("password_confirm", ""):
         depts = await get_departments(db)
         return templates.TemplateResponse(
@@ -234,17 +245,11 @@ async def web_create_user(
                 "departments": depts,
                 "error": "Las contraseñas no coinciden.",
                 "session_user": _user,
-                "form_data": {
-                    "username": form.get("username", ""),
-                    "role": form.get("role", ""),
-                    "department_id": form.get("department_id", ""),
-                    "accessible_department_ids": [
-                        int(x) for x in form.getlist("accessible_department_ids") if x.strip()
-                    ],
-                },
+                "form_data": _form_data(),
             },
         )
-    ids = [int(x) for x in form.getlist("accessible_department_ids") if x.strip()]
+    data = _form_data()
+    ids = data["accessible_department_ids"]
     try:
         user = await create_user(
             db=db,
@@ -263,14 +268,7 @@ async def web_create_user(
                 "departments": depts,
                 "error": str(exc),
                 "session_user": _user,
-                "form_data": {
-                    "username": form.get("username", ""),
-                    "role": form.get("role", ""),
-                    "department_id": form.get("department_id", ""),
-                    "accessible_department_ids": [
-                        int(x) for x in form.getlist("accessible_department_ids") if x.strip()
-                    ],
-                },
+                "form_data": _form_data(),
             },
         )
     await log_action(
