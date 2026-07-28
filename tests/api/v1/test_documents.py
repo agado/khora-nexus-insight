@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.auth.jwt import create_access_token
 from src.core.database import get_session
@@ -47,9 +48,15 @@ def _lead_token() -> str:
 
 @pytest.fixture
 def client():
-    mock_session = AsyncMock()
-    mock_session.add.return_value = None
-    app.dependency_overrides[get_session] = lambda: mock_session
+    mock_session = AsyncMock(spec=AsyncSession)
+    mock_session.add = MagicMock()
+    mock_session.__aenter__ = MagicMock(return_value=mock_session)
+    mock_session.__aexit__ = MagicMock()
+
+    async def _override_get_session():
+        yield mock_session
+
+    app.dependency_overrides[get_session] = _override_get_session
     yield TestClient(app)
     app.dependency_overrides.pop(get_session, None)
 
