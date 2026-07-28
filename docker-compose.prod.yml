@@ -53,6 +53,8 @@ services:
     image: ollama/ollama:latest
     container_name: nexus_ollama
     restart: always
+    mem_limit: 4g
+    cpus: "2.0"
     # 🔒 SSDLC: Sin mapeo de puertos hacia el exterior. Aislado en la red interna.
     volumes:
       - ollama_storage:/root/.ollama
