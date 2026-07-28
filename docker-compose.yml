@@ -47,6 +47,8 @@ services:
   ollama_service:
     image: ollama/ollama:latest
     container_name: nexus_ollama_dev
+    mem_limit: 4g
+    cpus: "2.0"
     ports:
       - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
     volumes:
