@@ -19,6 +19,10 @@ ENV/
 .idea/
 .DS_Store
 
+# Ignorar artefactos runtime
+token.txt
+cookies.txt
+
 # Ignorar cachés y reportes de tests
 **/__pycache__/
 *.pyc

@@ -328,8 +328,22 @@ class TestResetPassword:
         ):
             mock_reset.return_value = True
             mock_list.return_value = []
-            response = auth_client.post(self.WEB, data={"new_password": "newpass123"})
+            response = auth_client.post(
+                self.WEB, data={"new_password": "newpass123", "password_confirm": "newpass123"}
+            )
         assert response.status_code == 200
+
+    def test_web_reset_password_mismatch_shows_error(self, auth_client):
+        with (
+            patch("src.api.v1.users.get_user_by_id", new_callable=AsyncMock) as mock_get,
+        ):
+            mock_get.return_value = MagicMock(id=2, username="testuser")
+            response = auth_client.post(
+                self.WEB,
+                data={"new_password": "newpass123", "password_confirm": "different"},
+            )
+        assert response.status_code == 200
+        assert "Las contraseñas no coinciden." in response.text
 
 
 class TestUpdateUser:
