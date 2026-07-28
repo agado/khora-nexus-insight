@@ -1,4 +1,5 @@
 import logging
+import os
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -14,6 +15,7 @@ class Settings(BaseSettings):
     jwt_expiration_minutes: int = 30
     admin_username: str = "admin"
     company_name: str = "Your Company"
+    nexus_env: str = "development"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -21,9 +23,15 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-def check_jwt_secret() -> None:
+def check_jwt_secret(env: str | None = None) -> None:
     if settings.jwt_secret == _DEFAULT_JWT_SECRET:
+        actual_env = env if env is not None else os.environ.get("NEXUS_ENV", "development").lower()
         logger = logging.getLogger("nexus")
+        if actual_env == "production":
+            raise RuntimeError(
+                "JWT_SECRET no puede ser el valor por defecto en producción. "
+                "Establece JWT_SECRET en .env o variables de entorno."
+            )
         logger.warning(
             "JWT_SECRET usando valor por defecto (inseguro para producción). "
             "Establece JWT_SECRET en .env o variables de entorno."
