@@ -92,8 +92,12 @@ cd nexus-insight
 ```
 
 1. Configurar variables de entorno
+
+> **IMPORTANTE:** Edita `.env` con tus valores reales. Por defecto incluye credenciales de desarrollo inseguras (ver `check_jwt_secret()`). En producción, `nexus.py prod` valida que `PROD_JWT_SECRET` esté definida y no sea el valor por defecto.
+
 ```bash
 cp .env.example .env
+# Abre .env y personaliza al menos JWT_SECRET (dev) o PROD_JWT_SECRET (prod)
 ```
 
 2. Preparar el entorno Python local (necesario para herramientas de desarrollo: hooks, lint, tests)
@@ -454,6 +458,8 @@ pre-commit install --hook-type pre-push  # hook pre-push (tests)
 git clone https://github.com/agado/khora-nexus-insight.git
 cd khora-nexus-insight
 cp .env.example .env
+# ⚠️ Edita .env antes de arrancar: personaliza JWT_SECRET (desarrollo)
+#    o PROD_JWT_SECRET (producción). El valor por defecto es inseguro.
 docker compose up --build
 # Abrir http://localhost:8000
 # Credenciales: admin / admin123
