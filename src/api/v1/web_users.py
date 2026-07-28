@@ -1,16 +1,13 @@
 import logging
 
 from fastapi import APIRouter, Depends, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse
-from pydantic import BaseModel, field_validator
+from fastapi.responses import HTMLResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.auth.rbac import (
-    ROLE_LEVELS,
-    require_min_level,
-    require_web_min_level,
-)
+from src.core.auth.rbac import require_web_min_level
 from src.core.database import get_session
+from src.core.models import User
 from src.core.services.audit_service import log_action
 from src.core.services.user_service import (
     create_user,
@@ -24,167 +21,10 @@ from src.core.services.user_service import (
 from src.main import templates
 
 logger = logging.getLogger("nexus")
-api_router = APIRouter(prefix="/api/v1/admin/users", tags=["admin"])
-web_router = APIRouter(prefix="/web", tags=["admin-web"])
+router = APIRouter(prefix="/web", tags=["admin-web"])
 
 
-def _validate_role_value(v: str) -> str:
-    if v not in ROLE_LEVELS:
-        raise ValueError(f"Invalid role: {v}. Valid: {sorted(ROLE_LEVELS)}")
-    return v
-
-
-class CreateUserRequest(BaseModel):
-    username: str
-    password: str
-    role: str
-    department_id: int
-    accessible_department_ids: list[int]
-
-    @field_validator("role")
-    @classmethod
-    def _validate_role(cls, v: str) -> str:
-        return _validate_role_value(v)
-
-
-class ResetPasswordRequest(BaseModel):
-    new_password: str
-
-
-class UpdateUserRequest(BaseModel):
-    username: str
-    role: str
-    department_id: int
-    accessible_department_ids: list[int]
-
-    @field_validator("role")
-    @classmethod
-    def _validate_role(cls, v: str) -> str:
-        return _validate_role_value(v)
-
-
-@api_router.get("")
-async def api_list_users(
-    _user=Depends(require_min_level(3)),
-    db: AsyncSession = Depends(get_session),
-):
-    return await list_users(db)
-
-
-@api_router.post("", status_code=201)
-async def api_create_user(
-    body: CreateUserRequest,
-    _user=Depends(require_min_level(3)),
-    db: AsyncSession = Depends(get_session),
-):
-    try:
-        user = await create_user(
-            db=db,
-            username=body.username,
-            password=body.password,
-            role=body.role,
-            department_id=body.department_id,
-            accessible_department_ids=body.accessible_department_ids,
-        )
-    except ValueError as exc:
-        return JSONResponse(status_code=409, content={"detail": str(exc)})
-    await log_action(
-        db,
-        action="create_user",
-        user_id=_user["user_id"],
-        metadata={"username": user.username, "role": user.role},
-    )
-    return {
-        "id": user.id,
-        "username": user.username,
-        "role": user.role,
-        "department_id": user.department_id,
-        "created_at": user.created_at.isoformat() if user.created_at else "",
-    }
-
-
-@api_router.delete("/{user_id}", status_code=204)
-async def api_delete_user(
-    user_id: int,
-    _user=Depends(require_min_level(3)),
-    db: AsyncSession = Depends(get_session),
-):
-    try:
-        deleted = await delete_user(db, user_id, current_user_id=_user["user_id"])
-    except ValueError as exc:
-        return JSONResponse(status_code=409, content={"detail": str(exc)})
-    if not deleted:
-        return JSONResponse(status_code=404, content={"detail": "User not found"})
-    await log_action(
-        db,
-        action="delete_user",
-        user_id=_user["user_id"],
-        metadata={"user_id": user_id},
-    )
-
-
-@api_router.post("/{user_id}/reset-password")
-async def api_reset_password(
-    user_id: int,
-    body: ResetPasswordRequest,
-    _user=Depends(require_min_level(3)),
-    db: AsyncSession = Depends(get_session),
-):
-    try:
-        ok = await reset_password(db, user_id, body.new_password)
-    except ValueError as exc:
-        return JSONResponse(status_code=409, content={"detail": str(exc)})
-    if not ok:
-        return JSONResponse(status_code=404, content={"detail": "User not found"})
-    await log_action(
-        db,
-        action="reset_password",
-        user_id=_user["user_id"],
-        metadata={"user_id": user_id},
-    )
-
-
-@api_router.put("/{user_id}")
-async def api_update_user(
-    user_id: int,
-    body: UpdateUserRequest,
-    _user=Depends(require_min_level(3)),
-    db: AsyncSession = Depends(get_session),
-):
-    try:
-        user = await update_user(
-            db=db,
-            user_id=user_id,
-            username=body.username,
-            role=body.role,
-            department_id=body.department_id,
-            accessible_department_ids=body.accessible_department_ids,
-        )
-    except ValueError as exc:
-        msg = str(exc)
-        if "not found" in msg:
-            return JSONResponse(status_code=404, content={"detail": msg})
-        return JSONResponse(status_code=409, content={"detail": msg})
-    await log_action(
-        db,
-        action="update_user",
-        user_id=_user["user_id"],
-        metadata={
-            "target_user_id": user_id,
-            "new_role": body.role,
-            "new_department_id": body.department_id,
-        },
-    )
-    return {
-        "id": user.id,
-        "username": user.username,
-        "role": user.role,
-        "department_id": user.department_id,
-        "created_at": user.created_at.isoformat() if user.created_at else "",
-    }
-
-
-@web_router.get("/users")
+@router.get("/users")
 async def web_list_users(
     request: Request,
     _user=Depends(require_web_min_level(3)),
@@ -200,7 +40,7 @@ async def web_list_users(
     )
 
 
-@web_router.get("/users/new")
+@router.get("/users/new")
 async def web_new_user_form(
     request: Request,
     _user=Depends(require_web_min_level(3)),
@@ -216,7 +56,7 @@ async def web_new_user_form(
     )
 
 
-@web_router.post("/users")
+@router.post("/users")
 async def web_create_user(
     request: Request,
     _user=Depends(require_web_min_level(3)),
@@ -285,7 +125,7 @@ async def web_create_user(
     )
 
 
-@web_router.post("/users/{user_id}/delete")
+@router.post("/users/{user_id}/delete")
 async def web_delete_user(
     user_id: int,
     request: Request,
@@ -314,7 +154,7 @@ async def web_delete_user(
     )
 
 
-@web_router.get("/users/{user_id}/reset-password")
+@router.get("/users/{user_id}/reset-password")
 async def web_reset_password_form(
     user_id: int,
     request: Request,
@@ -323,10 +163,6 @@ async def web_reset_password_form(
 ):
     if isinstance(_user, Response):
         return _user
-    from sqlalchemy import select
-
-    from src.core.models import User
-
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -338,7 +174,7 @@ async def web_reset_password_form(
     )
 
 
-@web_router.post("/users/{user_id}/reset-password")
+@router.post("/users/{user_id}/reset-password")
 async def web_reset_password(
     user_id: int,
     request: Request,
@@ -395,7 +231,7 @@ async def web_reset_password(
     )
 
 
-@web_router.get("/users/{user_id}/edit")
+@router.get("/users/{user_id}/edit")
 async def web_edit_user_form(
     user_id: int,
     request: Request,
@@ -421,7 +257,7 @@ async def web_edit_user_form(
     )
 
 
-@web_router.post("/users/{user_id}/edit")
+@router.post("/users/{user_id}/edit")
 async def web_edit_user(
     user_id: int,
     request: Request,

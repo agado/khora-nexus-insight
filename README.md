@@ -186,7 +186,8 @@ nexus-insight/
 │   │       ├── auth.py              ← login JWT
 │   │       ├── documents.py         ← CRUD documentos
 │   │       ├── health.py            ← health check
-│   │       ├── users.py             ← gestión usuarios web/API
+│   │       ├── api_users.py         ← API endpoints usuarios
+│   │       ├── web_users.py         ← Web endpoints usuarios
 │   │       ├── rag.py               ← endpoint RAG API
 │   │       └── web.py               ← frontend web (Jinja2/htmx)
 │   ├── core/
