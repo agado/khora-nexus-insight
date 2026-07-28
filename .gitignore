@@ -47,6 +47,7 @@ logs/
 
 # Runtime artifacts
 cookies.txt
+backups/
 
 # Editor & System Files
 .opencode
