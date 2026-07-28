@@ -28,6 +28,12 @@ api_router = APIRouter(prefix="/api/v1/admin/users", tags=["admin"])
 web_router = APIRouter(prefix="/web", tags=["admin-web"])
 
 
+def _validate_role_value(v: str) -> str:
+    if v not in ROLE_LEVELS:
+        raise ValueError(f"Invalid role: {v}. Valid: {sorted(ROLE_LEVELS)}")
+    return v
+
+
 class CreateUserRequest(BaseModel):
     username: str
     password: str
@@ -38,9 +44,7 @@ class CreateUserRequest(BaseModel):
     @field_validator("role")
     @classmethod
     def _validate_role(cls, v: str) -> str:
-        if v not in ROLE_LEVELS:
-            raise ValueError(f"Invalid role: {v}. Valid: {sorted(ROLE_LEVELS)}")
-        return v
+        return _validate_role_value(v)
 
 
 class ResetPasswordRequest(BaseModel):
@@ -56,9 +60,7 @@ class UpdateUserRequest(BaseModel):
     @field_validator("role")
     @classmethod
     def _validate_role(cls, v: str) -> str:
-        if v not in ROLE_LEVELS:
-            raise ValueError(f"Invalid role: {v}. Valid: {sorted(ROLE_LEVELS)}")
-        return v
+        return _validate_role_value(v)
 
 
 @api_router.get("")
