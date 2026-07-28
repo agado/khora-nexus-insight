@@ -19,80 +19,31 @@ SEED_DEPARTMENTS = [
 ]
 
 
+_ALL_DEPTS = ["IT", "RRHH", "PM", "Marketing", "Atención al Cliente", "Finanzas"]
+
+_SEED_USER_DEFS: list[tuple[str, str, str, str, list[str]]] = [
+    ("admin", "admin123", "admin", "IT", _ALL_DEPTS),
+    ("ceo", "ceo123", "admin", "IT", _ALL_DEPTS),
+    ("lead_it", "lead123", "lead", "IT", ["IT"]),
+    ("lead_hr", "lead123", "lead", "RRHH", ["RRHH"]),
+    ("lead_pm", "lead123", "lead", "PM", ["PM"]),
+    ("staff_it", "staff123", "staff", "IT", ["IT"]),
+    ("staff_hr", "staff123", "staff", "RRHH", ["RRHH"]),
+    ("staff_pm", "staff123", "staff", "PM", ["PM"]),
+]
+
+
 def _build_seed_users() -> list[dict]:
-    users = [
+    return [
         {
-            "username": settings.admin_username,
-            "password": "admin123",
-            "role": "admin",
-            "department_name": "IT",
-            "accessible_department_names": [
-                "IT",
-                "RRHH",
-                "PM",
-                "Marketing",
-                "Atención al Cliente",
-                "Finanzas",
-            ],
-        },
-        {
-            "username": "ceo",
-            "password": "ceo123",
-            "role": "admin",
-            "department_name": "IT",
-            "accessible_department_names": [
-                "IT",
-                "RRHH",
-                "PM",
-                "Marketing",
-                "Atención al Cliente",
-                "Finanzas",
-            ],
-        },
-        {
-            "username": "lead_it",
-            "password": "lead123",
-            "role": "lead",
-            "department_name": "IT",
-            "accessible_department_names": ["IT"],
-        },
-        {
-            "username": "lead_hr",
-            "password": "lead123",
-            "role": "lead",
-            "department_name": "RRHH",
-            "accessible_department_names": ["RRHH"],
-        },
-        {
-            "username": "lead_pm",
-            "password": "lead123",
-            "role": "lead",
-            "department_name": "PM",
-            "accessible_department_names": ["PM"],
-        },
-        {
-            "username": "staff_it",
-            "password": "staff123",
-            "role": "staff",
-            "department_name": "IT",
-            "accessible_department_names": ["IT"],
-        },
-        {
-            "username": "staff_hr",
-            "password": "staff123",
-            "role": "staff",
-            "department_name": "RRHH",
-            "accessible_department_names": ["RRHH"],
-        },
-        {
-            "username": "staff_pm",
-            "password": "staff123",
-            "role": "staff",
-            "department_name": "PM",
-            "accessible_department_names": ["PM"],
-        },
+            "username": settings.admin_username if name == "admin" else name,
+            "password": pw,
+            "role": role,
+            "department_name": dept,
+            "accessible_department_names": accessible,
+        }
+        for name, pw, role, dept, accessible in _SEED_USER_DEFS
     ]
-    return users
 
 
 def _get_department_id(session: Session, department_name: str) -> int:

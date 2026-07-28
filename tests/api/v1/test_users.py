@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.auth.jwt import create_access_token
 from src.core.database import get_session
@@ -37,9 +38,15 @@ def _staff_token() -> str:
 
 @pytest.fixture
 def client():
-    mock_session = AsyncMock()
-    mock_session.add.return_value = None
-    app.dependency_overrides[get_session] = lambda: mock_session
+    mock_session = AsyncMock(spec=AsyncSession)
+    mock_session.add = MagicMock()
+    mock_session.__aenter__ = MagicMock(return_value=mock_session)
+    mock_session.__aexit__ = MagicMock()
+
+    async def _override_get_session():
+        yield mock_session
+
+    app.dependency_overrides[get_session] = _override_get_session
     yield TestClient(app)
     app.dependency_overrides.pop(get_session, None)
 
@@ -65,7 +72,7 @@ class TestListUsers:
         assert response.status_code == 403
 
     def test_api_lists_users(self, client):
-        with patch("src.api.v1.users.list_users", new_callable=AsyncMock) as mock_list:
+        with patch("src.api.v1.api_users.list_users", new_callable=AsyncMock) as mock_list:
             mock_list.return_value = [
                 {
                     "id": 1,
@@ -87,8 +94,8 @@ class TestListUsers:
 
     def test_web_renders(self, auth_client):
         with (
-            patch("src.api.v1.users.list_users", new_callable=AsyncMock) as mock_list,
-            patch("src.api.v1.users.get_departments", new_callable=AsyncMock) as mock_depts,
+            patch("src.api.v1.web_users.list_users", new_callable=AsyncMock) as mock_list,
+            patch("src.api.v1.web_users.get_departments", new_callable=AsyncMock) as mock_depts,
         ):
             mock_list.return_value = []
             mock_depts.return_value = []
@@ -123,8 +130,8 @@ class TestCreateUser:
         mock_user.department_id = 1
 
         with (
-            patch("src.api.v1.users.create_user", new_callable=AsyncMock) as mock_create,
-            patch("src.api.v1.users.log_action", new_callable=AsyncMock),
+            patch("src.api.v1.api_users.create_user", new_callable=AsyncMock) as mock_create,
+            patch("src.api.v1.api_users.log_action", new_callable=AsyncMock),
         ):
             mock_create.return_value = mock_user
             response = client.post(
@@ -143,7 +150,7 @@ class TestCreateUser:
         assert data["username"] == "newuser"
 
     def test_api_duplicate_returns_409(self, client):
-        with patch("src.api.v1.users.create_user", new_callable=AsyncMock) as mock_create:
+        with patch("src.api.v1.api_users.create_user", new_callable=AsyncMock) as mock_create:
             mock_create.side_effect = ValueError("Username already exists")
             response = client.post(
                 self.API,
@@ -173,7 +180,7 @@ class TestCreateUser:
         assert response.status_code == 422
 
     def test_api_empty_accessible_departments_returns_409(self, client):
-        with patch("src.api.v1.users.create_user", new_callable=AsyncMock) as mock_create:
+        with patch("src.api.v1.api_users.create_user", new_callable=AsyncMock) as mock_create:
             mock_create.side_effect = ValueError(
                 "Debe seleccionar al menos un departamento accesible"
             )
@@ -209,9 +216,9 @@ class TestCreateUser:
         mock_user.username = "newuser"
 
         with (
-            patch("src.api.v1.users.create_user", new_callable=AsyncMock) as mock_create,
-            patch("src.api.v1.users.list_users", new_callable=AsyncMock) as mock_list,
-            patch("src.api.v1.users.log_action", new_callable=AsyncMock),
+            patch("src.api.v1.web_users.create_user", new_callable=AsyncMock) as mock_create,
+            patch("src.api.v1.web_users.list_users", new_callable=AsyncMock) as mock_list,
+            patch("src.api.v1.web_users.log_action", new_callable=AsyncMock),
         ):
             mock_create.return_value = mock_user
             mock_list.return_value = []
@@ -239,8 +246,8 @@ class TestDeleteUser:
 
     def test_api_deletes_user(self, client):
         with (
-            patch("src.api.v1.users.delete_user", new_callable=AsyncMock) as mock_delete,
-            patch("src.api.v1.users.log_action", new_callable=AsyncMock),
+            patch("src.api.v1.api_users.delete_user", new_callable=AsyncMock) as mock_delete,
+            patch("src.api.v1.api_users.log_action", new_callable=AsyncMock),
         ):
             mock_delete.return_value = True
             response = client.delete(
@@ -249,7 +256,7 @@ class TestDeleteUser:
         assert response.status_code == 204
 
     def test_api_delete_not_found(self, client):
-        with patch("src.api.v1.users.delete_user", new_callable=AsyncMock) as mock_delete:
+        with patch("src.api.v1.api_users.delete_user", new_callable=AsyncMock) as mock_delete:
             mock_delete.return_value = False
             response = client.delete(
                 self.API, headers={"Authorization": f"Bearer {_admin_token()}"}
@@ -257,7 +264,7 @@ class TestDeleteUser:
         assert response.status_code == 404
 
     def test_api_cannot_delete_self(self, client):
-        with patch("src.api.v1.users.delete_user", new_callable=AsyncMock) as mock_delete:
+        with patch("src.api.v1.api_users.delete_user", new_callable=AsyncMock) as mock_delete:
             mock_delete.side_effect = ValueError("Cannot delete yourself")
             response = client.delete(
                 "/api/v1/admin/users/1",
@@ -271,9 +278,9 @@ class TestDeleteUser:
 
     def test_web_deletes_user(self, auth_client):
         with (
-            patch("src.api.v1.users.delete_user", new_callable=AsyncMock) as mock_delete,
-            patch("src.api.v1.users.list_users", new_callable=AsyncMock) as mock_list,
-            patch("src.api.v1.users.log_action", new_callable=AsyncMock),
+            patch("src.api.v1.web_users.delete_user", new_callable=AsyncMock) as mock_delete,
+            patch("src.api.v1.web_users.list_users", new_callable=AsyncMock) as mock_list,
+            patch("src.api.v1.web_users.log_action", new_callable=AsyncMock),
         ):
             mock_delete.return_value = True
             mock_list.return_value = []
@@ -295,8 +302,8 @@ class TestResetPassword:
 
     def test_api_resets_password(self, client):
         with (
-            patch("src.api.v1.users.reset_password", new_callable=AsyncMock) as mock_reset,
-            patch("src.api.v1.users.log_action", new_callable=AsyncMock),
+            patch("src.api.v1.api_users.reset_password", new_callable=AsyncMock) as mock_reset,
+            patch("src.api.v1.api_users.log_action", new_callable=AsyncMock),
         ):
             mock_reset.return_value = True
             response = client.post(
@@ -307,7 +314,7 @@ class TestResetPassword:
         assert response.status_code == 200
 
     def test_api_reset_not_found(self, client):
-        with patch("src.api.v1.users.reset_password", new_callable=AsyncMock) as mock_reset:
+        with patch("src.api.v1.api_users.reset_password", new_callable=AsyncMock) as mock_reset:
             mock_reset.return_value = False
             response = client.post(
                 self.API,
@@ -322,9 +329,9 @@ class TestResetPassword:
 
     def test_web_resets_password(self, auth_client):
         with (
-            patch("src.api.v1.users.reset_password", new_callable=AsyncMock) as mock_reset,
-            patch("src.api.v1.users.list_users", new_callable=AsyncMock) as mock_list,
-            patch("src.api.v1.users.log_action", new_callable=AsyncMock),
+            patch("src.api.v1.web_users.reset_password", new_callable=AsyncMock) as mock_reset,
+            patch("src.api.v1.web_users.list_users", new_callable=AsyncMock) as mock_list,
+            patch("src.api.v1.web_users.log_action", new_callable=AsyncMock),
         ):
             mock_reset.return_value = True
             mock_list.return_value = []
@@ -335,7 +342,7 @@ class TestResetPassword:
 
     def test_web_reset_password_mismatch_shows_error(self, auth_client):
         with (
-            patch("src.api.v1.users.get_user_by_id", new_callable=AsyncMock) as mock_get,
+            patch("src.api.v1.web_users.get_user_by_id", new_callable=AsyncMock) as mock_get,
         ):
             mock_get.return_value = MagicMock(id=2, username="testuser")
             response = auth_client.post(
@@ -373,8 +380,8 @@ class TestUpdateUser:
         mock_user.created_at.isoformat.return_value = "2026-01-01T00:00:00"
 
         with (
-            patch("src.api.v1.users.update_user", new_callable=AsyncMock) as mock_update,
-            patch("src.api.v1.users.log_action", new_callable=AsyncMock),
+            patch("src.api.v1.api_users.update_user", new_callable=AsyncMock) as mock_update,
+            patch("src.api.v1.api_users.log_action", new_callable=AsyncMock),
         ):
             mock_update.return_value = mock_user
             response = client.put(
@@ -394,7 +401,7 @@ class TestUpdateUser:
 
     def test_api_update_not_found(self, client):
         with (
-            patch("src.api.v1.users.update_user", new_callable=AsyncMock) as mock_update,
+            patch("src.api.v1.api_users.update_user", new_callable=AsyncMock) as mock_update,
         ):
             mock_update.side_effect = ValueError("User not found")
             response = client.put(
@@ -424,7 +431,7 @@ class TestUpdateUser:
 
     def test_api_update_duplicate_username(self, client):
         with (
-            patch("src.api.v1.users.update_user", new_callable=AsyncMock) as mock_update,
+            patch("src.api.v1.api_users.update_user", new_callable=AsyncMock) as mock_update,
         ):
             mock_update.side_effect = ValueError("Username already exists")
             response = client.put(
@@ -441,7 +448,7 @@ class TestUpdateUser:
 
     def test_api_update_empty_accessible_returns_409(self, client):
         with (
-            patch("src.api.v1.users.update_user", new_callable=AsyncMock) as mock_update,
+            patch("src.api.v1.api_users.update_user", new_callable=AsyncMock) as mock_update,
         ):
             mock_update.side_effect = ValueError(
                 "Debe seleccionar al menos un departamento accesible"
@@ -470,8 +477,8 @@ class TestUpdateUser:
         mock_user.department_id = 1
 
         with (
-            patch("src.api.v1.users.get_user_by_id", new_callable=AsyncMock) as mock_get,
-            patch("src.api.v1.users.get_departments", new_callable=AsyncMock) as mock_depts,
+            patch("src.api.v1.web_users.get_user_by_id", new_callable=AsyncMock) as mock_get,
+            patch("src.api.v1.web_users.get_departments", new_callable=AsyncMock) as mock_depts,
         ):
             mock_get.return_value = mock_user
             mock_depts.return_value = [{"id": 1, "name": "IT"}]
@@ -481,7 +488,7 @@ class TestUpdateUser:
 
     def test_web_edit_form_user_not_found(self, auth_client):
         with (
-            patch("src.api.v1.users.get_user_by_id", new_callable=AsyncMock) as mock_get,
+            patch("src.api.v1.web_users.get_user_by_id", new_callable=AsyncMock) as mock_get,
         ):
             mock_get.return_value = None
             response = auth_client.get("/web/users/999/edit")
@@ -506,9 +513,9 @@ class TestUpdateUser:
         mock_user.role = "staff"
 
         with (
-            patch("src.api.v1.users.update_user", new_callable=AsyncMock) as mock_update,
-            patch("src.api.v1.users.list_users", new_callable=AsyncMock) as mock_list,
-            patch("src.api.v1.users.log_action", new_callable=AsyncMock),
+            patch("src.api.v1.web_users.update_user", new_callable=AsyncMock) as mock_update,
+            patch("src.api.v1.web_users.list_users", new_callable=AsyncMock) as mock_list,
+            patch("src.api.v1.web_users.log_action", new_callable=AsyncMock),
         ):
             mock_update.return_value = mock_user
             mock_list.return_value = [{"id": 2, "username": "ceo", "role": "staff"}]
@@ -526,8 +533,8 @@ class TestUpdateUser:
 
     def test_web_edit_submit_invalid_role(self, auth_client):
         with (
-            patch("src.api.v1.users.update_user", new_callable=AsyncMock) as mock_update,
-            patch("src.api.v1.users.get_departments", new_callable=AsyncMock) as mock_depts,
+            patch("src.api.v1.web_users.update_user", new_callable=AsyncMock) as mock_update,
+            patch("src.api.v1.web_users.get_departments", new_callable=AsyncMock) as mock_depts,
         ):
             mock_update.side_effect = ValueError("Invalid role")
             mock_depts.return_value = [{"id": 1, "name": "IT"}]

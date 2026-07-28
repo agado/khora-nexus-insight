@@ -60,8 +60,9 @@ class TestUploadDocument:
         )
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = existing_doc
-        mock_db = AsyncMock()
+        mock_db = AsyncMock(spec=AsyncSession)
         mock_db.execute.return_value = mock_result
+        mock_db.add = MagicMock()
 
         with pytest.raises(DuplicateDocumentError) as exc:
             await upload_document(mock_db, "dup.pdf", content, 1, 1)

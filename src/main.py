@@ -23,12 +23,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 templates.env.globals["company_name"] = settings.company_name
 
+from src.api.v1.api_users import router as users_api_router
 from src.api.v1.auth import router as auth_router
 from src.api.v1.documents import router as documents_router
 from src.api.v1.health import router as health_router
 from src.api.v1.rag import router as rag_router
-from src.api.v1.users import api_router as users_api_router, web_router as users_web_router
 from src.api.v1.web import router as web_router
+from src.api.v1.web_users import router as users_web_router
 
 app = FastAPI(title="Khora — Nexus Insight")
 check_jwt_secret(env=settings.nexus_env)
