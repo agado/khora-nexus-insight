@@ -18,7 +18,7 @@ try:
 except ImportError:
     load_dotenv = None  # type: ignore[assignment]
 
-VERSION = "0.3.0"
+VERSION = "1.0.0"
 
 BANNER = f"""
  +------------------------------------------+

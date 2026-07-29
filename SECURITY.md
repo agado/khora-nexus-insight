@@ -42,7 +42,7 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 * **Implementación prod (OWASP):** Docker Secrets monta `admin_password.txt` como archivo en `/run/secrets/admin_password` dentro del contenedor. No visible en `docker inspect`, logs, ni `ps aux`. El seed lo lee mediante `ADMIN_PASSWORD_FILE`.
 * **Hashing:** Contraseñas hasheadas con `argon2-cffi` (Argon2id). Sin almacenamiento en texto plano.
 * **Admin username:** Configurable vía variable de entorno `NEXUS_ADMIN_USERNAME` (dev default: `"admin"`). No hardcodeado en el código de seed. Validación: si está vacío, el seed se aborta con error.
-* **Namespace `NEXUS_`:** Todas las variables de entorno del proyecto usan el prefijo `NEXUS_` para evitar colisiones con variables del sistema o de otras aplicaciones (ej: `NEXUS_ENV`, `NEXUS_DATABASE_URL`).
+* **Namespace `NEXUS_`:** Las variables críticas del entorno del proyecto usan el prefijo `NEXUS_` para evitar colisiones (ej: `NEXUS_ENV`). El resto de variables siguen nombres estándar (`JWT_SECRET`, `DATABASE_URL`, etc.).
 
 ### 2.7 Control de Acceso Basado en Roles (RBAC)
 * **Regla:** Todos los endpoints sensibles (excepto login y health check) requieren validación JWT y rol verificado.
@@ -206,8 +206,8 @@ Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP de
 ---
 
 ## 8. Estado del Documento
-* **Versión:** MVP 1.0  
-* **Última actualización:** 25 de Julio de 2026  
+* **Versión:** v1.0.0  
+* **Última actualización:** 29 de Julio de 2026  
 * **Responsable:** Arquitectura de Seguridad Nexus Insight  
 * **Cambios:** Añadidas invariantes 2.6 (namespace NEXUS_), 2.11 (rate limiting), 2.12 (CSP), 2.13 (password complexity), 2.14 (DOMPurify XSS), 2.15 (MIME subida web), 2.17 (sanitización errores OWASP). Renumeradas 2.11→2.16, 2.14→2.16. Añadido `'unsafe-eval'` a CSP por HTMX hx-on. Añadidos checklist OWASP (password en form_data, confirmación pw, validación tiempo real, errores RAG genéricos, errores health genéricos).
 
