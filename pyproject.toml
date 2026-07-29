@@ -1,3 +1,9 @@
+[project]
+name = "nexus-insight"
+version = "1.0.0"
+description = "Zero-Trust RAG backend — inferencia local, multi-departamento, sin APIs cloud"
+requires-python = ">=3.13"
+
 [tool.coverage.run]
 omit = [
     "src/core/config.py",

@@ -1,5 +1,21 @@
 # Nexus Insight
 
+![Python 3.13](https://img.shields.io/badge/python-3.13-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)
+![Docker](https://img.shields.io/badge/docker_compose-single--command-2496ED?logo=docker)
+![Tests](https://img.shields.io/badge/tests-190%2B-green)
+![RAG](https://img.shields.io/badge/RAG-100%25_local-7B1FA2?logo=ollama)
+![License](https://img.shields.io/badge/license-All_Rights_Reserved-red)
+[![Conventional Commits](https://img.shields.io/badge/conventional%20commits-1.0.0-FE5196?logo=conventionalcommits)](https://conventionalcommits.org)
+
+**Inferencia RAG 100% local, Zero-Trust, multi-departamento. Sin APIs cloud, sin costes por token, sin fugas de datos.**
+
+Nexus Insight es un backend de análisis documental inteligente que permite a organizaciones en sectores regulados (banca, salud, administración pública, investigación) desplegar un asistente GenAI sobre su propia documentación técnica y estratégica — sin que un solo byte salga de su infraestructura.
+
+El core del producto es su **Dual-Layer Filtering**: (1) aislamiento departamental estricto por RBAC + Zero-Trust network, y (2) adaptación cognitiva del output según el rol del destinatario (técnico, directivo, PM, legal). Todo sobre un modelo local Qwen2.5 1.5B vía Ollama, sin depender de OpenAI, Anthropic ni ninguna API externa.
+
+**Para quién:** CISO que necesita decir "sí" a la IA sin perder el sueño. PM que quiere traducir documentación técnica en insights estratégicos. Startups que no pueden permitirse costes de API. Universidades que manejan investigación patentable.
+
 ## a. Descripción general del proyecto
 
 <details> <summary>Descripción para técnicos (por defecto)</summary>
@@ -318,6 +334,8 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 
 
 
+> Historial completo de versiones en [`CHANGELOG.md`](./CHANGELOG.md).
+
 ## g. Roadmap de Desarrollo (TDD)
 
 | Hito | Objetivo | Criterio de Aceptación (DoD) |
@@ -327,7 +345,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H3** ✅ | Autenticación JWT + Argon2id + middleware RBAC | Login OK → 200. Sin token → 401. Prohibición por rol → 403. |
 | **H4** ✅ | Ingesta documental por API + frontend web + CLI: SHA-256, extracción texto (pypdf), búsqueda textual, roles (admin/lead/staff), departamentos M2M, login web, dashboard, upload, lista documentos, logout, CLI upload/get/list | Upload → 200/409. 167 tests. Frontend funcional. CLI funcional. |
 | **H5** ✅ | Motor RAG: consulta con filtro RBAC, contexto a Ollama, delimitadores XML anti-inyección + sanitización OWASP, truncado de contexto a 4K chars, endpoint API + frontend web + CLI | `POST /api/v1/rag/query` → 200. 186 tests. Frontend Consultar funcional. |
-| **H6** | Auditoría y trazabilidad: Alembic, trigger PostgreSQL inmutable, AuditLog completo, visor Registros | Ver detalle abajo ↓ |
+| **H6** ✅ | Auditoría y trazabilidad: Alembic, trigger PostgreSQL inmutable, AuditLog completo, visor Registros | Ver detalle abajo ↓ |
 | **H7** ✅ | Ciclo de vida documental: borrar docs, is\_public, CRUD usuarios, export .txt, CLI query | Ver detalle abajo ↓ |
 | **H8** ✅ | Experiencia corporativa: mejora visual, adaptación de tono por departamento/stakeholder, administración de usuarios | Ver detalle abajo ↓ |
 | **H9** ✅ | Seguridad: rate limiting (login 5/min), CSP + security headers, password complexity policy | Ver detalle abajo ↓ |
