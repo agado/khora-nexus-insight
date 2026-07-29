@@ -10,7 +10,9 @@ class TestCheckJwtSecret:
     def test_logs_warning_when_default_dev(self, caplog: pytest.LogCaptureFixture):
         caplog.set_level(logging.WARNING)
         with patch("src.core.config.settings") as mock_settings:
-            mock_settings.jwt_secret = "dev_secret_key_extremely_long_and_secure_for_local_testing_2026"
+            mock_settings.jwt_secret = (
+                "dev_secret_key_extremely_long_and_secure_for_local_testing_2026"
+            )
             check_jwt_secret(env="development")
         assert len(caplog.records) >= 1
         assert "JWT_SECRET" in caplog.text
@@ -24,6 +26,8 @@ class TestCheckJwtSecret:
 
     def test_raises_when_default_in_production(self):
         with patch("src.core.config.settings") as mock_settings:
-            mock_settings.jwt_secret = "dev_secret_key_extremely_long_and_secure_for_local_testing_2026"
+            mock_settings.jwt_secret = (
+                "dev_secret_key_extremely_long_and_secure_for_local_testing_2026"
+            )
             with pytest.raises(RuntimeError, match="JWT_SECRET"):
                 check_jwt_secret(env="production")

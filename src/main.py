@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -9,14 +10,16 @@ from starlette.templating import Jinja2Templates
 
 from src.core.auth.jwt import verify_token
 from src.core.config import check_jwt_secret, settings
+from src.core.database import engine
+from src.core.middleware import JSONFormatter
+from src.core.middleware.access_log import AccessLogMiddleware
 from src.core.middleware.rate_limiter import RateLimitMiddleware
+from src.core.middleware.request_id import RequestIDMiddleware
 from src.core.middleware.security_headers import SecurityHeadersMiddleware
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='{"time": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s"}',
-    datefmt="%Y-%m-%dT%H:%M:%S",
-)
+handler = logging.StreamHandler()
+handler.setFormatter(JSONFormatter())
+logging.basicConfig(level=logging.INFO, handlers=[handler])
 logger = logging.getLogger("nexus")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,9 +34,20 @@ from src.api.v1.rag import router as rag_router
 from src.api.v1.web import router as web_router
 from src.api.v1.web_users import router as users_web_router
 
-app = FastAPI(title="Khora — Nexus Insight")
-check_jwt_secret(env=settings.nexus_env)
 
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    check_jwt_secret(env=settings.nexus_env)
+    logger.info("startup", extra={"version": "1.0.0"})
+    yield
+    await engine.dispose()
+    logger.info("shutdown")
+
+
+app = FastAPI(title="Khora — Nexus Insight", lifespan=lifespan)
+
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(AccessLogMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitMiddleware)
 
