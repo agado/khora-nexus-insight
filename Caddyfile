@@ -1,0 +1,18 @@
+# Caddyfile — HTTPS automático para Nexus Insight
+# Copiar a /etc/caddy/Caddyfile en el VPS
+# Para usar sin dominio: https://<TU_IP>.sslip.io
+# Para usar con dominio: reemplazar <TU_IP>.sslip.io por tudominio.com
+
+<TU_IP_OR_DOMAIN> {
+    reverse_proxy localhost:8000
+
+    headers {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    log {
+        output file /var/log/caddy/nexus-insight.log
+    }
+}
