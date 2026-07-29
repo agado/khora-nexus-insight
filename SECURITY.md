@@ -200,14 +200,14 @@ Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP de
 * **Validación Automática de Prompts:** Capas de filtrado de entrada para prevenir inyecciones indirectas en prompts antes de enviarlos a Ollama.
 * **Hardening de Persistencia Volátil (RAM):** Migración de los directorios de procesamiento temporal y cachés de contexto de Ollama hacia volúmenes en memoria RAM virtualizada (`tmpfs`), garantizando que la pérdida de corriente elimine cualquier dato residual.
 * **Rotación Criptográfica:** Modularidad en el servicio de tokens para cambiar de algoritmos de firma de manera ágil.
-* **Observabilidad Avanzada (OpenTelemetry):** Inclusión de un identificador de petición (`request_id`) en los logs del MVP para facilitar la futura transición a trazabilidad distribuida y sistemas SIEM.
+* **Observabilidad Avanzada:** Trazabilidad distribuida preparada vía `X-Request-ID` y `request_id` en logs. Preparado para OpenTelemetry manteniendo compatibilidad con el formato JSON actual.
 * **Alta Disponibilidad (HA):** Diseño del backend sin estado (*stateless*) para permitir balanceo de carga en futuras fases corporativas.
 
 ---
 
 ## 8. Estado del Documento
 * **Versión:** v1.0.0  
-* **Última actualización:** 29 de Julio de 2026  
+* **Última actualización:** 30 de Julio de 2026  
 * **Responsable:** Arquitectura de Seguridad Nexus Insight  
 * **Cambios:** Añadidas invariantes 2.6 (namespace NEXUS_), 2.11 (rate limiting), 2.12 (CSP), 2.13 (password complexity), 2.14 (DOMPurify XSS), 2.15 (MIME subida web), 2.17 (sanitización errores OWASP). Renumeradas 2.11→2.16, 2.14→2.16. Añadido `'unsafe-eval'` a CSP por HTMX hx-on. Añadidos checklist OWASP (password en form_data, confirmación pw, validación tiempo real, errores RAG genéricos, errores health genéricos).
 

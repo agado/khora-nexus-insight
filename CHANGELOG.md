@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased — Observability & DevOps
+
+### Added
+- **Request ID tracing**: `X-Request-ID` header en todas las respuestas. Cada log incluye `request_id` para correlación.
+- **Access log middleware**: Cada request registra `method`, `path`, `status`, `latency_ms`, `request_id` en JSON.
+- **JSONFormatter**: Logs JSON dinámicos con campos extra sin perder los básicos.
+- **Health v2**: Endpoint `/api/v1/health` ahora incluye `version`, `uptime_seconds`, `request_id`.
+- **Graceful shutdown**: Conexiones DB se cierran limpiamente al detener el contenedor.
+- **CI/CD pipeline**: GitHub Actions ejecuta ruff → pytest → docker build en cada push/PR. Deploy automático al VPS via SSH en main.
+- **Deploy scripts**: `scripts/setup-vps.sh` (bootstrap) y `scripts/deploy.sh` (deploy manual).
+- **Caddyfile**: Reverse proxy con HTTPS automático para producción.
+
+### Changed
+- Tests: 265 (eran 256).
+
+### Security
+- Request ID tracing (estaba en roadmap post-MVP, ahora implementado).
+
 ## v1.0.0 — Secure RAG Platform
 
 > 9 hitos, 125+ commits, 0 dependencias cloud. De un scaffolding Docker a una plataforma RAG multi-departamental con Zero-Trust, auditoría forense e inferencia 100% local.
