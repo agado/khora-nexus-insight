@@ -41,6 +41,7 @@ def _build_parser() -> argparse.ArgumentParser:
     sub.add_parser("dev", help="Inicia el entorno de desarrollo (docker compose up --build)")
     sub.add_parser("down", help="Detiene el entorno de desarrollo")
     sub.add_parser("prod", help="Inicia el entorno de produccion")
+    sub.add_parser("check", help="Ejecuta lint + tests localmente (shift-left)")
     sub.add_parser("test", help="Ejecuta los tests (pytest -v)")
     sub.add_parser("cov", help="Ejecuta tests con cobertura")
     seed_parser = sub.add_parser("seed", help="Puebla la base de datos con datos iniciales")
@@ -158,6 +159,20 @@ def run_prod() -> None:
     except KeyboardInterrupt:
         print("\nEntorno detenido.")
         sys.exit(0)
+
+
+def run_check() -> None:
+    print("Ejecutando ruff check...")
+    result = subprocess.run(["ruff", "check", "."])
+    if result.returncode != 0:
+        sys.exit(result.returncode)
+    print("Ejecutando ruff format --check...")
+    result = subprocess.run(["ruff", "format", "--check", "."])
+    if result.returncode != 0:
+        sys.exit(result.returncode)
+    preflight_pytest()
+    print("Ejecutando pytest...")
+    subprocess.run(["pytest", "-v"])
 
 
 def run_test() -> None:
@@ -312,6 +327,8 @@ def main(argv: list[str] | None = None) -> None:
         run_down()
     elif args.command == "prod":
         run_prod()
+    elif args.command == "check":
+        run_check()
     elif args.command == "test":
         run_test()
     elif args.command == "cov":

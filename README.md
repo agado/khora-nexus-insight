@@ -1,9 +1,10 @@
 # Nexus Insight
 
+[![CI](https://github.com/agado/khora-nexus-insight/actions/workflows/ci.yml/badge.svg)](https://github.com/agado/khora-nexus-insight/actions/workflows/ci.yml)
 ![Python 3.13](https://img.shields.io/badge/python-3.13-blue?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)
 ![Docker](https://img.shields.io/badge/docker_compose-single--command-2496ED?logo=docker)
-![Tests](https://img.shields.io/badge/tests-190%2B-green)
+![Tests](https://img.shields.io/badge/tests-265-green)
 ![RAG](https://img.shields.io/badge/RAG-100%25_local-7B1FA2?logo=ollama)
 ![License](https://img.shields.io/badge/license-All_Rights_Reserved-red)
 [![Conventional Commits](https://img.shields.io/badge/conventional%20commits-1.0.0-FE5196?logo=conventionalcommits)](https://conventionalcommits.org)
