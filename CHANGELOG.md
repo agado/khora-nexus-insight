@@ -8,9 +8,10 @@
 - **JSONFormatter**: Logs JSON dinámicos con campos extra sin perder los básicos.
 - **Health v2**: Endpoint `/api/v1/health` ahora incluye `version`, `uptime_seconds`, `request_id`.
 - **Graceful shutdown**: Conexiones DB se cierran limpiamente al detener el contenedor.
-- **CI/CD pipeline**: GitHub Actions ejecuta ruff → pytest → docker build en cada push/PR. Deploy automático al VPS via SSH en main.
-- **Deploy scripts**: `scripts/setup-vps.sh` (bootstrap) y `scripts/deploy.sh` (deploy manual).
-- **Caddyfile**: Reverse proxy con HTTPS automático para producción.
+- **CI pipeline**: GitHub Actions ejecuta ruff → pytest → docker build en cada push/PR.
+- **CD pipeline**: Workflow SSH definido para deploy automático al VPS. Pendiente de configuración del VPS y GitHub Secrets para activación.
+- **Deploy scripts**: `scripts/setup-vps.sh` (bootstrap VPS) y `scripts/deploy.sh` (deploy manual). Listos para usar.
+- **Caddyfile**: Reverse proxy con HTTPS. Pendiente de copiar al VPS y activar.
 
 ### Changed
 - Tests: 265 (eran 256).

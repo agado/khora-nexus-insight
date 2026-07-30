@@ -456,7 +456,7 @@ graph LR
 | **SAST** | Bandit | Hardcoded secrets, SQLi, inyecciones, malas prácticas |
 | **Deps** | pip-audit | CVEs conocidos en dependencias (advertido, no bloqueante) |
 | **Build** | Docker | Verifica que la imagen compila y el Dockerfile es válido |
-| **Deploy** | SSH + Docker Compose | Despliegue automático en producción con rollback implícito (`git revert`) |
+| **Deploy** | SSH + Docker Compose | Pipeline definido. Pendiente de configuración del VPS y GitHub Secrets para activación. |
 
 ### Seguridad en el pipeline (DevSecOps)
 
