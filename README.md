@@ -393,7 +393,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 |---|---|
 | **Seguridad** | Guardrails anti-prompt-injection completos. Rotación automática de claves JWT. Autenticación multifactor (TOTP). Rate limiting por usuario. |
 | **IA y Búsqueda** | ChromaDB para búsqueda semántica vectorial. Multi-modelo (selección configurable entre qwen, llama, mistral). OCR para documentos escaneados. |
-| **Infraestructura** | Escalado horizontal con balanceo de carga. Despliegue en cloud (AWS/GCP/Azure) con un solo comando. |
+| **Infraestructura** | Orquestación con Docker Swarm o Kubernetes para alta disponibilidad. Monitoring con Prometheus + Grafana. Despliegue multi-entorno (staging, producción). |
 | **Observabilidad** | OpenTelemetry para trazabilidad distribuida avanzada. Dashboard de métricas en tiempo real (latencia, consultas, errores). Alertas automáticas. Actualmente: `request_id` en logs + access log middleware. |
 | **UX** | Nexus CLI completo con Typer + Rich (menús interactivos, barras de progreso, colores). Hot Folders para arrastrar y soltar documentos. Panel web de administración (React/Vue). |
 | **Operaciones** | Políticas de retención de datos (limpieza automática). Exportación/importación de documentos y configuraciones. Notificaciones webhook al completar procesos. |
