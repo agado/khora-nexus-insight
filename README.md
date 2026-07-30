@@ -393,8 +393,8 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 |---|---|
 | **Seguridad** | Guardrails anti-prompt-injection completos. Rotación automática de claves JWT. Autenticación multifactor (TOTP). Rate limiting por usuario. |
 | **IA y Búsqueda** | ChromaDB para búsqueda semántica vectorial. Multi-modelo (selección configurable entre qwen, llama, mistral). OCR para documentos escaneados. |
-| **Infraestructura** | CI/CD con GitHub Actions (tests + lint + cobertura automáticos). Escalado horizontal con balanceo de carga. Despliegue en cloud (AWS/GCP/Azure) con un solo comando. |
-| **Observabilidad** | OpenTelemetry para trazabilidad distribuida. Dashboard de métricas en tiempo real (latencia, consultas, errores). Alertas automáticas. |
+| **Infraestructura** | Escalado horizontal con balanceo de carga. Despliegue en cloud (AWS/GCP/Azure) con un solo comando. |
+| **Observabilidad** | OpenTelemetry para trazabilidad distribuida avanzada. Dashboard de métricas en tiempo real (latencia, consultas, errores). Alertas automáticas. Actualmente: `request_id` en logs + access log middleware. |
 | **UX** | Nexus CLI completo con Typer + Rich (menús interactivos, barras de progreso, colores). Hot Folders para arrastrar y soltar documentos. Panel web de administración (React/Vue). |
 | **Operaciones** | Políticas de retención de datos (limpieza automática). Exportación/importación de documentos y configuraciones. Notificaciones webhook al completar procesos. |
 | **Ingesta** | Procesamiento por lotes (batch upload). Versionado de documentos. Soporte multi-idioma en extracción de texto. |
@@ -409,12 +409,67 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **Arquitectura Limpia** | Clean Architecture con separación nítida controller/servicio/infraestructura. Dependency Injection mediante FastAPI `Depends`. Monolito modular desacoplado. |
 | **Seguridad en Profundidad** | JWT + Argon2id para autenticación. RBAC por departamento con validación en cada operación. Zero-Trust network (PostgreSQL y Ollama sin puertos expuestos al host). SHA-256 en memoria. AuditLog inmutable con trigger `REJECT`. Fail-closed ante cualquier error de validación. |
 | **Privacidad por Diseño** | Inferencia 100% local con Ollama: los datos nunca abandonan la infraestructura del cliente. Aislamiento departamental: cada rol solo accede a los documentos de su departamento. Sin telemetría externa ni dependencia de APIs cloud. |
-| **Calidad y Testing** | TDD estricto (RED → GREEN → REFACTOR) en cada hito. Tests unitarios + HTTP + integración. Cobertura mínima > 70%. Ruff (lint + format) en pre-commit. |
+| **Calidad y Testing** | TDD estricto (RED → GREEN → REFACTOR) en cada hito. Tests unitarios + HTTP + integración. Cobertura mínima > 70%. Ruff (lint + format) en pre-commit. Pipeline CI con ruff, pytest, bandit y pip-audit en GitHub Actions. |
 | **Portabilidad y Despliegue** | Docker Compose single-command (`docker compose up --build`). Entorno productivo replicable con `docker compose -f docker-compose.prod.yml`. Portable a cualquier proveedor cloud (AWS ECS, GCP Cloud Run, Azure ACA) sin cambios arquitectónicos. |
 | **Costo Cero en Inferencia** | Sin costes por token, llamadas API ni suscripciones cloud. El modelo Qwen2.5 se ejecuta íntegramente en hardware local. Ideal para startups, entornos regulados y presupuestos ajustados. |
-| **Observabilidad** | Logging JSON estructurado en stdout para cada request (autorizado y denegado). Preparado para OpenTelemetry (trazabilidad distribuida). Dashboard de métricas planificado en Post-MVP. |
+| **Observabilidad** | Logging JSON estructurado con `request_id` de correlación. Access log middleware registra `method`, `path`, `status`, `latency_ms`. Health endpoint con `version`, `uptime`, `request_id`. Graceful shutdown. Preparado para OpenTelemetry. |
 | **Mantenibilidad** | Conventional commits en cada entrega. Pre-commit hooks (lint + tests). Type hints estrictos en toda la base de código. Imports explícitos (sin wildcards). Documentación viva sincronizada (README + SPEC + SECURITY). |
 
+
+---
+
+## i. CI/CD y DevSecOps
+
+El pipeline automatiza calidad, seguridad y despliegue en cada push a `main`. Cinco gates antes de que el código llegue a producción:
+
+```mermaid
+graph LR
+    A[git push] --> B[GitHub Actions]
+    B --> C[quality<br/>ruff check + format]
+    B --> D[test<br/>pytest + coverage]
+    B --> E[security<br/>bandit + pip-audit]
+    C --> F{build}
+    D --> F
+    E --> F
+    F --> G[docker build]
+    G --> H[deploy]
+    H --> I[VPS<br/>Docker Compose + Caddy HTTPS]
+
+    style A fill:#1f77b4,stroke:#fff,color:#fff
+    style B fill:#ff7f0e,stroke:#fff,color:#fff
+    style C fill:#2ca02c,stroke:#fff,color:#fff
+    style D fill:#2ca02c,stroke:#fff,color:#fff
+    style E fill:#d62728,stroke:#fff,color:#fff
+    style F fill:#ff7f0e,stroke:#fff,color:#fff
+    style G fill:#9467bd,stroke:#fff,color:#fff
+    style H fill:#1f77b4,stroke:#fff,color:#fff
+    style I fill:#2ca02c,stroke:#fff,color:#fff
+```
+
+**Gates del pipeline:**
+
+| Gate | Herramienta | ¿Qué detecta? |
+|---|---|---|
+| **Lint** | Ruff | Errores de sintaxis, imports no usados, violaciones de estilo |
+| **Formato** | Ruff | Inconsistencias de formato (single source of truth) |
+| **Tests** | Pytest (265 tests) | Regresiones funcionales, cobertura > 70% |
+| **SAST** | Bandit | Hardcoded secrets, SQLi, inyecciones, malas prácticas |
+| **Deps** | pip-audit | CVEs conocidos en dependencias (advertido, no bloqueante) |
+| **Build** | Docker | Verifica que la imagen compila y el Dockerfile es válido |
+| **Deploy** | SSH + Docker Compose | Despliegue automático en producción con rollback implícito (`git revert`) |
+
+### Seguridad en el pipeline (DevSecOps)
+
+- **SAST (Static Application Security Testing)**: Bandit escanea `src/` en busca de vulnerabilidades de código. Se ejecuta en cada push.
+- **Dependency scanning**: pip-audit compara `requirements.txt` contra bases de datos de CVEs. Detecta librerías con vulnerabilidades conocidas.
+- **Secretos**: Las credenciales de producción se inyectan vía GitHub Secrets (`VPS_HOST`, `VPS_SSH_KEY`, etc.). Nunca están en el repositorio.
+
+### Shift-Left local
+
+```bash
+# Antes de hacer push, ejecuta localmente el mismo check que el CI:
+nexus.py check    # ruff check → ruff format --check → pytest
+```
 
 ---
 
