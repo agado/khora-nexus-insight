@@ -42,7 +42,7 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 * **Implementación prod (OWASP):** Docker Secrets monta `admin_password.txt` como archivo en `/run/secrets/admin_password` dentro del contenedor. No visible en `docker inspect`, logs, ni `ps aux`. El seed lo lee mediante `ADMIN_PASSWORD_FILE`.
 * **Hashing:** Contraseñas hasheadas con `argon2-cffi` (Argon2id). Sin almacenamiento en texto plano.
 * **Admin username:** Configurable vía variable de entorno `NEXUS_ADMIN_USERNAME` (dev default: `"admin"`). No hardcodeado en el código de seed. Validación: si está vacío, el seed se aborta con error.
-* **Namespace `NEXUS_`:** Todas las variables de entorno del proyecto usan el prefijo `NEXUS_` para evitar colisiones con variables del sistema o de otras aplicaciones (ej: `NEXUS_ENV`, `NEXUS_DATABASE_URL`).
+* **Namespace `NEXUS_`:** Las variables críticas del entorno del proyecto usan el prefijo `NEXUS_` para evitar colisiones (ej: `NEXUS_ENV`). El resto de variables siguen nombres estándar (`JWT_SECRET`, `DATABASE_URL`, etc.).
 
 ### 2.7 Control de Acceso Basado en Roles (RBAC)
 * **Regla:** Todos los endpoints sensibles (excepto login y health check) requieren validación JWT y rol verificado.
@@ -66,7 +66,7 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 
 ### 2.9 Red Interna Zero-Trust
 * **Regla:** Comunicación exclusiva entre contenedores mediante la red virtual de Docker `nexus-network`.
-* **Implementación:** Ningún contenedor puede comunicarse de forma directa con el exterior o con otros servicios fuera de la red declarada.
+* **Implementación:** Ningún contenedor puede comunicarse de forma directa con el exterior o con otros servicios fuera de la red declarada. **Única excepción de perímetro:** el contenedor `caddy` expone los puertos `80/443`; todo tráfico externo debe atravesarlo para alcanzar al backend.
 
 ### 2.10 Filosofía de Fallo Seguro (Fail-Closed)
 * **Regla:** Ante cualquier caída o excepción no controlada en el subsistema de auditoría (`AuditLog`), el flujo operativo del backend debe interrumpirse inmediatamente.
@@ -144,7 +144,7 @@ El sistema (y los agentes de IA) deben verificar automáticamente los siguientes
 
 ### 4.1 Infraestructura y Contenedores
 * [ ] Todos los `Dockerfile` declaran un usuario no root.
-* [ ] El archivo `docker-compose.prod.yml` no expone puertos de PostgreSQL (5432) ni de Ollama (11434).
+* [ ] Solo el contenedor `caddy` expone puertos al exterior (`80/443`). PostgreSQL (5432) y Ollama (11434) no exponen puertos.
 * [ ] Los volúmenes locales de persistencia están declarados correctamente.
 
 ### 4.2 Lógica de Seguridad y Base de Datos
@@ -200,14 +200,14 @@ Para asegurar la escalabilidad del sistema, las decisiones de diseño del MVP de
 * **Validación Automática de Prompts:** Capas de filtrado de entrada para prevenir inyecciones indirectas en prompts antes de enviarlos a Ollama.
 * **Hardening de Persistencia Volátil (RAM):** Migración de los directorios de procesamiento temporal y cachés de contexto de Ollama hacia volúmenes en memoria RAM virtualizada (`tmpfs`), garantizando que la pérdida de corriente elimine cualquier dato residual.
 * **Rotación Criptográfica:** Modularidad en el servicio de tokens para cambiar de algoritmos de firma de manera ágil.
-* **Observabilidad Avanzada (OpenTelemetry):** Inclusión de un identificador de petición (`request_id`) en los logs del MVP para facilitar la futura transición a trazabilidad distribuida y sistemas SIEM.
+* **Observabilidad Avanzada:** Trazabilidad distribuida preparada vía `X-Request-ID` y `request_id` en logs. Preparado para OpenTelemetry manteniendo compatibilidad con el formato JSON actual.
 * **Alta Disponibilidad (HA):** Diseño del backend sin estado (*stateless*) para permitir balanceo de carga en futuras fases corporativas.
 
 ---
 
 ## 8. Estado del Documento
-* **Versión:** MVP 1.0  
-* **Última actualización:** 25 de Julio de 2026  
+* **Versión:** v1.0.0  
+* **Última actualización:** 30 de Julio de 2026  
 * **Responsable:** Arquitectura de Seguridad Nexus Insight  
 * **Cambios:** Añadidas invariantes 2.6 (namespace NEXUS_), 2.11 (rate limiting), 2.12 (CSP), 2.13 (password complexity), 2.14 (DOMPurify XSS), 2.15 (MIME subida web), 2.17 (sanitización errores OWASP). Renumeradas 2.11→2.16, 2.14→2.16. Añadido `'unsafe-eval'` a CSP por HTMX hx-on. Añadidos checklist OWASP (password en form_data, confirmación pw, validación tiempo real, errores RAG genéricos, errores health genéricos).
 

@@ -534,9 +534,11 @@ class TestUpdateUser:
     def test_web_edit_submit_invalid_role(self, auth_client):
         with (
             patch("src.api.v1.web_users.update_user", new_callable=AsyncMock) as mock_update,
+            patch("src.api.v1.web_users.get_user_by_id", new_callable=AsyncMock) as mock_get,
             patch("src.api.v1.web_users.get_departments", new_callable=AsyncMock) as mock_depts,
         ):
             mock_update.side_effect = ValueError("Invalid role")
+            mock_get.return_value = MagicMock(id=2, username="ceo", role="staff")
             mock_depts.return_value = [{"id": 1, "name": "IT"}]
             response = auth_client.post(
                 self.WEB_POST,
