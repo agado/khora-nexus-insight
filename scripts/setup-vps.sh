@@ -54,6 +54,9 @@ echo "   Parcheo automático activo (sin reinicios automáticos)."
 echo "==> Instalando cliente PostgreSQL (pg_dump para backups)..."
 apt-get install -y postgresql-client
 
+echo "==> Instalando git (imagenes Minimal no lo traen)..."
+apt-get install -y git
+
 echo "==> Clonando/actualizando repositorio..."
 if [ ! -d /opt/nexus-insight/.git ]; then
   git clone https://github.com/agado/khora-nexus-insight.git /opt/nexus-insight
