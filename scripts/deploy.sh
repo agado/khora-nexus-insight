@@ -70,4 +70,18 @@ until curl -kfsS "${base_url}" > /dev/null 2>&1; do
   echo "   (intento ${attempt}/12) esperando a que Caddy emita el certificado..."
   sleep 5
 done
+
+echo "==> Verificando la emisión del certificado TLS (Let's Encrypt)..."
+strict_attempt=0
+until curl -fsS "${base_url}" > /dev/null 2>&1; do
+  strict_attempt=$((strict_attempt + 1))
+  if [ "${strict_attempt}" -ge 12 ]; then
+    echo "⚠️  El servicio responde pero el certificado aún no es válido (${base_url})."
+    echo "   Comprueba: SERVER_NAME resuelve a esta IP y puertos 80/443 abiertos en VCN/ufw."
+    break
+  fi
+  echo "   (esperando emisión del certificado: intento ${strict_attempt}/12)"
+  sleep 5
+done
+
 echo "✅ Nexus Insight desplegado correctamente (${base_url})"

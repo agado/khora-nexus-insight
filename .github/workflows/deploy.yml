@@ -39,4 +39,14 @@ jobs:
               echo "⚠️  Smoke test failed. Check logs: docker compose -f docker-compose.prod.yml logs"
               exit 1
             }
+            echo "→ Verificando emisión del certificado TLS (Let's Encrypt)..."
+            for i in $(seq 1 12); do
+              curl -fsS "${BASE_URL}" > /dev/null 2>&1 && break
+              echo "  (esperando certificado: intento $i/12)"
+              sleep 5
+            done
+            curl -fsS "${BASE_URL}" > /dev/null 2>&1 || {
+              echo "⚠️  El servicio responde pero el certificado no es válido."
+              echo "   Comprueba SERVER_NAME (resolución DNS) y puertos 80/443 abiertos."
+            }
             echo "✅ Deploy successful (${BASE_URL})"
