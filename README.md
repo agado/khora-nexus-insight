@@ -626,7 +626,7 @@ PGPASSWORD="$PROD_DB_PASSWORD" psql -h 127.0.0.1 -p "${PROD_DB_PORT:-5432}" \
   -U "$PROD_DB_USER" -d "$PROD_DB_NAME" < backups/nexus_db_YYYYMMDD_HHMMSS.sql
 ```
 
-**Validación post-deploy:** `scripts/deploy.sh` y el CD no validan `localhost:8000` sino el **perímetro completo** — `https://${SERVER_NAME}/api/v1/health` a través de Caddy + TLS (con retry de 60s para la emisión del certificado).
+**Validación post-deploy:** `scripts/deploy.sh` y el CD no validan `localhost:8000` sino el **perímetro completo** — `https://${SERVER_NAME}/api/v1/health` a través de Caddy + TLS (con retry de 120s para el arranque y 60s adicionales para la emisión del certificado). En el **primer** arranque la descarga del modelo (`qwen2.5:1.5b`, ~1 GB) puede alargar la puesta en marcha varios minutos; los reintentos posteriores son rápidos porque el modelo ya queda cacheado en el volumen `ollama_storage`.
 
 ---
 

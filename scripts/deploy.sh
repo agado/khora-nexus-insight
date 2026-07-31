@@ -62,12 +62,13 @@ base_url="https://${SERVER_NAME}/api/v1/health"
 attempt=0
 until curl -kfsS "${base_url}" > /dev/null 2>&1; do
   attempt=$((attempt + 1))
-  if [ "${attempt}" -ge 12 ]; then
-    echo "⚠️  Smoke test falló: ${base_url}"
+  if [ "${attempt}" -ge 24 ]; then
+    echo "⚠️  Smoke test falló tras ${attempt} intentos: ${base_url}"
+    echo "   En el primer arranque la descarga del modelo puede tardar varios minutos."
     echo "   Revisa logs: docker compose -f docker-compose.prod.yml logs --tail=30"
     exit 1
   fi
-  echo "   (intento ${attempt}/12) esperando a que Caddy emita el certificado..."
+  echo "   (intento ${attempt}/24) esperando a que Caddy emita el certificado..."
   sleep 5
 done
 
