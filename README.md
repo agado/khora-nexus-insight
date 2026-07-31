@@ -607,6 +607,27 @@ Recomendado para minimizar riesgos en el arranque en producción:
 3. **Recuperación de emergencia:** si por cualquier motivo pierdes SSH, usa **OCI Console → Instancia → Console connection (VNC)**. No requiere puertos abiertos y permite recuperar el acceso.
 4. **Verificación post-bootstrap:** `ufw status` (solo 22/80/443), `docker info`, y probar una **nueva** sesión SSH en otra terminal antes de cerrar la actual.
 
+#### Operativa en producción: rollback y restauración
+
+**Rollback de código:** ante un despliegue defectuoso, se revierte al estado anterior **sin perder datos** (Postgres vive en el volumen `pgdata`):
+
+```bash
+cd /opt/nexus-insight
+git tag                       # listar versiones estables
+git checkout <tag-o-commit-anterior>
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+**Restauración de la base de datos:** el backup diario genera `backups/nexus_db_*.sql` (retención 7 días). Para restaurar en una base vacía (p. ej. tras pérdida del volumen):
+
+```bash
+cd /opt/nexus-insight && set -a && source .env && set +a
+PGPASSWORD="$PROD_DB_PASSWORD" psql -h 127.0.0.1 -p "${PROD_DB_PORT:-5432}" \
+  -U "$PROD_DB_USER" -d "$PROD_DB_NAME" < backups/nexus_db_YYYYMMDD_HHMMSS.sql
+```
+
+**Validación post-deploy:** `scripts/deploy.sh` y el CD no validan `localhost:8000` sino el **perímetro completo** — `https://${SERVER_NAME}/api/v1/health` a través de Caddy + TLS (con retry de 60s para la emisión del certificado).
+
 ---
 
 ## i. Presentación y Vídeo Demo
