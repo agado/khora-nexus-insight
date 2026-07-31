@@ -9,11 +9,36 @@ set -euo pipefail
 # primero el puerto SSH real y el hardening solo aplica si existe authorized_keys.
 # ──────────────────────────────────────────────
 
+# ──────────────────────────────────────────────
+# Instalación agnóstica e idempotente: comprueba si la herramienta ya existe
+# y solo instala el paquete si falta. Funciona en cualquier distro apt-based.
+ensure_cmd() {
+  local cmd="$1" pkg="$2"
+  if command -v "$cmd" > /dev/null 2>&1; then
+    echo "   ${cmd}: ya instalado."
+  else
+    echo "   Instalando ${pkg} (proporciona ${cmd})..."
+    apt-get install -y "$pkg"
+  fi
+}
+
+ensure_file() {
+  local file="$1" pkg="$2"
+  if [ -f "$file" ]; then
+    echo "   ${file}: ya presente."
+  else
+    echo "   Instalando ${pkg} (proporciona ${file})..."
+    apt-get install -y "$pkg"
+  fi
+}
+
 echo "==> Actualizando sistema..."
 apt-get update && apt-get upgrade -y
 
 echo "==> Instalando Docker..."
-apt-get install -y ca-certificates curl gnupg
+ensure_cmd curl curl
+ensure_cmd gpg gnupg
+ensure_file /etc/ssl/certs/ca-certificates.crt ca-certificates
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 # Docker publica repositorios separados por distro. Si se usa el repo de Debian
@@ -26,7 +51,11 @@ else
 fi
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${DOCKER_DISTRO} $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+if command -v docker > /dev/null 2>&1 && docker compose version > /dev/null 2>&1; then
+  echo "   Docker ya instalado."
+else
+  apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+fi
 
 echo "==> Verificando Docker..."
 docker info > /dev/null 2>&1 || { echo "Docker no arrancó"; exit 1; }
@@ -34,9 +63,10 @@ docker info > /dev/null 2>&1 || { echo "Docker no arrancó"; exit 1; }
 echo "==> Configurando firewall (ufw)..."
 # Seguridad crítica: se detecta y abre el puerto SSH REAL antes de activar el
 # firewall, para no perder el acceso a la máquina. Solo se exponen SSH/80/443.
+ensure_cmd ss iproute2
 SSH_PORT=$(ss -tlnp 2>/dev/null | awk '/sshd/ {split($4,a,":"); print a[2]; exit}')
 [ -z "${SSH_PORT:-}" ] && SSH_PORT=22
-apt-get install -y ufw
+ensure_cmd ufw ufw
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow "${SSH_PORT}/tcp" comment 'SSH'
@@ -46,16 +76,16 @@ ufw --force enable
 echo "   Firewall activo: SSH(${SSH_PORT}), 80, 443."
 
 echo "==> Activando parcheo automático de seguridad..."
-apt-get install -y unattended-upgrades
+ensure_cmd unattended-upgrade unattended-upgrades
 printf 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n' > /etc/apt/apt.conf.d/20auto-upgrades
 printf 'Unattended-Upgrade::Automatic-Reboot "false";\n' > /etc/apt/apt.conf.d/50nexus-unattended
 echo "   Parcheo automático activo (sin reinicios automáticos)."
 
 echo "==> Instalando cliente PostgreSQL (pg_dump para backups)..."
-apt-get install -y postgresql-client
+ensure_cmd pg_dump postgresql-client
 
-echo "==> Instalando git (imagenes Minimal no lo traen)..."
-apt-get install -y git
+echo "==> Garantizando git (imagenes Minimal no lo traen)..."
+ensure_cmd git git
 
 echo "==> Clonando/actualizando repositorio..."
 if [ ! -d /opt/nexus-insight/.git ]; then
@@ -76,6 +106,7 @@ else
 fi
 
 echo "==> Generando secret de administración..."
+ensure_cmd openssl openssl
 if [ ! -f secrets/admin_password.txt ]; then
   mkdir -p secrets
   openssl rand -base64 32 > secrets/admin_password.txt
