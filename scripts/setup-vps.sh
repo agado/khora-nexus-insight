@@ -109,6 +109,15 @@ EOF
 chmod 644 /etc/cron.d/nexus-backup
 echo "   Backup diario programado (03:00) en /opt/nexus-insight/backups (retención 7 días)."
 
+echo "==> Programando limpieza semanal de Docker..."
+cat > /etc/cron.d/nexus-docker-cleanup <<'EOF'
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+0 4 * * 0 root docker system prune -f --filter "until=72h" >> /opt/nexus-insight/backups/cleanup.log 2>&1
+EOF
+chmod 644 /etc/cron.d/nexus-docker-cleanup
+echo "   Limpieza Docker semanal programada (domingo 04:00, imágenes inactivas > 72h)."
+
 echo ""
 echo "✅ VPS listo. Próximos pasos:"
 echo "   1. nano /opt/nexus-insight/.env          (configurar PROD_* vars y SERVER_NAME)"
@@ -121,3 +130,4 @@ echo "   - Parcheo automático de seguridad (sin reinicios automáticos)."
 echo "   - Swap de 2 GB (evita OOM con 4 GB de RAM)."
 echo "   - SSH por clave si existía authorized_keys."
 echo "   - Backup diario de la base de datos (03:00, retención 7 días)."
+echo "   - Limpieza semanal de imágenes Docker inactivas (disco 40 GB)."
