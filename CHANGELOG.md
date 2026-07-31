@@ -10,11 +10,19 @@
 - **Graceful shutdown**: Conexiones DB se cierran limpiamente al detener el contenedor.
 - **CI pipeline**: GitHub Actions ejecuta ruff → pytest → docker build en cada push/PR.
 - **CD pipeline**: Workflow SSH definido para deploy automático al VPS. Pendiente de configuración del VPS y GitHub Secrets para activación.
-- **Deploy scripts**: `scripts/setup-vps.sh` (bootstrap VPS) y `scripts/deploy.sh` (deploy manual). Listos para usar.
-- **Caddyfile**: Reverse proxy con HTTPS. Pendiente de copiar al VPS y activar.
+- **Deploy scripts**: `scripts/setup-vps.sh` (bootstrap VPS idempotente) y `scripts/deploy.sh` (deploy manual). El setup aplica: firewall ufw (solo SSH/80/443, detectando el puerto SSH real antes de activar), parcheo automático de seguridad (sin reinicios), swap de 2 GB anti-OOM, y hardening SSH condicional a que exista `authorized_keys` (nunca deja al operador sin acceso).
+- **Caddyfile**: Reverse proxy HTTPS integrado en `docker-compose.prod.yml` (Caddy como contenedor). Pendiente de definir `SERVER_NAME` en el `.env` del VPS y abrir puertos 80/443 en la VCN.
+- **README**: Diagrama de red agnóstico de proveedor, tabla de requisitos mínimos del servidor y diagrama de filtrado por doble capa (Security + Cognitive Layer).
+- **README**: Runbook de despliegue seguro en Oracle Cloud (cloud-init, tmux, recuperación por consola VNC).
 
 ### Changed
-- Tests: 265 (eran 256).
+- Tests: 267 (eran 265).
+- `docker-compose.prod.yml`: rotación de logs Docker (`json-file`, 10m × 3) en los 4 servicios y puerto `127.0.0.1:5432` solo-loopback para backups locales (inaccesible desde el exterior).
+- `scripts/setup-vps.sh`: instalación de `postgresql-client` y cron de backup diario de la DB (03:00, retención 7 días).
+- `scripts/deploy.sh`: pre-flight estricto antes de `docker compose up` — falla si faltan `PROD_DB_USER`/`PROD_DB_NAME`, si `PROD_JWT_SECRET` contiene el placeholder `CHANGE_ME`, o si `SERVER_NAME` está vacío/`localhost` (evita degradación silenciosa a HTTP); warning si `PROD_COMPANY_NAME` sigue con el default. Parser seguro de `.env` sin `source`/eval (admite valores con espacios tipo `PROD_COMPANY_NAME=Your Company`).
+- `src/core/config.py`: Fail-Closed de `JWT_SECRET` ahora rechaza también el placeholder `CHANGE_ME_*` en producción (no solo el valor dev por defecto).
+- README/SECURITY: correcciones de honestidad documental — perímetro Caddy como única excepción (SECURITY §2.9), claim de portabilidad agnóstico de proveedor, Opción 3 de despliegue real en VPS, credenciales de producción.
+- README roadmap: H7.1/H7.2/H7.3 marcados como completados; **H7.4 (export .txt + CLI query) marcado como descartado por YAGNI** — nunca se implementó (confirmado en historial, commit `9eadcb5`).
 
 ### Security
 - Request ID tracing (estaba en roadmap post-MVP, ahora implementado).

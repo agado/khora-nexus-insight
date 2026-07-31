@@ -17,10 +17,36 @@ if [ ! -f .env ]; then
 fi
 
 echo "==> Extrayendo variables requeridas..."
-source <(grep -E '^PROD_' .env)
+while IFS='=' read -r key val; do
+  case "$key" in
+    PROD_*|SERVER_NAME) export "$key"="${val}" ;;
+  esac
+done < <(grep -E '^(PROD_|SERVER_NAME)' .env)
 
-: "${PROD_JWT_SECRET:?ERROR: PROD_JWT_SECRET no está definido en .env}"
-: "${PROD_DB_PASSWORD:?ERROR: PROD_DB_PASSWORD no está definido en .env}"
+fail() {
+  echo "ERROR: $1"
+  exit 1
+}
+
+echo "==> Pre-flight: validando variables de producción..."
+[ -n "${PROD_JWT_SECRET:-}" ] || fail "PROD_JWT_SECRET no está definido en .env"
+[ -n "${PROD_DB_PASSWORD:-}" ] || fail "PROD_DB_PASSWORD no está definido en .env"
+[ -n "${PROD_DB_USER:-}" ] || fail "PROD_DB_USER no está definido en .env"
+[ -n "${PROD_DB_NAME:-}" ] || fail "PROD_DB_NAME no está definido en .env"
+
+case "${PROD_JWT_SECRET}" in
+  *CHANGE_ME*) fail "PROD_JWT_SECRET contiene el placeholder CHANGE_ME. Define un secreto real." ;;
+esac
+
+if [ -z "${SERVER_NAME:-}" ] || [ "${SERVER_NAME}" = "localhost" ]; then
+  fail "SERVER_NAME no configurado. Define el dominio o <IP>.sslip.io en .env (HTTPS)."
+fi
+
+if [ "${PROD_COMPANY_NAME:-Your Company}" = "Your Company" ]; then
+  echo "⚠️  PROD_COMPANY_NAME sigue con el valor por defecto ('Your Company')."
+fi
+
+echo "   Validación correcta."
 
 echo "==> Construyendo y arrancando contenedores..."
 docker compose -f docker-compose.prod.yml up -d --build

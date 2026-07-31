@@ -66,7 +66,7 @@ Este documento complementa a `SPEC.md` y sirve como guía de control supremo par
 
 ### 2.9 Red Interna Zero-Trust
 * **Regla:** Comunicación exclusiva entre contenedores mediante la red virtual de Docker `nexus-network`.
-* **Implementación:** Ningún contenedor puede comunicarse de forma directa con el exterior o con otros servicios fuera de la red declarada.
+* **Implementación:** Ningún contenedor puede comunicarse de forma directa con el exterior o con otros servicios fuera de la red declarada. **Única excepción de perímetro:** el contenedor `caddy` expone los puertos `80/443`; todo tráfico externo debe atravesarlo para alcanzar al backend.
 
 ### 2.10 Filosofía de Fallo Seguro (Fail-Closed)
 * **Regla:** Ante cualquier caída o excepción no controlada en el subsistema de auditoría (`AuditLog`), el flujo operativo del backend debe interrumpirse inmediatamente.
@@ -144,7 +144,7 @@ El sistema (y los agentes de IA) deben verificar automáticamente los siguientes
 
 ### 4.1 Infraestructura y Contenedores
 * [ ] Todos los `Dockerfile` declaran un usuario no root.
-* [ ] El archivo `docker-compose.prod.yml` no expone puertos de PostgreSQL (5432) ni de Ollama (11434).
+* [ ] Solo el contenedor `caddy` expone puertos al exterior (`80/443`). PostgreSQL (5432) y Ollama (11434) no exponen puertos.
 * [ ] Los volúmenes locales de persistencia están declarados correctamente.
 
 ### 4.2 Lógica de Seguridad y Base de Datos

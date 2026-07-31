@@ -1,18 +1,30 @@
-# Caddyfile — HTTPS automático para Nexus Insight
-# Copiar a /etc/caddy/Caddyfile en el VPS
-# Para usar sin dominio: https://<TU_IP>.sslip.io
-# Para usar con dominio: reemplazar <TU_IP>.sslip.io por tudominio.com
+# Caddyfile — HTTPS automático para Nexus Insight (modo contenedor)
+# Montado por docker-compose.prod.yml en /etc/caddy/Caddyfile del contenedor.
+# NO se copia a /etc/caddy del host (el host ya no ejecuta Caddy).
+#
+# Definir SERVER_NAME en el .env del VPS, p.ej.:
+#   SERVER_NAME=143.198.10.10.sslip.io     (HTTPS automático con Let's Encrypt)
+# Si SERVER_NAME queda vacío, Caddy sirve en http://localhost:80 (sin TLS).
 
-<TU_IP_OR_DOMAIN> {
-    reverse_proxy localhost:8000
-
-    headers {
-        X-Content-Type-Options nosniff
-        X-Frame-Options DENY
-        Referrer-Policy strict-origin-when-cross-origin
+{$SERVER_NAME:localhost:80} {
+    # Cabeceras de seguridad
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
     }
 
-    log {
-        output file /var/log/caddy/nexus-insight.log
+    # Bloqueo de bots agresivos
+    @bots {
+        header User-Agent "*bot*"
+        header User-Agent "*crawler*"
+    }
+    respond @bots 403
+
+    # Reverse proxy a FastAPI
+    reverse_proxy fastapi_app:8000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
     }
 }

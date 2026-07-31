@@ -4,6 +4,8 @@ import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DEFAULT_JWT_SECRET = "dev_secret_key_extremely_long_and_secure_for_local_testing_2026"
+_PLACEHOLDER_JWT_SECRET = "CHANGE_ME_PROD_JWT_SECRET_64chars_minimum"
+_FORBIDDEN_JWT_SECRETS = frozenset({_DEFAULT_JWT_SECRET, _PLACEHOLDER_JWT_SECRET})
 
 
 class Settings(BaseSettings):
@@ -24,15 +26,15 @@ settings = Settings()
 
 
 def check_jwt_secret(env: str | None = None) -> None:
-    if settings.jwt_secret == _DEFAULT_JWT_SECRET:
+    if settings.jwt_secret in _FORBIDDEN_JWT_SECRETS:
         actual_env = env if env is not None else os.environ.get("NEXUS_ENV", "development").lower()
         logger = logging.getLogger("nexus")
         if actual_env == "production":
             raise RuntimeError(
-                "JWT_SECRET no puede ser el valor por defecto en producción. "
+                "JWT_SECRET no puede ser un valor por defecto o placeholder en producción. "
                 "Establece JWT_SECRET en .env o variables de entorno."
             )
         logger.warning(
-            "JWT_SECRET usando valor por defecto (inseguro para producción). "
+            "JWT_SECRET usando valor por defecto/placeholder (inseguro para producción). "
             "Establece JWT_SECRET en .env o variables de entorno."
         )

@@ -3,14 +3,43 @@ secrets:
     file: ./secrets/admin_password.txt
 
 services:
+  caddy:
+    image: caddy:2.7.6-alpine
+    container_name: nexus_caddy
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - SERVER_NAME=${SERVER_NAME:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - nexus-network
+    depends_on:
+      fastapi_app:
+        condition: service_healthy
+
   fastapi_app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: nexus_backend
     restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
-      - "${PROD_API_PORT:-8000}:8000"
+      - "127.0.0.1:${PROD_API_PORT:-8000}:8000"
     environment:
       - NEXUS_ENV=production
       - JWT_SECRET=${PROD_JWT_SECRET}
@@ -19,14 +48,23 @@ services:
       - COMPANY_NAME=${PROD_COMPANY_NAME:-Your Company}
       - DATABASE_URL=postgresql+asyncpg://${PROD_DB_USER}:${PROD_DB_PASSWORD}@db_service:5432/${PROD_DB_NAME}
       - OLLAMA_HOST=${PROD_OLLAMA_HOST:-http://ollama_service:11434}
-      - MODEL_NAME=${PROD_MODEL_NAME}
+      - MODEL_NAME=${PROD_MODEL_NAME:-qwen2.5:1.5b}
       - ADMIN_PASSWORD_FILE=/run/secrets/admin_password
     secrets:
       - admin_password
     depends_on:
       db_service:
         condition: service_healthy
+      ollama_service:
+        condition: service_healthy
     command: ["sh", "-c", "alembic upgrade head && python -m src.core.seed && uvicorn src.main:app --host 0.0.0.0 --port 8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    mem_limit: 1g
+    cpus: "1.0"
     networks:
       - nexus-network
 
@@ -34,11 +72,20 @@ services:
     image: postgres:16-alpine
     container_name: nexus_postgres
     restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 2g
+    cpus: "0.5"
     environment:
       - POSTGRES_USER=${PROD_DB_USER}
       - POSTGRES_PASSWORD=${PROD_DB_PASSWORD}
       - POSTGRES_DB=${PROD_DB_NAME}
-    # 🔒 SSDLC: Sin mapeo de puertos hacia el exterior. Aislado en la red interna.
+    # 🔒 SSDLC: Solo puerto loopback (127.0.0.1) para backups locales con pg_dump. Inaccesible desde el exterior.
+    ports:
+      - "127.0.0.1:${PROD_DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -53,13 +100,38 @@ services:
     image: ollama/ollama:latest
     container_name: nexus_ollama
     restart: always
-    mem_limit: 4g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 8g
     cpus: "2.0"
     # 🔒 SSDLC: Sin mapeo de puertos hacia el exterior. Aislado en la red interna.
+    environment:
+      - MODEL_NAME=${PROD_MODEL_NAME:-qwen2.5:1.5b}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ollama serve &
+        sleep 5
+        if ollama list | grep -q "$$MODEL_NAME"; then
+          echo "Modelo $$MODEL_NAME ya descargado."
+        else
+          echo "Descargando $$MODEL_NAME en el arranque..."
+          ollama pull $$MODEL_NAME
+        fi
+        wait
     volumes:
       - ollama_storage:/root/.ollama
     networks:
       - nexus-network
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list | grep -q '$${MODEL_NAME}'"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
 
 networks:
   nexus-network:
@@ -71,3 +143,7 @@ volumes:
     name: nexus_postgres_data_prod
   ollama_storage:
     name: nexus_ollama_storage_prod
+  caddy_data:
+    name: nexus_caddy_data_prod
+  caddy_config:
+    name: nexus_caddy_config_prod

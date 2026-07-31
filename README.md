@@ -269,36 +269,56 @@ nexus-insight/
 
 ### Arquitectura de Red y Soberanía de Datos (Zero-Trust)
 
-El sistema implementa un perímetro de seguridad donde los servicios de persistencia e inferencia están completamente aislados del exterior. La API de FastAPI actúa como el único punto de entrada autorizado.
+El sistema implementa un perímetro de seguridad donde los servicios de persistencia e inferencia están completamente aislados del exterior. El contenedor **Caddy** (HTTPS) actúa como el único punto de entrada autorizado.
 
 ```mermaid
 flowchart TB
-    subgraph Internet / Host Local [Zona Externa - No Segura]
-        User([Cliente / Usuario]) -- HTTP Request <br> Puerto 8000 --> API
+    subgraph Host_VPS [Servidor / VPS]
+        subgraph Zona_Publica [Zona Pública - Firewall 80/443]
+            Caddy[Contenedor Caddy<br/>HTTPS 443 / HTTP 80<br/>único punto de entrada]
+        end
+
+        subgraph Docker_Network [Red Interna Privada: nexus-network]
+            API[Backend FastAPI<br/>127.0.0.1:8000<br/>JWT + RBAC]
+            DB[(PostgreSQL<br/>5432)]
+            Ollama[Servidor Ollama<br/>11434]
+
+            Caddy -- "red interna<br/>fastapi_app:8000" --> API
+            API -- "1. Persistencia / Consulta" --> DB
+            API -- "2. Contexto RAG<br/>HTTP interno" --> Ollama
+        end
     end
 
-    subgraph Docker_Network [Red Interna Privada: nexus-network]
-        API[Backend FastAPI <br> Puerto 8000] 
-        DB[(PostgreSQL DB <br> Puerto 5432)]
-        Ollama[Servidor Ollama <br> Puerto 11434]
+    User([Cliente / Evaluador]) -- "HTTPS 443<br/>TLS 1.3" --> Caddy
 
-        %% Flujos Internos Seguros
-        API -- 1. Consulta/Persiste <br> SSL Interno --> DB
-        API -- 2. Contexto Inyectado <br> HTTP Interno --> Ollama
-    end
+    Internet([Internet]) -.->|"BLOQUEADO<br/>solo 80/443 vía Caddy"| API
+    Internet -.->|"BLOQUEADO<br/>sin puertos expuestos"| DB
+    Internet -.->|"BLOQUEADO<br/>sin puertos expuestos"| Ollama
+    Ollama -.->|"BLOQUEADO<br/>sin acceso directo"| DB
 
-    %% Bloqueos y Aislamiento (Representación de Seguridad)
-    Internet -.->|BLOQUEADO <br> Sin Puertos Expuestos| DB
-    Internet -.->|BLOQUEADO <br> Sin Puertos Expuestos| Ollama
-    Ollama -.->|BLOQUEADO <br> Sin Acceso Directo| DB
-
-    %% Estilos Visuales
-    style API fill:#1f77b4,stroke:#fff,stroke-width:2px,color:#fff
-    style DB fill:#2ca02c,stroke:#fff,stroke-width:2px,color:#fff
-    style Ollama fill:#9467bd,stroke:#fff,stroke-width:2px,color:#fff
+    style Caddy fill:#ff7f0e,stroke:#fff,color:#fff
+    style API fill:#1f77b4,stroke:#fff,color:#fff
+    style DB fill:#2ca02c,stroke:#fff,color:#fff
+    style Ollama fill:#9467bd,stroke:#fff,color:#fff
     style Docker_Network fill:#f9f9f9,stroke:#333,stroke-dasharray: 5 5
+    style Zona_Publica fill:#fff3e0,stroke:#e65100,stroke-dasharray: 5 5
 ```
 
+
+#### Requisitos Mínimos del Servidor
+
+El stack es **agnóstico de proveedor**: funciona en cualquier VPS o VM (Oracle Cloud, Hetzner, Contabo, etc.) que cumpla los requisitos mínimos, tanto en arquitectura x86_64 como ARM64.
+
+| Recurso | Mínimo (con Ollama) | Recomendado |
+|---|---|---|
+| **CPU** | 2 vCPU | 4 vCPU |
+| **RAM** | 4 GB | 8 GB |
+| **Disco** | 15 GB SSD | 40 GB SSD |
+| **Arquitectura** | x86_64 / ARM64 | ARM64 (mejor coste/rendimiento) |
+| **Sistema** | Debian 12 / Ubuntu 22.04 LTS | Ubuntu 24.04 LTS |
+| **Puertos abiertos** | 80, 443 (+22 SSH para administración) | idéntico |
+
+Desglose de consumo por contenedor (techos configurados): FastAPI ~1 GB, PostgreSQL ~2 GB, Ollama + Qwen2.5-1.5B ~8 GB, Caddy ~50 MB. El modelo `qwen2.5:1.5b` se descarga automáticamente al primer arranque e infiere en CPU (sin GPU).
 
 #### Pilares del Diseño de Seguridad y Soberanía de Datos
 
@@ -309,10 +329,31 @@ Este modelo arquitectónico soluciona de raíz los riesgos de filtración de dat
     * **Sin telemetría externa:** Ni los datos del usuario, ni los fragmentos de los documentos inyectados en el contexto, ni los prompts de consulta viajan por internet ni son compartidos para entrenar modelos externos.
 * **Aislamiento de Red Zero-Trust (Cortafuegos Perimetral):**
     * **Invisibilidad de servicios:** PostgreSQL (puerto `5432`) y Ollama (puerto `11434`) operan en la red virtual privada `nexus-network` **sin mapear o exponer puertos hacia el host exterior**. Son invisibles ante escaneos de puertos en la máquina física.
-    * **Punto único de acceso:** El backend de FastAPI actúa como el único perímetro autorizado (puerto `8000`). Ningún comando externo puede interactuar directamente con la base de datos o con el motor de IA sin ser interceptado por el middleware de validación criptográfica (JWT) y el control de accesos (RBAC).
+    * **Punto único de acceso:** El contenedor **Caddy** (HTTPS, puertos `80/443`) actúa como el único perímetro autorizado hacia el exterior. Ningún comando externo puede interactuar directamente con la base de datos o con el motor de IA sin pasar por Caddy y ser interceptado por el middleware de validación criptográfica (JWT) y el control de accesos (RBAC).
 * **Modularidad Operativa (Acoplamiento Suelto):**
     * **Independencia de servicios:** La infraestructura está diseñada para permitir el encendido, apagado o actualización de cada máquina por separado (`docker compose up <servicio>`). 
     * **Fácil mantenimiento:** Si se requiere aislar Ollama por mantenimiento, actualizar a una versión más segura o auditar la base de datos de manera aislada, el ecosistema lo permite sin comprometer la integridad o la estabilidad del resto de módulos del backend.
+
+#### Flujo Lógico: Filtrado por Doble Capa
+
+El diferencial frente a un RAG genérico: cada consulta atraviesa dos capas de filtrado antes de llegar al modelo.
+
+```mermaid
+flowchart LR
+    subgraph Capa_Seguridad [Security Layer - Aislamiento]
+        S1[JWT + Argon2id]
+        S2[RBAC departamental<br/>admin / lead / staff]
+        S3[Filtro RAG<br/>solo documentos de su dept.]
+    end
+    subgraph Capa_Cognitiva [Cognitive Layer - Adaptación]
+        C1[Prompt engineering<br/>tono/formato por audiencia]
+        C2[Contexto 4K chars +<br/>anti-alucinación _NO_INVENT]
+        C3[Inferencia 100% local<br/>Qwen2.5 1.5B en Ollama]
+    end
+    Q[Usuario: consulta + audiencia] --> S1 --> S2 --> S3
+    S3 --> C1 --> C2 --> C3
+    C3 --> R[Respuesta adaptada<br/>al perfil del receptor]
+```
 
 ## f. Usuario y contraseña de prueba
 
@@ -333,6 +374,8 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 
 (Nunca usar estas credenciales en producción.)
 
+**Producción:** el seed crea únicamente el usuario `admin`, cuya contraseña se genera aleatoriamente en `scripts/setup-vps.sh` y se almacena en `secrets/admin_password.txt` del VPS (accesible vía Docker secret, nunca en el repositorio). Acceso del evaluador por HTTPS: `https://<SERVER_NAME>` con el usuario `admin` y esa contraseña.
+
 
 
 > Historial completo de versiones en [`CHANGELOG.md`](./CHANGELOG.md).
@@ -347,7 +390,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H4** ✅ | Ingesta documental por API + frontend web + CLI: SHA-256, extracción texto (pypdf), búsqueda textual, roles (admin/lead/staff), departamentos M2M, login web, dashboard, upload, lista documentos, logout, CLI upload/get/list | Upload → 200/409. 167 tests. Frontend funcional. CLI funcional. |
 | **H5** ✅ | Motor RAG: consulta con filtro RBAC, contexto a Ollama, delimitadores XML anti-inyección + sanitización OWASP, truncado de contexto a 4K chars, endpoint API + frontend web + CLI | `POST /api/v1/rag/query` → 200. 186 tests. Frontend Consultar funcional. |
 | **H6** ✅ | Auditoría y trazabilidad: Alembic, trigger PostgreSQL inmutable, AuditLog completo, visor Registros | Ver detalle abajo ↓ |
-| **H7** ✅ | Ciclo de vida documental: borrar docs, is\_public, CRUD usuarios, export .txt, CLI query | Ver detalle abajo ↓ |
+| **H7** ✅ | Ciclo de vida documental: borrar docs, is\_public, CRUD usuarios. H7.4 (export .txt + CLI query) descartado por YAGNI. | Ver detalle abajo ↓ |
 | **H8** ✅ | Experiencia corporativa: mejora visual, adaptación de tono por departamento/stakeholder, administración de usuarios | Ver detalle abajo ↓ |
 | **H9** ✅ | Seguridad: rate limiting (login 5/min), CSP + security headers, password complexity policy | Ver detalle abajo ↓ |
 
@@ -355,17 +398,17 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 
 | Código | Objetivo | Criterio de Aceptación |
 |--------|----------|------------------------|
-| **H6.1** | Alembic funcional + migration trigger inmutable en audit_log | `alembic upgrade head` crea tablas + trigger. Rollback funcional. |
-| **H6.2** | AuditLog en login/upload/delete + visor Registros en frontend | Login, subida y borrado → fila en audit_logs. Pestaña Registros muestra tabla paginada. |
+| **H6.1** ✅ | Alembic funcional + migration trigger inmutable en audit_log | `alembic upgrade head` crea tablas + trigger. Rollback funcional. |
+| **H6.2** ✅ | AuditLog en login/upload/delete + visor Registros en frontend | Login, subida y borrado → fila en audit_logs. Pestaña Registros muestra tabla paginada. |
 
 ### H7 — Ciclo de vida documental
 
 | Código | Objetivo | Criterio de Aceptación |
 |--------|----------|------------------------|
-| **H7.1** | Borrar documentos (admin/lead) + staff sin subir | `DELETE /api/v1/documents/{id}` → 200/404/403. Botón frontend. |
-| **H7.2** | Documento de acceso general (`is_public`) | Columna. Bypass del filtro departamental en listado + RAG. |
+| **H7.1** ✅ | Borrar documentos (admin/lead) + staff sin subir | `DELETE /api/v1/documents/{id}` → 200/404/403. Botón frontend. |
+| **H7.2** ✅ | Documento de acceso general (`is_public`) | Columna. Bypass del filtro departamental en listado + RAG. |
 | **H7.3** ✅ | CRUD usuarios (admin) | Alta/baja/modificación de usuarios desde frontend. API completa. 34 tests. |
-| **H7.4** | Exportar respuesta .txt + CLI query | Botón en consulta. `nexus.py query` funcional. |
+| **H7.4** | Exportar respuesta .txt + CLI query | Descartado por YAGNI (no implementado). La consulta web de H5 incluye copiar respuesta al portapapeles. |
 
 ### H9 — Seguridad (OWASP)
 
@@ -410,7 +453,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **Seguridad en Profundidad** | JWT + Argon2id para autenticación. RBAC por departamento con validación en cada operación. Zero-Trust network (PostgreSQL y Ollama sin puertos expuestos al host). SHA-256 en memoria. AuditLog inmutable con trigger `REJECT`. Fail-closed ante cualquier error de validación. |
 | **Privacidad por Diseño** | Inferencia 100% local con Ollama: los datos nunca abandonan la infraestructura del cliente. Aislamiento departamental: cada rol solo accede a los documentos de su departamento. Sin telemetría externa ni dependencia de APIs cloud. |
 | **Calidad y Testing** | TDD estricto (RED → GREEN → REFACTOR) en cada hito. Tests unitarios + HTTP + integración. Cobertura mínima > 70%. Ruff (lint + format) en pre-commit. Pipeline CI con ruff, pytest, bandit y pip-audit en GitHub Actions. |
-| **Portabilidad y Despliegue** | Docker Compose single-command (`docker compose up --build`). Entorno productivo replicable con `docker compose -f docker-compose.prod.yml`. Portable a cualquier proveedor cloud (AWS ECS, GCP Cloud Run, Azure ACA) sin cambios arquitectónicos. |
+| **Portabilidad y Despliegue** | Docker Compose single-command (`docker compose up --build`). Entorno productivo replicable con `docker compose -f docker-compose.prod.yml`. Agnóstico de proveedor: cualquier VPS que cumpla los requisitos mínimos (tabla en sección `e`). |
 | **Costo Cero en Inferencia** | Sin costes por token, llamadas API ni suscripciones cloud. El modelo Qwen2.5 se ejecuta íntegramente en hardware local. Ideal para startups, entornos regulados y presupuestos ajustados. |
 | **Observabilidad** | Logging JSON estructurado con `request_id` de correlación. Access log middleware registra `method`, `path`, `status`, `latency_ms`. Health endpoint con `version`, `uptime`, `request_id`. Graceful shutdown. Preparado para OpenTelemetry. |
 | **Mantenibilidad** | Conventional commits en cada entrega. Pre-commit hooks (lint + tests). Type hints estrictos en toda la base de código. Imports explícitos (sin wildcards). Documentación viva sincronizada (README + SPEC + SECURITY). |
@@ -547,9 +590,22 @@ docker compose up --build
 4. En la terminal del codespace: `docker compose up --build`
 5. Abrir el puerto 8000 (Codespaces muestra un aviso automático)
 
-### Opción 3: Despliegue cloud (futuro)
+### Opción 3: Despliegue en VPS (producción)
 
-Servicios como **Railway**, **Render** o **Fly.io** tienen capas gratuitas suficientes. Pendiente de evaluación.
+El proyecto incluye pipeline CI/CD y despliegue real en un VPS que cumpla los requisitos mínimos (tabla en sección `e`):
+
+1. Ejecutar `scripts/setup-vps.sh` en el servidor.
+2. Configurar `.env` (`PROD_*` + `SERVER_NAME`) y abrir puertos 80/443.
+3. `docker compose -f docker-compose.prod.yml up -d --build` (o activar el CD de GitHub Actions añadiendo los secrets del VPS).
+
+#### Despliegue seguro en Oracle Cloud (primer arranque)
+
+Recomendado para minimizar riesgos en el arranque en producción:
+
+1. **Cloud-init (opción más segura):** al crear la instancia (Ampere A1, Ubuntu 22.04+), pega el contenido de `scripts/setup-vps.sh` en **Advanced options → Management → Custom cloud-init script** (debe empezar por `#!/usr/bin/env bash`). El bootstrap se ejecuta solo en el primer arranque, como root y **sin depender de tu sesión SSH**.
+2. **Si lo ejecutas a mano:** hazlo dentro de `tmux new -s setup` → `sudo bash setup-vps.sh`. `tmux` evita que una caída de la conexión SSH interrumpa el script a medias.
+3. **Recuperación de emergencia:** si por cualquier motivo pierdes SSH, usa **OCI Console → Instancia → Console connection (VNC)**. No requiere puertos abiertos y permite recuperar el acceso.
+4. **Verificación post-bootstrap:** `ufw status` (solo 22/80/443), `docker info`, y probar una **nueva** sesión SSH en otra terminal antes de cerrar la actual.
 
 ---
 
