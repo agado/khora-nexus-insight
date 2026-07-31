@@ -374,7 +374,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 
 (Nunca usar estas credenciales en producción.)
 
-**Producción:** el seed crea únicamente el usuario `admin`, cuya contraseña se genera aleatoriamente en `scripts/setup-vps.sh` y se almacena en `secrets/admin_password.txt` del VPS (accesible vía Docker secret, nunca en el repositorio). Acceso del evaluador por HTTPS: `https://<SERVER_NAME>` con el usuario `admin` y esa contraseña.
+**Producción:** el seed crea únicamente el usuario `admin`, cuya contraseña se genera aleatoriamente en `scripts/setup-vps.sh` y se almacena en `secrets/admin_password.txt` del VPS (accesible vía Docker secret, nunca en el repositorio). Acceso del evaluador por HTTPS: `https://<SERVER_NAME>` con el usuario `admin` y esa contraseña (obtenerla con `cat /opt/nexus-insight/secrets/admin_password.txt`).
 
 
 
@@ -642,6 +642,19 @@ PGPASSWORD="$PROD_DB_PASSWORD" psql -h 127.0.0.1 -p "${PROD_DB_PORT:-5432}" \
 ```
 
 **Validación post-deploy:** `scripts/deploy.sh` y el CD no validan `localhost:8000` sino el **perímetro completo** — `https://${SERVER_NAME}/api/v1/health` a través de Caddy + TLS (con retry de 120s para el arranque y 60s adicionales para la emisión del certificado). En el **primer** arranque la descarga del modelo (`qwen2.5:1.5b`, ~1 GB) puede alargar la puesta en marcha varios minutos; los reintentos posteriores son rápidos porque el modelo ya queda cacheado en el volumen `ollama_storage`.
+
+#### Primer uso (primer click)
+
+Con el despliegue verificado, el primer acceso a la aplicación es:
+
+1. **Recuperar la contraseña de `admin`** (generada por `setup-vps.sh`, nunca en el repo):
+   ```bash
+   cat /opt/nexus-insight/secrets/admin_password.txt
+   ```
+2. Abrir `https://<SERVER_NAME>` — el valor de `SERVER_NAME` de tu `.env` (redirige a `/login`).
+3. Iniciar sesión con el usuario `admin` y la contraseña del paso 1.
+4. En el panel, pulsar **Subir** y adjuntar un PDF de ejemplo.
+5. Pulsar **Consultar** y hacer una pregunta sobre ese documento: la respuesta llega adaptada al rol del receptor (filtrado dual: departamento + tono).
 
 ---
 
