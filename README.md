@@ -595,8 +595,23 @@ docker compose up --build
 El proyecto incluye pipeline CI/CD y despliegue real en un VPS que cumpla los requisitos mínimos (tabla en sección `e`):
 
 1. Ejecutar `scripts/setup-vps.sh` en el servidor.
-2. Configurar `.env` (`PROD_*` + `SERVER_NAME`) y abrir puertos 80/443.
+2. Preparar `.env` (ver tabla abajo) y abrir puertos 80/443.
 3. `docker compose -f docker-compose.prod.yml up -d --build` (o activar el CD de GitHub Actions añadiendo los secrets del VPS).
+
+#### Preparación pre-deploy del `.env`
+
+El único artefacto de configuración del despliegue es `.env` (creado por `setup-vps.sh` desde `.env.example`). Antes del primer arranque personaliza estas variables:
+
+| Variable | Requerida | Cómo obtener el valor |
+|---|---|---|
+| `PROD_JWT_SECRET` | ✅ | Generar con `openssl rand -base64 48` (≥64 chars). Nunca el placeholder `CHANGE_ME_*`: la app no arranca (fail-closed). |
+| `PROD_DB_PASSWORD` | ✅ | Generar con `openssl rand -base64 32` |
+| `PROD_DB_USER` / `PROD_DB_NAME` | ✅ | Los defaults de la plantilla son válidos (`nexus_db_user` / `nexus_insight_db`) |
+| `SERVER_NAME` | ✅ | Dominio real o `<IP_pública>.sslip.io` (p. ej. `143.198.10.10.sslip.io`). Si queda vacío, Caddy sirve HTTP sin TLS. |
+| `PROD_COMPANY_NAME` | opcional | Nombre que aparece en la barra de navegación web |
+| `PROD_JWT_ALGORITHM` / `PROD_JWT_EXPIRATION_MINUTES` | opcional | Defaults: `HS256` / `30` min |
+
+`scripts/deploy.sh` valida estas variables antes de arrancar (pre-flight) y el guard anti-filtrado aborta si `.env` llegara a estar trackeado por git. Nunca comitees `.env`.
 
 #### Despliegue seguro en Oracle Cloud (primer arranque)
 
