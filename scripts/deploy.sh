@@ -16,6 +16,12 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
+if ! git check-ignore .env > /dev/null 2>&1; then
+  echo "ERROR: .env está trackeado por git (debe estar en .gitignore)."
+  echo "       Elimínalo del control de versiones antes de desplegar: git rm --cached .env"
+  exit 1
+fi
+
 echo "==> Extrayendo variables requeridas..."
 while IFS='=' read -r key val; do
   case "$key" in
