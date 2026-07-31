@@ -23,6 +23,13 @@ jobs:
       - run: pip install -r requirements.txt
       - run: ruff check .
       - run: ruff format --check .
+      - name: Shell syntax — bash scripts
+        run: |
+          set -e
+          for f in scripts/*.sh; do
+            bash -n "$f"
+          done
+          echo "bash -n OK: scripts/*.sh"
 
   test:
     runs-on: ubuntu-latest
