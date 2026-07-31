@@ -51,12 +51,17 @@ echo "   Validación correcta."
 echo "==> Construyendo y arrancando contenedores..."
 docker compose -f docker-compose.prod.yml up -d --build
 
-echo "==> Esperando health check..."
-sleep 5
-if curl -sf http://localhost:8000/api/v1/health > /dev/null 2>&1; then
-  echo "✅ Nexus Insight desplegado correctamente"
-else
-  echo "⚠️  Health check falló. Revisa logs:"
-  docker compose -f docker-compose.prod.yml logs --tail=30
-  exit 1
-fi
+echo "==> Verificando el perímetro completo (Caddy + TLS)..."
+base_url="https://${SERVER_NAME}/api/v1/health"
+attempt=0
+until curl -kfsS "${base_url}" > /dev/null 2>&1; do
+  attempt=$((attempt + 1))
+  if [ "${attempt}" -ge 12 ]; then
+    echo "⚠️  Smoke test falló: ${base_url}"
+    echo "   Revisa logs: docker compose -f docker-compose.prod.yml logs --tail=30"
+    exit 1
+  fi
+  echo "   (intento ${attempt}/12) esperando a que Caddy emita el certificado..."
+  sleep 5
+done
+echo "✅ Nexus Insight desplegado correctamente (${base_url})"

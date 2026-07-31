@@ -27,10 +27,16 @@ jobs:
             git pull origin main
             echo "→ Rebuilding and restarting..."
             docker compose -f docker-compose.prod.yml up -d --build
-            echo "→ Running health check..."
-            sleep 5
-            curl -sf http://localhost:8000/api/v1/health || {
-              echo "⚠️  Health check failed. Check logs: docker compose -f docker-compose.prod.yml logs"
+            SERVER_NAME=$(grep -E '^SERVER_NAME=' .env | cut -d'=' -f2-)
+            BASE_URL="https://${SERVER_NAME}/api/v1/health"
+            echo "→ Smoke test (perímetro real Caddy + TLS): ${BASE_URL}"
+            for i in $(seq 1 12); do
+              curl -kfsS "${BASE_URL}" > /dev/null 2>&1 && break
+              echo "  (intento $i/12) esperando a que Caddy emita el certificado..."
+              sleep 5
+            done
+            curl -kfsS "${BASE_URL}" > /dev/null 2>&1 || {
+              echo "⚠️  Smoke test failed. Check logs: docker compose -f docker-compose.prod.yml logs"
               exit 1
             }
-            echo "✅ Deploy successful"
+            echo "✅ Deploy successful (${BASE_URL})"
