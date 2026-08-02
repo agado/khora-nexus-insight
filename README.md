@@ -662,6 +662,10 @@ Con el despliegue verificado, el primer acceso a la aplicación es:
 4. En el panel, pulsar **Subir** y adjuntar un PDF de ejemplo.
 5. Pulsar **Consultar** y hacer una pregunta sobre ese documento: la respuesta llega adaptada al rol del receptor (filtrado dual: departamento + tono).
 
+### Opción 4: Demo desplegada (URL para el corrector)
+
+Instancia real de evaluación en Oracle Cloud: `https://51.170.44.127.nip.io`
+
 ---
 
 ## i. Presentación y Vídeo Demo
