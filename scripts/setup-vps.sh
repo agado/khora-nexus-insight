@@ -110,7 +110,9 @@ ensure_cmd openssl openssl
 if [ ! -f secrets/admin_password.txt ]; then
   mkdir -p secrets
   openssl rand -base64 32 > secrets/admin_password.txt
-  chmod 600 secrets/admin_password.txt
+  # 0644: el contenedor corre como usuario no-root (nexus_user, uid 10001)
+  # y lee /run/secrets/admin_password via bind-mount del archivo del host.
+  chmod 644 secrets/admin_password.txt
   echo "   Secret generado en secrets/admin_password.txt"
 else
   echo "   Secret ya existe"

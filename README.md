@@ -4,7 +4,7 @@
 ![Python 3.13](https://img.shields.io/badge/python-3.13-blue?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)
 ![Docker](https://img.shields.io/badge/docker_compose-single--command-2496ED?logo=docker)
-![Tests](https://img.shields.io/badge/tests-267-green)
+![Tests](https://img.shields.io/badge/tests-269-green)
 ![RAG](https://img.shields.io/badge/RAG-100%25_local-7B1FA2?logo=ollama)
 ![License](https://img.shields.io/badge/license-All_Rights_Reserved-red)
 [![Conventional Commits](https://img.shields.io/badge/conventional%20commits-1.0.0-FE5196?logo=conventionalcommits)](https://conventionalcommits.org)
@@ -178,8 +178,7 @@ http://localhost:8000/docs
 
 ## d. Estructura del proyecto
 
-Bloque corregido para evitar errores de interpretación en OpenCode.
-
+```text
 nexus-insight/
 ├── docker-compose.yml
 ├── docker-compose.prod.yml
@@ -233,7 +232,7 @@ nexus-insight/
     │   └── v1/
     └── core/
         └── services/
-
+```
 
 ## e. Funcionalidades principales
 
@@ -274,8 +273,8 @@ El sistema implementa un perímetro de seguridad donde los servicios de persiste
 ```mermaid
 flowchart TB
     subgraph Host_VPS [Servidor / VPS]
-        subgraph Zona_Publica [Zona Pública - Firewall 80/443]
-            Caddy[Contenedor Caddy<br/>HTTPS 443 / HTTP 80<br/>único punto de entrada]
+        subgraph Zona_Publica [Zona Publica - Firewall 80/443]
+            Caddy[Contenedor Caddy<br/>HTTPS 443 / HTTP 80<br/>unico punto de entrada]
         end
 
         subgraph Docker_Network [Red Interna Privada: nexus-network]
@@ -291,7 +290,7 @@ flowchart TB
 
     User([Cliente / Evaluador]) -- "HTTPS 443<br/>TLS 1.3" --> Caddy
 
-    Internet([Internet]) -.->|"BLOQUEADO<br/>solo 80/443 vía Caddy"| API
+    Internet([Internet]) -.->|"BLOQUEADO<br/>solo 80/443 via Caddy"| API
     Internet -.->|"BLOQUEADO<br/>sin puertos expuestos"| DB
     Internet -.->|"BLOQUEADO<br/>sin puertos expuestos"| Ollama
     Ollama -.->|"BLOQUEADO<br/>sin acceso directo"| DB
@@ -300,8 +299,6 @@ flowchart TB
     style API fill:#1f77b4,stroke:#fff,color:#fff
     style DB fill:#2ca02c,stroke:#fff,color:#fff
     style Ollama fill:#9467bd,stroke:#fff,color:#fff
-    style Docker_Network fill:#f9f9f9,stroke:#333,stroke-dasharray: 5 5
-    style Zona_Publica fill:#fff3e0,stroke:#e65100,stroke-dasharray: 5 5
 ```
 
 
@@ -383,7 +380,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 ## g. Roadmap de Desarrollo (TDD)
 
 | Hito | Objetivo | Criterio de Aceptación (DoD) |
-|---|---|---|---|
+|---|---|---|
 | **H1** ✅ | Scaffolding: Docker, FastAPI, health endpoints | `GET /api/v1/health` responde 200. 13 tests. |
 | **H2** ✅ | `nexus.py`, base de datos, migraciones Alembic, modelos (`+department_id`), seed, test integración DB, `pytest-cov` | `nexus dev` funciona. Tablas creadas. Seed poblado. |
 | **H3** ✅ | Autenticación JWT + Argon2id + middleware RBAC | Login OK → 200. Sin token → 401. Prohibición por rol → 403. |
@@ -495,11 +492,11 @@ graph LR
 |---|---|---|
 | **Lint** | Ruff | Errores de sintaxis, imports no usados, violaciones de estilo |
 | **Formato** | Ruff | Inconsistencias de formato (single source of truth) |
-| **Tests** | Pytest (265 tests) | Regresiones funcionales, cobertura > 70% |
+| **Tests** | Pytest (269 tests) | Regresiones funcionales, cobertura > 70% |
 | **SAST** | Bandit | Hardcoded secrets, SQLi, inyecciones, malas prácticas |
 | **Deps** | pip-audit | CVEs conocidos en dependencias (advertido, no bloqueante) |
 | **Build** | Docker | Verifica que la imagen compila y el Dockerfile es válido |
-| **Deploy** | SSH + Docker Compose | Pipeline definido. Pendiente de configuración del VPS y GitHub Secrets para activación. |
+| **Deploy** | SSH + Docker Compose | Despliegue real verificado en VPS (`https://51.170.44.127.nip.io`). CD automático: requiere configurar los GitHub Secrets del VPS. |
 
 ### Seguridad en el pipeline (DevSecOps)
 
@@ -622,26 +619,7 @@ Recomendado para minimizar riesgos en el arranque en producción:
 3. **Recuperación de emergencia:** si por cualquier motivo pierdes SSH, usa **OCI Console → Instancia → Console connection (VNC)**. No requiere puertos abiertos y permite recuperar el acceso.
 4. **Verificación post-bootstrap:** `ufw status` (solo 22/80/443), `docker info`, y probar una **nueva** sesión SSH en otra terminal antes de cerrar la actual.
 
-#### Operativa en producción: rollback y restauración
-
-**Rollback de código:** ante un despliegue defectuoso, se revierte al estado anterior **sin perder datos** (Postgres vive en el volumen `pgdata`):
-
-```bash
-cd /opt/nexus-insight
-git tag                       # listar versiones estables
-git checkout <tag-o-commit-anterior>
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-**Restauración de la base de datos:** el backup diario genera `backups/nexus_db_*.sql` (retención 7 días). Para restaurar en una base vacía (p. ej. tras pérdida del volumen):
-
-```bash
-cd /opt/nexus-insight && set -a && source .env && set +a
-PGPASSWORD="$PROD_DB_PASSWORD" psql -h 127.0.0.1 -p "${PROD_DB_PORT:-5432}" \
-  -U "$PROD_DB_USER" -d "$PROD_DB_NAME" < backups/nexus_db_YYYYMMDD_HHMMSS.sql
-```
-
-**Validación post-deploy:** `scripts/deploy.sh` y el CD no validan `localhost:8000` sino el **perímetro completo** — `https://${SERVER_NAME}/api/v1/health` a través de Caddy + TLS (con retry de 120s para el arranque y 60s adicionales para la emisión del certificado). En el **primer** arranque la descarga del modelo (`qwen2.5:1.5b`, ~1 GB) puede alargar la puesta en marcha varios minutos; los reintentos posteriores son rápidos porque el modelo ya queda cacheado en el volumen `ollama_storage`.
+> Gotchas de red de OCI y operativa de producción (rollback, restauración y validación post-deploy) en [`docs/DEPLOY_OCI.md`](./docs/DEPLOY_OCI.md).
 
 #### Primer uso (primer click)
 
@@ -656,21 +634,12 @@ Con el despliegue verificado, el primer acceso a la aplicación es:
 4. En el panel, pulsar **Subir** y adjuntar un PDF de ejemplo.
 5. Pulsar **Consultar** y hacer una pregunta sobre ese documento: la respuesta llega adaptada al rol del receptor (filtrado dual: departamento + tono).
 
----
+### Opción 4: Demo desplegada (URL para el corrector)
 
-## i. Presentación y Vídeo Demo
-
-### Slides
-- **Formato:** HTML interactivo (reveal.js) con estilo corporativo
-- **Archivo:** [`docs/slides.html`](./docs/slides.html) — abrir en navegador, navegar con ← →
-- **URL pública:** (pendiente de publicar — Google Slides, Canva o similar)
-
-### Vídeo Demo
-- **Guión:** [`docs/VIDEO_SCRIPT.md`](./docs/VIDEO_SCRIPT.md) — desglose por escenas con timings y narración
-- **Duración estimada:** 5–7 minutos
-- **URL pública:** (pendiente de grabar y publicar — YouTube, Drive o similar)
+Instancia real de evaluación en Oracle Cloud: `https://51.170.44.127.nip.io`
 
 ---
+
 ## Licencia
 
 **All Rights Reserved.** Copyright © 2026 Khora Nexus Insight.  
