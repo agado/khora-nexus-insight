@@ -35,6 +35,7 @@
 - README: limpieza de cara a la evaluación del TFM — gotchas de red OCI y operativa de producción (rollback/restauración) movidas a `docs/DEPLOY_OCI.md` (referencia en su lugar), URL de la demo desplegada para el corrector (Opción 4), badge de tests corregido (267 → 269) y nota de desarrollo interna eliminada.
 - README: gate **Deploy** de CI/CD actualizado — despliegue real verificado en VPS (`https://51.170.44.127.nip.io`); el CD automático queda pendiente solo de los GitHub Secrets del VPS.
 - README: corrección de renderizado en GitHub — árbol de estructura del proyecto en bloque de código, separador de la tabla del roadmap corregido a 3 columnas, diagrama Mermaid de red sin `style` sobre subgraphs y sin acentos en labels (evita el error "Cannot read properties of undefined (reading 'render')"), y eliminada la sección duplicada "Presentación y Vídeo Demo".
+- README: puesta a punto final para la corrección del TFM — PostgreSQL 16 (era 15), credenciales seed dev con acceso a los 6 departamentos, despliegue sin mención de shape de instancia (agnóstico de proveedor), URL real del repo en el paso de clonado, `nip.io` como patrón de `SERVER_NAME`, prefijo `NEXUS_ENV` corregido, tabla `audit_log` en singular, roadmap reordenado (H8 antes de H9), árbol de estructura curado y actualizado (scripts, docs, Caddyfile, middleware, static/js), descripción técnica abierta por defecto (`<details open>`), y tono del intro equilibrado (venta con rigor).
 
 ### Security
 - Request ID tracing (estaba en roadmap post-MVP, ahora implementado).
