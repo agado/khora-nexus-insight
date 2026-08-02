@@ -622,6 +622,12 @@ Recomendado para minimizar riesgos en el arranque en producción:
 3. **Recuperación de emergencia:** si por cualquier motivo pierdes SSH, usa **OCI Console → Instancia → Console connection (VNC)**. No requiere puertos abiertos y permite recuperar el acceso.
 4. **Verificación post-bootstrap:** `ufw status` (solo 22/80/443), `docker info`, y probar una **nueva** sesión SSH en otra terminal antes de cerrar la actual.
 
+**Gotchas de red en OCI (causan "connection timed out"):**
+- **Route table:** la subnet debe tener una regla `0.0.0.0/0 → Internet Gateway`. Una route table vacía deja la IP pública inalcanzable (ni SSH ni HTTP). Si el formulario solo permite "Private IP" como target, es que falta el Internet Gateway en la VCN: créalo primero.
+- **Security List:** la creada por el wizard solo suele abrir SSH (22). Añade ingreso TCP **80 y 443** desde `0.0.0.0/0` **antes** de `deploy.sh`, o el smoke test y la emisión del certificado fallarán (el firewall de red de OCI actúa antes que `ufw`).
+- **IP pública:** usa la del **VNIC** (no la privada `10.x.x.x`). Considera una IP pública **reservada** (estática) para que `SERVER_NAME` no cambie al detener/arrancar la instancia.
+- **Campo cloud-init:** si la consola rechaza el script ("demasiado grande"), no es bloqueante — entra por SSH y ejecuta `sudo bash setup-vps.sh` a mano (paso 2).
+
 #### Operativa en producción: rollback y restauración
 
 **Rollback de código:** ante un despliegue defectuoso, se revierte al estado anterior **sin perder datos** (Postgres vive en el volumen `pgdata`):

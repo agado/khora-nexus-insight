@@ -28,6 +28,10 @@
 - `src/core/config.py`: Fail-Closed de `JWT_SECRET` ahora rechaza también el placeholder `CHANGE_ME_*` en producción (no solo el valor dev por defecto).
 - README/SECURITY: correcciones de honestidad documental — perímetro Caddy como única excepción (SECURITY §2.9), claim de portabilidad agnóstico de proveedor, Opción 3 de despliegue real en VPS, credenciales de producción.
 - README roadmap: H7.1/H7.2/H7.3 marcados como completados; **H7.4 (export .txt + CLI query) marcado como descartado por YAGNI** — nunca se implementó (confirmado en historial, commit `9eadcb5`).
+- `docker-compose.prod.yml`: **fix healthcheck de Ollama** — comillas dobles escapadas (`\"$${MODEL_NAME}\"`) para que la variable se expanda en el shell. Con comillas simples el patrón quedaba literal `${MODEL_NAME}`, ollama nunca llegaba a `healthy` y bloqueaba todo el stack (`depends_on: service_healthy`). Encontrado en el despliegue VPS real.
+- `scripts/setup-vps.sh`: el secret admin se genera ahora con `chmod 644` — el contenedor corre como usuario no-root (`nexus_user`, uid 10001) y lo lee vía bind-mount; con `600` fallaba con `PermissionError` en `seed.py`. Encontrado en el despliegue VPS real.
+- `README`: gotchas de red en OCI que causan "connection timed out" — route table con `0.0.0.0/0 → Internet Gateway`, security list con 80/443 antes de `deploy.sh`, IP del VNIC (y reservada para `SERVER_NAME` estable), y fallback manual por SSH si el campo cloud-init rechaza el script por tamaño.
+- Tests: +2 regresiones de despliegue (`tests/test_deployment.py`) — healthcheck de Ollama con comillas dobles y `chmod 644` del secret (evita reincidencias).
 
 ### Security
 - Request ID tracing (estaba en roadmap post-MVP, ahora implementado).
