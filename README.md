@@ -492,7 +492,7 @@ graph LR
 |---|---|---|
 | **Lint** | Ruff | Errores de sintaxis, imports no usados, violaciones de estilo |
 | **Formato** | Ruff | Inconsistencias de formato (single source of truth) |
-| **Tests** | Pytest (265 tests) | Regresiones funcionales, cobertura > 70% |
+| **Tests** | Pytest (269 tests) | Regresiones funcionales, cobertura > 70% |
 | **SAST** | Bandit | Hardcoded secrets, SQLi, inyecciones, malas prácticas |
 | **Deps** | pip-audit | CVEs conocidos en dependencias (advertido, no bloqueante) |
 | **Build** | Docker | Verifica que la imagen compila y el Dockerfile es válido |

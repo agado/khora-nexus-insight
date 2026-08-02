@@ -19,7 +19,7 @@
 ### Calidad
 - [ ] `ruff check .` pasa sin errores
 - [ ] `ruff format --check .` pasa
-- [ ] `pytest` pasa (265 tests)
+- [ ] `pytest` pasa (269 tests)
 - [ ] Los tests nuevos siguen TDD (RED → GREEN)
 - [ ] No hay dependencias nuevas sin revisar
 
