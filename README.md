@@ -4,7 +4,7 @@
 ![Python 3.13](https://img.shields.io/badge/python-3.13-blue?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)
 ![Docker](https://img.shields.io/badge/docker_compose-single--command-2496ED?logo=docker)
-![Tests](https://img.shields.io/badge/tests-267-green)
+![Tests](https://img.shields.io/badge/tests-269-green)
 ![RAG](https://img.shields.io/badge/RAG-100%25_local-7B1FA2?logo=ollama)
 ![License](https://img.shields.io/badge/license-All_Rights_Reserved-red)
 [![Conventional Commits](https://img.shields.io/badge/conventional%20commits-1.0.0-FE5196?logo=conventionalcommits)](https://conventionalcommits.org)
@@ -177,8 +177,6 @@ docker compose exec ollama_service ollama run qwen2.5:1.5b
 http://localhost:8000/docs
 
 ## d. Estructura del proyecto
-
-Bloque corregido para evitar errores de interpretación en OpenCode.
 
 nexus-insight/
 ├── docker-compose.yml
@@ -499,7 +497,7 @@ graph LR
 | **SAST** | Bandit | Hardcoded secrets, SQLi, inyecciones, malas prácticas |
 | **Deps** | pip-audit | CVEs conocidos en dependencias (advertido, no bloqueante) |
 | **Build** | Docker | Verifica que la imagen compila y el Dockerfile es válido |
-| **Deploy** | SSH + Docker Compose | Pipeline definido. Pendiente de configuración del VPS y GitHub Secrets para activación. |
+| **Deploy** | SSH + Docker Compose | Despliegue real verificado en VPS (`https://51.170.44.127.nip.io`). CD automático: requiere configurar los GitHub Secrets del VPS. |
 
 ### Seguridad en el pipeline (DevSecOps)
 
@@ -622,32 +620,7 @@ Recomendado para minimizar riesgos en el arranque en producción:
 3. **Recuperación de emergencia:** si por cualquier motivo pierdes SSH, usa **OCI Console → Instancia → Console connection (VNC)**. No requiere puertos abiertos y permite recuperar el acceso.
 4. **Verificación post-bootstrap:** `ufw status` (solo 22/80/443), `docker info`, y probar una **nueva** sesión SSH en otra terminal antes de cerrar la actual.
 
-**Gotchas de red en OCI (causan "connection timed out"):**
-- **Route table:** la subnet debe tener una regla `0.0.0.0/0 → Internet Gateway`. Una route table vacía deja la IP pública inalcanzable (ni SSH ni HTTP). Si el formulario solo permite "Private IP" como target, es que falta el Internet Gateway en la VCN: créalo primero.
-- **Security List:** la creada por el wizard solo suele abrir SSH (22). Añade ingreso TCP **80 y 443** desde `0.0.0.0/0` **antes** de `deploy.sh`, o el smoke test y la emisión del certificado fallarán (el firewall de red de OCI actúa antes que `ufw`).
-- **IP pública:** usa la del **VNIC** (no la privada `10.x.x.x`). Considera una IP pública **reservada** (estática) para que `SERVER_NAME` no cambie al detener/arrancar la instancia.
-- **Campo cloud-init:** si la consola rechaza el script ("demasiado grande"), no es bloqueante — entra por SSH y ejecuta `sudo bash setup-vps.sh` a mano (paso 2).
-
-#### Operativa en producción: rollback y restauración
-
-**Rollback de código:** ante un despliegue defectuoso, se revierte al estado anterior **sin perder datos** (Postgres vive en el volumen `pgdata`):
-
-```bash
-cd /opt/nexus-insight
-git tag                       # listar versiones estables
-git checkout <tag-o-commit-anterior>
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-**Restauración de la base de datos:** el backup diario genera `backups/nexus_db_*.sql` (retención 7 días). Para restaurar en una base vacía (p. ej. tras pérdida del volumen):
-
-```bash
-cd /opt/nexus-insight && set -a && source .env && set +a
-PGPASSWORD="$PROD_DB_PASSWORD" psql -h 127.0.0.1 -p "${PROD_DB_PORT:-5432}" \
-  -U "$PROD_DB_USER" -d "$PROD_DB_NAME" < backups/nexus_db_YYYYMMDD_HHMMSS.sql
-```
-
-**Validación post-deploy:** `scripts/deploy.sh` y el CD no validan `localhost:8000` sino el **perímetro completo** — `https://${SERVER_NAME}/api/v1/health` a través de Caddy + TLS (con retry de 120s para el arranque y 60s adicionales para la emisión del certificado). En el **primer** arranque la descarga del modelo (`qwen2.5:1.5b`, ~1 GB) puede alargar la puesta en marcha varios minutos; los reintentos posteriores son rápidos porque el modelo ya queda cacheado en el volumen `ollama_storage`.
+> Gotchas de red de OCI y operativa de producción (rollback, restauración y validación post-deploy) en [`docs/DEPLOY_OCI.md`](./docs/DEPLOY_OCI.md).
 
 #### Primer uso (primer click)
 

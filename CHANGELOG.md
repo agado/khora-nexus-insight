@@ -32,6 +32,8 @@
 - `scripts/setup-vps.sh`: el secret admin se genera ahora con `chmod 644` — el contenedor corre como usuario no-root (`nexus_user`, uid 10001) y lo lee vía bind-mount; con `600` fallaba con `PermissionError` en `seed.py`. Encontrado en el despliegue VPS real.
 - `README`: gotchas de red en OCI que causan "connection timed out" — route table con `0.0.0.0/0 → Internet Gateway`, security list con 80/443 antes de `deploy.sh`, IP del VNIC (y reservada para `SERVER_NAME` estable), y fallback manual por SSH si el campo cloud-init rechaza el script por tamaño.
 - Tests: +2 regresiones de despliegue (`tests/test_deployment.py`) — healthcheck de Ollama con comillas dobles y `chmod 644` del secret (evita reincidencias).
+- README: limpieza de cara a la evaluación del TFM — gotchas de red OCI y operativa de producción (rollback/restauración) movidas a `docs/DEPLOY_OCI.md` (referencia en su lugar), URL de la demo desplegada para el corrector (Opción 4), badge de tests corregido (267 → 269) y nota de desarrollo interna eliminada.
+- README: gate **Deploy** de CI/CD actualizado — despliegue real verificado en VPS (`https://51.170.44.127.nip.io`); el CD automático queda pendiente solo de los GitHub Secrets del VPS.
 
 ### Security
 - Request ID tracing (estaba en roadmap post-MVP, ahora implementado).
