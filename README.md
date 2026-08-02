@@ -178,6 +178,7 @@ http://localhost:8000/docs
 
 ## d. Estructura del proyecto
 
+```text
 nexus-insight/
 ├── docker-compose.yml
 ├── docker-compose.prod.yml
@@ -231,7 +232,7 @@ nexus-insight/
     │   └── v1/
     └── core/
         └── services/
-
+```
 
 ## e. Funcionalidades principales
 
@@ -272,8 +273,8 @@ El sistema implementa un perímetro de seguridad donde los servicios de persiste
 ```mermaid
 flowchart TB
     subgraph Host_VPS [Servidor / VPS]
-        subgraph Zona_Publica [Zona Pública - Firewall 80/443]
-            Caddy[Contenedor Caddy<br/>HTTPS 443 / HTTP 80<br/>único punto de entrada]
+        subgraph Zona_Publica [Zona Publica - Firewall 80/443]
+            Caddy[Contenedor Caddy<br/>HTTPS 443 / HTTP 80<br/>unico punto de entrada]
         end
 
         subgraph Docker_Network [Red Interna Privada: nexus-network]
@@ -289,7 +290,7 @@ flowchart TB
 
     User([Cliente / Evaluador]) -- "HTTPS 443<br/>TLS 1.3" --> Caddy
 
-    Internet([Internet]) -.->|"BLOQUEADO<br/>solo 80/443 vía Caddy"| API
+    Internet([Internet]) -.->|"BLOQUEADO<br/>solo 80/443 via Caddy"| API
     Internet -.->|"BLOQUEADO<br/>sin puertos expuestos"| DB
     Internet -.->|"BLOQUEADO<br/>sin puertos expuestos"| Ollama
     Ollama -.->|"BLOQUEADO<br/>sin acceso directo"| DB
@@ -298,8 +299,6 @@ flowchart TB
     style API fill:#1f77b4,stroke:#fff,color:#fff
     style DB fill:#2ca02c,stroke:#fff,color:#fff
     style Ollama fill:#9467bd,stroke:#fff,color:#fff
-    style Docker_Network fill:#f9f9f9,stroke:#333,stroke-dasharray: 5 5
-    style Zona_Publica fill:#fff3e0,stroke:#e65100,stroke-dasharray: 5 5
 ```
 
 
@@ -381,7 +380,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 ## g. Roadmap de Desarrollo (TDD)
 
 | Hito | Objetivo | Criterio de Aceptación (DoD) |
-|---|---|---|---|
+|---|---|---|
 | **H1** ✅ | Scaffolding: Docker, FastAPI, health endpoints | `GET /api/v1/health` responde 200. 13 tests. |
 | **H2** ✅ | `nexus.py`, base de datos, migraciones Alembic, modelos (`+department_id`), seed, test integración DB, `pytest-cov` | `nexus dev` funciona. Tablas creadas. Seed poblado. |
 | **H3** ✅ | Autenticación JWT + Argon2id + middleware RBAC | Login OK → 200. Sin token → 401. Prohibición por rol → 403. |
@@ -641,19 +640,6 @@ Instancia real de evaluación en Oracle Cloud: `https://51.170.44.127.nip.io`
 
 ---
 
-## i. Presentación y Vídeo Demo
-
-### Slides
-- **Formato:** HTML interactivo (reveal.js) con estilo corporativo
-- **Archivo:** [`docs/slides.html`](./docs/slides.html) — abrir en navegador, navegar con ← →
-- **URL pública:** (pendiente de publicar — Google Slides, Canva o similar)
-
-### Vídeo Demo
-- **Guión:** [`docs/VIDEO_SCRIPT.md`](./docs/VIDEO_SCRIPT.md) — desglose por escenas con timings y narración
-- **Duración estimada:** 5–7 minutos
-- **URL pública:** (pendiente de grabar y publicar — YouTube, Drive o similar)
-
----
 ## Licencia
 
 **All Rights Reserved.** Copyright © 2026 Khora Nexus Insight.  

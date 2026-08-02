@@ -34,6 +34,7 @@
 - Tests: +2 regresiones de despliegue (`tests/test_deployment.py`) — healthcheck de Ollama con comillas dobles y `chmod 644` del secret (evita reincidencias).
 - README: limpieza de cara a la evaluación del TFM — gotchas de red OCI y operativa de producción (rollback/restauración) movidas a `docs/DEPLOY_OCI.md` (referencia en su lugar), URL de la demo desplegada para el corrector (Opción 4), badge de tests corregido (267 → 269) y nota de desarrollo interna eliminada.
 - README: gate **Deploy** de CI/CD actualizado — despliegue real verificado en VPS (`https://51.170.44.127.nip.io`); el CD automático queda pendiente solo de los GitHub Secrets del VPS.
+- README: corrección de renderizado en GitHub — árbol de estructura del proyecto en bloque de código, separador de la tabla del roadmap corregido a 3 columnas, diagrama Mermaid de red sin `style` sobre subgraphs y sin acentos en labels (evita el error "Cannot read properties of undefined (reading 'render')"), y eliminada la sección duplicada "Presentación y Vídeo Demo".
 
 ### Security
 - Request ID tracing (estaba en roadmap post-MVP, ahora implementado).
