@@ -127,7 +127,7 @@ services:
     networks:
       - nexus-network
     healthcheck:
-      test: ["CMD-SHELL", "ollama list | grep -q '$${MODEL_NAME}'"]
+      test: ["CMD-SHELL", "ollama list | grep -q \"$${MODEL_NAME}\""]
       interval: 15s
       timeout: 10s
       retries: 20
