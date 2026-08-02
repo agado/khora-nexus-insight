@@ -631,6 +631,13 @@ Instancia real de evaluación en Oracle Cloud: `https://51.170.44.127.nip.io`
 
 ---
 
+## k. Presentación y vídeo demo
+
+* **Slides:** [`https://agado.github.io/khora-nexus-insight/slides.html`](https://agado.github.io/khora-nexus-insight/slides.html) — presentación pública del proyecto (el archivo también se entrega en `docs/slides.html` del repositorio).
+* **Vídeo explicativo:** [`https://youtu.be/wtJXqm6RAVc`](https://youtu.be/wtJXqm6RAVc) — explicación del proyecto con captura de pantalla del sistema en funcionamiento.
+
+---
+
 ## Licencia
 
 **All Rights Reserved.** Copyright © 2026 Khora Nexus Insight.  
