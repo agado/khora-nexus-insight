@@ -1,16 +1,12 @@
 name: Deploy
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v5
       - name: Deploy via SSH
@@ -49,4 +45,6 @@ jobs:
               echo "⚠️  El servicio responde pero el certificado no es válido."
               echo "   Comprueba SERVER_NAME (resolución DNS) y puertos 80/443 abiertos."
             }
+            echo "→ Limpieza de imágenes antiguas (control de disco)..."
+            docker image prune -af > /dev/null 2>&1 || true
             echo "✅ Deploy successful (${BASE_URL})"

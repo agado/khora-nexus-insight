@@ -28,3 +28,14 @@ def test_caddyfile_oculta_contrato_api():
     assert "/redoc*" in caddy
     assert "/openapi.json*" in caddy
     assert "respond" in caddy
+
+
+def test_deploy_manual_por_release_no_auto():
+    """CD agrupado por release: el despliegue solo se dispara manualmente
+    (workflow_dispatch), nunca en cada merge a main. Evita redeploys
+    espontaneos durante la correccion y mantiene releases versionables."""
+    deploy = (REPO_ROOT / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
+    assert "workflow_dispatch" in deploy
+    assert "workflow_run" not in deploy
+    assert "environment: production" in deploy
+    assert "docker image prune" in deploy

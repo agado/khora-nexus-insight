@@ -39,6 +39,7 @@
 - README: sección "k. Presentación y vídeo demo" con las URLs públicas de las slides y del vídeo explicativo, cumpliendo los requisitos de entrega del TFM.
 - docs/slides.html: sincronizado con la realidad del proyecto — PostgreSQL 16 (era 15) y 269 tests (eran 251).
 - Seguridad (OWASP A05): `/docs`, `/redoc` y `/openapi.json` deshabilitados en producción. `src/main.py` ahora expone `create_app(env)` (factoría que oculta el contrato de la API cuando `NEXUS_ENV=production`) y el `Caddyfile` bloquea esos paths en el edge como defensa en profundidad. +3 tests (272 total).
+- CD agrupado por release: `deploy.yml` pasa a `workflow_dispatch`-only (despliegue manual, nunca en cada merge a `main`) con `environment: production` para gate de aprobación y `docker image prune` tras el deploy para controlar el disco del VPS. +1 test (273 total).
 
 ### Security
 - Request ID tracing (estaba en roadmap post-MVP, ahora implementado).

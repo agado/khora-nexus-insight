@@ -4,7 +4,7 @@
 ![Python 3.13](https://img.shields.io/badge/python-3.13-blue?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)
 ![Docker](https://img.shields.io/badge/docker_compose-single--command-2496ED?logo=docker)
-![Tests](https://img.shields.io/badge/tests-272-green)
+![Tests](https://img.shields.io/badge/tests-273-green)
 ![RAG](https://img.shields.io/badge/RAG-100%25_local-7B1FA2?logo=ollama)
 ![License](https://img.shields.io/badge/license-All_Rights_Reserved-red)
 [![Conventional Commits](https://img.shields.io/badge/conventional%20commits-1.0.0-FE5196?logo=conventionalcommits)](https://conventionalcommits.org)
@@ -485,7 +485,7 @@ graph LR
 |---|---|---|
 | **Lint** | Ruff | Errores de sintaxis, imports no usados, violaciones de estilo |
 | **Formato** | Ruff | Inconsistencias de formato (single source of truth) |
-| **Tests** | Pytest (272 tests) | Regresiones funcionales, cobertura > 70% |
+| **Tests** | Pytest (273 tests) | Regresiones funcionales, cobertura > 70% |
 | **SAST** | Bandit | Hardcoded secrets, SQLi, inyecciones, malas prácticas |
 | **Deps** | pip-audit | CVEs conocidos en dependencias (advertido, no bloqueante) |
 | **Build** | Docker | Verifica que la imagen compila y el Dockerfile es válido |
