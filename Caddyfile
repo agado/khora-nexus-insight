@@ -22,6 +22,13 @@
     }
     respond @bots 403
 
+    # Ocultar el contrato de la API (OWASP A05): el app ya lo deshabilita en
+    # NEXUS_ENV=production; este bloqueo en el edge es defensa en profundidad.
+    @blocked_paths {
+        path /docs* /redoc* /openapi.json*
+    }
+    respond @blocked_paths 404
+
     # Reverse proxy a FastAPI
     reverse_proxy fastapi_app:8000 {
         header_up Host {host}

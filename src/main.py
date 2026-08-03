@@ -44,22 +44,36 @@ async def lifespan(application: FastAPI):
     logger.info("shutdown")
 
 
-app = FastAPI(title="Khora — Nexus Insight", lifespan=lifespan)
+def create_app(env: str | None = None) -> FastAPI:
+    """Crea la aplicacion. En produccion se ocultan /docs, /redoc y /openapi.json
+    (OWASP A05: no exponer el contrato de la API al exterior)."""
+    is_production = (env or settings.nexus_env).lower() == "production"
+    app = FastAPI(
+        title="Khora — Nexus Insight",
+        lifespan=lifespan,
+        docs_url=None if is_production else "/docs",
+        redoc_url=None if is_production else "/redoc",
+        openapi_url=None if is_production else "/openapi.json",
+    )
 
-app.add_middleware(RequestIDMiddleware)
-app.add_middleware(AccessLogMiddleware)
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(RequestIDMiddleware)
+    app.add_middleware(AccessLogMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RateLimitMiddleware)
 
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+    app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
-app.include_router(auth_router)
-app.include_router(documents_router)
-app.include_router(health_router)
-app.include_router(rag_router)
-app.include_router(users_api_router)
-app.include_router(users_web_router)
-app.include_router(web_router)
+    app.include_router(auth_router)
+    app.include_router(documents_router)
+    app.include_router(health_router)
+    app.include_router(rag_router)
+    app.include_router(users_api_router)
+    app.include_router(users_web_router)
+    app.include_router(web_router)
+    return app
+
+
+app = create_app()
 
 
 @app.get("/")
