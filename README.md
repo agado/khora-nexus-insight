@@ -15,11 +15,11 @@ Nexus Insight es un backend de análisis documental inteligente que permite a or
 
 El core del producto es su **Dual-Layer Filtering**: (1) aislamiento departamental estricto por RBAC + Zero-Trust network, y (2) adaptación cognitiva del output según el rol del destinatario (técnico, directivo, PM, legal). Todo sobre un modelo local Qwen2.5 1.5B vía Ollama, sin depender de OpenAI, Anthropic ni ninguna API externa.
 
-**Para quién:** CISO que necesita decir "sí" a la IA sin perder el sueño. PM que quiere traducir documentación técnica en insights estratégicos. Startups que no pueden permitirse costes de API. Universidades que manejan investigación patentable.
+**Para quién:** equipos de seguridad y cumplimiento que necesitan adoptar IA generativa sin fuga de datos, PM que traducen documentación técnica en insights estratégicos, y organizaciones que buscan una GenAI privada, sin costes por token ni dependencia de APIs cloud.
 
 ## a. Descripción general del proyecto
 
-<details> <summary>Descripción para técnicos (por defecto)</summary>
+<details open> <summary>Descripción para técnicos</summary>
 
 Nexus Insight es una plataforma de análisis documental inteligente diseñada bajo el paradigma Zero ‑Trust y una arquitectura monolito modular. Su objetivo es permitir la ingesta, procesamiento e inferencias RAG 100% locales, garantizando que la información confidencial nunca abandone la infraestructura física del cliente.
 
@@ -27,7 +27,7 @@ La IA se ejecuta en un contenedor aislado dentro de una red interna de Docker, c
 
 Puntos clave para técnicos:
 
-Seguridad y soberanía: Arquitectura y ejecución local para máxima privacidad. Las variables de entorno usan el prefijo `NEXUS_` para evitar colisiones con otras aplicaciones.
+Seguridad y soberanía: Arquitectura y ejecución local para máxima privacidad. El entorno se controla con la variable `NEXUS_ENV` (development/production).
 
 Modularidad: Diseño escalable y mantenible.
 
@@ -83,7 +83,7 @@ Facilidad de uso: Plataforma accesible para equipos multidisciplinares.
 
 * Backend: FastAPI (ASGI) sobre Python 3.13.
 * Validación: Pydantic v2 (tipado estricto).
-* Base de datos: PostgreSQL 15 + SQLAlchemy 2.0 (async con asyncpg).
+* Base de datos: PostgreSQL 16 + SQLAlchemy 2.0 (async con asyncpg).
 * IA Local: Ollama ejecutando el modelo qwen2.5:1.5b en contenedor aislado.
 * Infraestructura: Docker + Docker Compose.
 * Automatización: `nexus.py` (MVP).
@@ -104,7 +104,7 @@ Guía completa para poner el proyecto en funcionamiento desde un equipo con las 
 
 0. Clonar el repositorio
 ```bash
-git clone https://github.com/tu-org/nexus-insight.git
+git clone https://github.com/agado/khora-nexus-insight.git
 cd nexus-insight
 ```
 
@@ -147,7 +147,7 @@ pre-commit install --hook-type pre-push
 
 4. Desplegar la infraestructura (API, base de datos, motor de IA)
 
-> También disponible via `python nexus.py dev` en cualquier OS.
+> También disponible vía `python nexus.py dev` en cualquier OS.
 
 <details>
 <summary>Windows (PowerShell 7+)</summary>
@@ -180,21 +180,25 @@ http://localhost:8000/docs
 
 ```text
 nexus-insight/
-├── docker-compose.yml
-├── docker-compose.prod.yml
+├── docker-compose.yml               ← entorno dev (single-command)
+├── docker-compose.prod.yml          ← entorno producción (Caddy + HTTPS)
 ├── Dockerfile
-├── .env
+├── Caddyfile                        ← reverse proxy HTTPS (producción)
 ├── .env.example
 ├── .gitignore
 ├── .pre-commit-config.yaml
-├── pytest.ini
-├── requirements.txt
+├── alembic.ini / pytest.ini / ruff.toml / requirements.txt
+├── nexus.py                         ← CLI de desarrollo y operación
 ├── agents.md
-├── ruff.toml
-├── SECURITY.md                     ← invariantes de seguridad
+├── SECURITY.md                      ← invariantes de seguridad
 ├── SPEC.md
-├── migrations/                     ← migraciones Alembic
+├── migrations/                      ← migraciones Alembic
 │   └── versions/
+├── scripts/                         ← operativa del ciclo de vida
+│   ├── setup-vps.sh                 ← bootstrap idempotente del VPS
+│   ├── deploy.sh                    ← despliegue con pre-flight
+│   └── backup_db.sh                 ← backup diario de PostgreSQL
+├── docs/                            ← documentación complementaria
 ├── src/
 │   ├── main.py                      ← entry point
 │   ├── api/
@@ -211,27 +215,16 @@ nexus-insight/
 │   │   ├── database.py              ← DB engine
 │   │   ├── seed.py                  ← datos de prueba
 │   │   ├── auth/                    ← JWT, RBAC, seguridad
+│   │   ├── middleware/              ← request_id + access log
 │   │   ├── services/                ← use cases (business logic)
 │   │   └── storage/                 ← file I/O
-├── templates/                        ← Jinja2 templates
-│   ├── base.html
-│   ├── login.html
-│   ├── dashboard.html
-│   ├── _upload_form.html
-│   ├── _user_form.html               ← crear usuario con validación pw
-│   ├── _user_list.html
-│   ├── _query_form.html
-│   ├── _query_result.html
-│   └── _document_list.html
+├── templates/                       ← Jinja2 (interfaz web)
 ├── static/
-│   └── css/
-│       └── theme.css
+│   ├── css/theme.css
+│   └── js/main.js
 └── tests/                           ← refleja src/
     ├── conftest.py
-    ├── api/
-    │   └── v1/
-    └── core/
-        └── services/
+    └── test_deployment.py
 ```
 
 ## e. Funcionalidades principales
@@ -358,14 +351,14 @@ flowchart LR
 
 | Usuario | Rol | Departamento | Acceso a departamentos | Contraseña |
 |---|---|---|---|---|
-| `admin` | admin | IT | IT + RRHH + PM | `admin123` |
+| `admin` | admin | IT | Todos los departamentos | `admin123` |
 | `lead_it` | lead | IT | IT | `lead123` |
 | `lead_hr` | lead | RRHH | RRHH | `lead123` |
 | `lead_pm` | lead | PM | PM | `lead123` |
 | `staff_it` | staff | IT | IT | `staff123` |
 | `staff_hr` | staff | RRHH | RRHH | `staff123` |
 | `staff_pm` | staff | PM | PM | `staff123` |
-| **`ceo`** | **admin** | **IT** | **IT + RRHH + PM** | `ceo123` |
+| **`ceo`** | **admin** | **IT** | **Todos los departamentos** | `ceo123` |
 
 Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 
@@ -396,7 +389,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | Código | Objetivo | Criterio de Aceptación |
 |--------|----------|------------------------|
 | **H6.1** ✅ | Alembic funcional + migration trigger inmutable en audit_log | `alembic upgrade head` crea tablas + trigger. Rollback funcional. |
-| **H6.2** ✅ | AuditLog en login/upload/delete + visor Registros en frontend | Login, subida y borrado → fila en audit_logs. Pestaña Registros muestra tabla paginada. |
+| **H6.2** ✅ | AuditLog en login/upload/delete + visor Registros en frontend | Login, subida y borrado → fila en `audit_log`. Pestaña Registros muestra tabla paginada. |
 
 ### H7 — Ciclo de vida documental
 
@@ -406,6 +399,14 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H7.2** ✅ | Documento de acceso general (`is_public`) | Columna. Bypass del filtro departamental en listado + RAG. |
 | **H7.3** ✅ | CRUD usuarios (admin) | Alta/baja/modificación de usuarios desde frontend. API completa. 34 tests. |
 | **H7.4** | Exportar respuesta .txt + CLI query | Descartado por YAGNI (no implementado). La consulta web de H5 incluye copiar respuesta al portapapeles. |
+
+### H8 — Experiencia corporativa
+
+| Código | Objetivo | Criterio de Aceptación |
+|--------|----------|------------------------|
+| **H8.1** ✅ | Mejora visual (tema Pico CSS, logo, tipografía) | Aspecto corporativo, coherente con la marca. 0 inline styles. |
+| **H8.2** ✅ | Adaptación de tono por departamento/stakeholder | Selector de audiencia en consulta. El prompt se adapta automáticamente. |
+| **H8.3** ✅ | Administración de usuarios (web) | Lista, crear, editar, eliminar, resetear contraseña desde pestaña Usuarios. Navegación HTMX dentro del tab. Feedback visual con toasts. Validación OWASP (rol, departamentos accesibles, unicidad). Auditoría de cada acción. |
 
 ### H9 — Seguridad (OWASP)
 
@@ -418,14 +419,6 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **H9.5** ✅ | Magic bytes en subida web | Validación `%PDF` en `POST /web/upload` (idéntico al endpoint API). |
 | **H9.6** ✅ | Error RAG genérico (no exponer internos) | `str(exc)` reemplazado por "Error al procesar la consulta". El error real se loguea. |
 | **H9.7** ✅ | JS extraído a archivo estático | `static/js/main.js` con `let`/`const`. Sin JS inline en templates. |
-
-### H8 — Experiencia corporativa
-
-| Código | Objetivo | Criterio de Aceptación |
-|--------|----------|------------------------|
-| **H8.1** ✅ | Mejora visual (tema Pico CSS, logo, tipografía) | Aspecto corporativo, coherente con la marca. 0 inline styles. |
-| **H8.2** ✅ | Adaptación de tono por departamento/stakeholder | Selector de audiencia en consulta. El prompt se adapta automáticamente. |
-| **H8.3** ✅ | Administración de usuarios (web) | Lista, crear, editar, eliminar, resetear contraseña desde pestaña Usuarios. Navegación HTMX dentro del tab. Feedback visual con toasts. Validación OWASP (rol, departamentos accesibles, unicidad). Auditoría de cada acción. |
 
 ### Post-MVP (Futuro)
 
@@ -460,7 +453,7 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 
 ## i. CI/CD y DevSecOps
 
-El pipeline automatiza calidad, seguridad y despliegue en cada push a `main`. Cinco gates antes de que el código llegue a producción:
+El pipeline aplica calidad, seguridad y despliegue sobre cada push a `main`. Gates antes de que el código llegue a producción:
 
 ```mermaid
 graph LR
@@ -496,7 +489,7 @@ graph LR
 | **SAST** | Bandit | Hardcoded secrets, SQLi, inyecciones, malas prácticas |
 | **Deps** | pip-audit | CVEs conocidos en dependencias (advertido, no bloqueante) |
 | **Build** | Docker | Verifica que la imagen compila y el Dockerfile es válido |
-| **Deploy** | SSH + Docker Compose | Despliegue real verificado en VPS (`https://51.170.44.127.nip.io`). CD automático: requiere configurar los GitHub Secrets del VPS. |
+| **Deploy** | SSH + Docker Compose | Despliegue real verificado en VPS con HTTPS + TLS (Let's Encrypt). |
 
 ### Seguridad en el pipeline (DevSecOps)
 
@@ -563,8 +556,6 @@ pre-commit install --hook-type pre-push  # hook pre-push (tests)
 
 ---
 
----
-
 ## j. Evaluación — Cómo probar el proyecto
 
 ### Opción 1 (recomendada): Docker local
@@ -604,7 +595,7 @@ El único artefacto de configuración del despliegue es `.env` (creado por `setu
 | `PROD_JWT_SECRET` | ✅ | Generar con `openssl rand -base64 48` (≥64 chars). Nunca el placeholder `CHANGE_ME_*`: la app no arranca (fail-closed). |
 | `PROD_DB_PASSWORD` | ✅ | Generar con `openssl rand -base64 32` |
 | `PROD_DB_USER` / `PROD_DB_NAME` | ✅ | Los defaults de la plantilla son válidos (`nexus_db_user` / `nexus_insight_db`) |
-| `SERVER_NAME` | ✅ | Dominio real o `<IP_pública>.sslip.io` (p. ej. `143.198.10.10.sslip.io`). Si queda vacío, Caddy sirve HTTP sin TLS. |
+| `SERVER_NAME` | ✅ | Dominio real o `<IP_pública>.nip.io` (p. ej. `51.170.44.127.nip.io`). Si queda vacío, Caddy sirve HTTP sin TLS. |
 | `PROD_COMPANY_NAME` | opcional | Nombre que aparece en la barra de navegación web |
 | `PROD_JWT_ALGORITHM` / `PROD_JWT_EXPIRATION_MINUTES` | opcional | Defaults: `HS256` / `30` min |
 
@@ -614,7 +605,7 @@ El único artefacto de configuración del despliegue es `.env` (creado por `setu
 
 Recomendado para minimizar riesgos en el arranque en producción:
 
-1. **Cloud-init (opción más segura):** al crear la instancia (Ampere A1, Ubuntu 22.04+), pega el contenido de `scripts/setup-vps.sh` en **Advanced options → Management → Custom cloud-init script** (debe empezar por `#!/usr/bin/env bash`). El bootstrap se ejecuta solo en el primer arranque, como root y **sin depender de tu sesión SSH**.
+1. **Cloud-init (opción más segura):** al crear la instancia (Ubuntu 22.04+, x86_64 o ARM64), pega el contenido de `scripts/setup-vps.sh` en **Advanced options → Management → Custom cloud-init script** (debe empezar por `#!/usr/bin/env bash`). El bootstrap se ejecuta solo en el primer arranque, como root y **sin depender de tu sesión SSH**.
 2. **Si lo ejecutas a mano:** hazlo dentro de `tmux new -s setup` → `sudo bash setup-vps.sh`. `tmux` evita que una caída de la conexión SSH interrumpa el script a medias.
 3. **Recuperación de emergencia:** si por cualquier motivo pierdes SSH, usa **OCI Console → Instancia → Console connection (VNC)**. No requiere puertos abiertos y permite recuperar el acceso.
 4. **Verificación post-bootstrap:** `ufw status` (solo 22/80/443), `docker info`, y probar una **nueva** sesión SSH en otra terminal antes de cerrar la actual.
@@ -637,6 +628,13 @@ Con el despliegue verificado, el primer acceso a la aplicación es:
 ### Opción 4: Demo desplegada (URL para el corrector)
 
 Instancia real de evaluación en Oracle Cloud: `https://51.170.44.127.nip.io`
+
+---
+
+## k. Presentación y vídeo demo
+
+* **Slides:** [`https://agado.github.io/khora-nexus-insight/slides.html`](https://agado.github.io/khora-nexus-insight/slides.html) — presentación pública del proyecto (el archivo también se entrega en `docs/slides.html` del repositorio).
+* **Vídeo explicativo:** [`https://youtu.be/wtJXqm6RAVc`](https://youtu.be/wtJXqm6RAVc) — explicación del proyecto con captura de pantalla del sistema en funcionamiento.
 
 ---
 
