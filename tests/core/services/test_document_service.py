@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.models import Document
 from src.core.services.document_service import (
     DuplicateDocumentError,
+    delete_document,
     get_document_by_id,
     get_documents_by_departments,
     upload_document,
@@ -170,3 +171,34 @@ class TestGetDocumentsByDepartments:
         call_stmt = mock_db.execute.call_args[0][0]
         assert call_stmt._limit == 5
         assert call_stmt._offset == 10
+
+
+class TestDeleteDocument:
+    @pytest.mark.asyncio
+    async def test_deletes_document_in_member_department(self):
+        doc = Document(id=1, filename="a.pdf", department_id=1)
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = doc
+        mock_db = AsyncMock()
+        mock_db.execute.return_value = mock_result
+
+        deleted = await delete_document(mock_db, 1, [1, 2])
+
+        assert deleted is True
+        mock_db.delete.assert_awaited_once_with(doc)
+
+    @pytest.mark.asyncio
+    async def test_cannot_delete_public_document_of_other_department(self):
+        doc = Document(id=5, filename="shared.pdf", department_id=2, is_public=True)
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = doc
+        mock_db = AsyncMock()
+        mock_db.execute.return_value = mock_result
+
+        deleted = await delete_document(mock_db, 5, [1, 3])
+
+        call_stmt = mock_db.execute.call_args[0][0]
+        where_clause = str(call_stmt.whereclause)
+        assert "department_id" in where_clause
+        assert "is_public" not in where_clause
+        assert deleted is True

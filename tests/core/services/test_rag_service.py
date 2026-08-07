@@ -71,6 +71,36 @@ class TestExecuteQuery:
         assert "department_id" in where_clause
 
     @pytest.mark.asyncio
+    async def test_includes_public_docs_outside_department(self, mock_db, user_admin):
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = []
+        mock_result = MagicMock()
+        mock_result.scalars.return_value = mock_scalars
+        mock_db.execute.return_value = mock_result
+
+        user_staff = {**user_admin, "accessible_departments": [2, 3]}
+
+        ollama_response = MagicMock()
+        ollama_response.status_code = 200
+        ollama_response.json.return_value = {"response": "ok"}
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.post.return_value = ollama_response
+            await execute_query(
+                mock_db,
+                "query",
+                [1],
+                user_staff,
+                "http://ollama:11434",
+                "qwen2.5:1.5b",
+            )
+
+        call_stmt = mock_db.execute.call_args[0][0]
+        where_clause = str(call_stmt.whereclause)
+        assert "is_public" in where_clause
+        assert "department_id" in where_clause
+
+    @pytest.mark.asyncio
     async def test_returns_answer_and_context(self, mock_db, user_admin):
         docs = [
             self._make_doc(1, 1, "seguridad: no compartir claves"),

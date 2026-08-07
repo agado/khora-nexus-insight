@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.models import AuditLog, Document
+from src.core.services.document_service import document_access_condition
 
 
 class RagConnectionError(Exception):
@@ -70,21 +71,13 @@ async def execute_query(
 ) -> dict:
     allowed = user.get("accessible_departments", [])
 
+    stmt = select(Document).where(
+        document_access_condition(allowed),
+        Document.content_text.isnot(None),
+    )
     if document_ids:
-        result = await db.execute(
-            select(Document).where(
-                Document.id.in_(document_ids),
-                Document.department_id.in_(allowed),
-                Document.content_text.isnot(None),
-            )
-        )
-    else:
-        result = await db.execute(
-            select(Document).where(
-                Document.department_id.in_(allowed),
-                Document.content_text.isnot(None),
-            )
-        )
+        stmt = stmt.where(Document.id.in_(document_ids))
+    result = await db.execute(stmt)
     docs = list(result.scalars().all())
 
     context_chunks = [d.content_text[:MAX_CONTEXT_CHARS] for d in docs if d.content_text]

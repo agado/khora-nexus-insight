@@ -34,6 +34,14 @@ def _extract_text(content: bytes) -> str | None:
             return None
 
 
+def document_access_condition(department_ids: list[int]):
+    """SQL condition for documents a user may read: own departments plus public shares."""
+    return or_(
+        Document.department_id.in_(department_ids),
+        Document.is_public,
+    )
+
+
 async def upload_document(
     db: AsyncSession,
     filename: str,
@@ -82,10 +90,7 @@ async def get_document_by_id(
         select(Document)
         .where(
             Document.id == document_id,
-            or_(
-                Document.department_id.in_(department_ids),
-                Document.is_public,
-            ),
+            document_access_condition(department_ids),
         )
         .options(selectinload(Document.uploader))
     )
@@ -98,7 +103,13 @@ async def delete_document(
     department_ids: list[int],
     user_id: int | None = None,
 ) -> bool:
-    doc = await get_document_by_id(db, document_id, department_ids)
+    result = await db.execute(
+        select(Document).where(
+            Document.id == document_id,
+            Document.department_id.in_(department_ids),
+        )
+    )
+    doc = result.scalar_one_or_none()
     if doc is None:
         logger.warning(
             "Delete failed: document not found id=%s dept_ids=%s", document_id, department_ids
@@ -118,12 +129,7 @@ async def get_documents_by_departments(
 ) -> list[Document]:
     result = await db.execute(
         select(Document)
-        .where(
-            or_(
-                Document.department_id.in_(department_ids),
-                Document.is_public,
-            )
-        )
+        .where(document_access_condition(department_ids))
         .order_by(Document.created_at.desc())
         .offset(skip)
         .limit(limit)
