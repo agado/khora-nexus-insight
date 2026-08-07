@@ -432,6 +432,11 @@ Jerarquía de roles: `admin` (nivel 3) > `lead` (nivel 2) > `staff` (nivel 1).
 | **Operaciones** | Políticas de retención de datos (limpieza automática). Exportación/importación de documentos y configuraciones. Notificaciones webhook al completar procesos. |
 | **Ingesta** | Procesamiento por lotes (batch upload). Versionado de documentos. Soporte multi-idioma en extracción de texto. |
 | **Cumplimiento** | Reportes automáticos de auditoría (GDPR, SOC2). Dashboards de compliance. Firma electrónica de documentos. |
+| **Multi-tenant (visión)** | Aislamiento a nivel de organización (`tenant_id` en shared schema + middleware Zero-Trust que falla si falta el claim). El enforcement real actual es por departamento (RBAC + M2M `user_department` + filtro en `execute_query`) — el aislamiento interno ya está implementado y verificado. |
+| **Agentes IA** | Pipeline multi-agente: Planner (basado en reglas, conserva el determinismo de las capas pre-IA) → Executor (build) → Reviewer (re-check anti-alucinación). |
+| **Ingesta externa** | Conectores configurables por admin (Confluence, Notion, repos GitHub) asociados a un `department_id` — respetan el mismo filtro RBAC. Ingestión incremental. |
+| **Identidad** | OAuth2 / OIDC para SSO (Google, Active Directory) sobre el bearer JWT actual. |
+| **Pruebas de carga** | Smoke/load testing de rendimiento (latencia, concurrencia, throughput RAG). |
 
 ---
 

@@ -426,6 +426,16 @@ Las respuestas operativas exitosas deben retornar payloads informativos que conf
 * Firmado electrónico de documentos.
 * Versionado de documentos con historial de cambios.
 
+### 10.8 Multi-tenant, Agentes IA y Conectores Externos (visión)
+
+El aislamiento **actual** se implementa por departamento (RBAC + M2M `user_department` + filtro `accessible_departments` en `execute_query`), y es la capa de enforcement real y verificada del sistema. Sobre esa base se definen las siguientes líneas de evolución:
+
+* **Multi-tenant (extensión):** aislamiento a nivel de organización mediante `tenant_id` en shared schema, inyectado por middleware y con `fail-closed` si falta el claim en el JWT. Estrategias: (a) shared-schema + filtro por fila *(la pragmática recomendada)*, (b) schema por tenant, (c) base de datos por tenant. El modelo departamental actual no se sustituye: es la capa de aislamiento interna al tenant.
+* **Agentes IA:** pipeline multi-agente *Planner → Executor → Reviewer*. Un Planner basado en reglas conserva el determinismo de las capas previas a la IA (`temperature=0.0` + `AUDIENCE_MAP` fija), alineado con los invariantes de seguridad del sistema.
+* **Conectores de ingesta externos:** fuentes configurables por administrador (Confluence, Notion, repositorios GitHub) asociadas a un `department_id`, respetando el filtro RBAC existente. Ingestión incremental.
+* **Identidad federada:** OAuth2 / OIDC para SSO (Google, Active Directory) sobre el bearer JWT actual.
+* **Pruebas de carga:** smoke/load testing de rendimiento (latencia, concurrencia, throughput de consultas RAG).
+
 ---
 
 ## Apéndice A: Comandos de inspección
